@@ -12,7 +12,7 @@ type PostWithRelations = Post & {
 export default async function PostsPage() {
   try {
     const posts = await prisma.post.findMany({
-      where: { published: true },
+      where: { published: true, deletedAt: null },
       include: { tags: true, categories: true },
       orderBy: { publishedAt: 'desc' },
     }) as PostWithRelations[]

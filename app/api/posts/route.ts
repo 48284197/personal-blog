@@ -8,6 +8,7 @@ function toSlug(name: string): string {
 export async function GET() {
   try {
     const posts = await prisma.post.findMany({
+      where: { deletedAt: null },
       include: {
         tags: true,
         categories: true,

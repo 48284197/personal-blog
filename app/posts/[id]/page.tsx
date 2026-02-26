@@ -14,7 +14,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const { id } = await params
 
   const post = await prisma.post.findFirst({
-    where: { id, published: true },
+    where: { id: parseInt(id), published: true, deletedAt: null },
     include: { tags: true, categories: true },
   }) as PostWithRelations | null
 

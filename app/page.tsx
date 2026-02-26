@@ -7,19 +7,21 @@ export default async function Home() {
   try {
     const [posts, categories, tags] = await Promise.all([
       prisma.post.findMany({
-        where: { published: true },
+        where: { published: true, deletedAt: null },
         include: { tags: true, categories: true },
         orderBy: { publishedAt: 'desc' },
       }),
       prisma.category.findMany({
+        where: { deletedAt: null },
         include: {
-          _count: { select: { posts: { where: { published: true } } } },
+          _count: { select: { posts: { where: { published: true, deletedAt: null } } } },
         },
         orderBy: { posts: { _count: 'desc' } },
       }),
       prisma.tag.findMany({
+        where: { deletedAt: null },
         include: {
-          _count: { select: { posts: { where: { published: true } } } },
+          _count: { select: { posts: { where: { published: true, deletedAt: null } } } },
         },
         orderBy: { posts: { _count: 'desc' } },
         take: 24,
@@ -188,6 +190,39 @@ export default async function Home() {
                 )}
               </section>
             )}
+
+            {/* ── AI Generations ── */}
+            <section className="mb-14">
+              <div className="flex items-center gap-4 mb-5">
+                <span className="text-xs font-mono text-slate-500 tracking-widest">// AI 产物</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent" />
+                <Link href="/ai-generations" className="text-xs font-mono text-slate-600 hover:text-purple-400 transition-colors">
+                  查看全部 →
+                </Link>
+              </div>
+              <Link href="/ai-generations" className="group block">
+                <div className="p-6 bg-[#0e0e1a] border border-slate-800 hover:border-purple-500/30 transition-all relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-purple-500/40 group-hover:border-purple-400 transition-colors" />
+                  <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-purple-500/40 group-hover:border-purple-400 transition-colors" />
+                  <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-cyan-500/40 group-hover:border-cyan-400 transition-colors" />
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-cyan-500/40 group-hover:border-cyan-400 transition-colors" />
+
+                  <div className="flex items-center gap-3">
+                    <svg className="w-8 h-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <div>
+                      <h3 className="text-sm font-mono font-bold text-slate-200 group-hover:text-purple-400 transition-colors">
+                        AI 产物收藏
+                      </h3>
+                      <p className="text-xs font-mono text-slate-500 mt-1">
+                        收集使用 AI 生成的有趣内容，包括提示词、参数和输出结果
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </section>
 
             {/* ── Tag cloud ── */}
             {tags.length > 0 && (

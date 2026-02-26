@@ -11,8 +11,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const post = await prisma.post.findUnique({
-      where: { id },
+    const post = await prisma.post.findFirst({
+      where: { id: parseInt(id), deletedAt: null },
       include: { tags: true, categories: true },
     })
     if (!post) return NextResponse.json({ error: '文章不存在' }, { status: 404 })
@@ -43,7 +43,7 @@ export async function PATCH(
     }))
 
     const post = await prisma.post.update({
-      where: { id },
+      where: { id: parseInt(id) },
       data: {
         title,
         content,
@@ -70,7 +70,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    await prisma.post.delete({ where: { id } })
+    await prisma.post.update({
+      where: { id: parseInt(id) },
+      data: { deletedAt: new Date() },
+    })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Delete post error:', error)

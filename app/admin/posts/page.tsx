@@ -7,11 +7,11 @@ import { RichTextEditor } from '@/components/rich-text-editor'
 import { Plus, Edit2, Trash2, Save, X, Loader2, FileText, Calendar, ArrowLeft, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import dayjs from 'dayjs'
 
-interface Tag { id: string; name: string }
-interface Category { id: string; name: string }
+interface Tag { id: number; name: string }
+interface Category { id: number; name: string }
 
 interface Post {
-  id: string
+  id: number
   title: string
   slug: string | null
   content: string
@@ -41,7 +41,7 @@ export default function AdminPostsPage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const [form, setForm] = useState<FormData>({
     title: '',
