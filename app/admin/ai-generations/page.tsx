@@ -149,9 +149,7 @@ export default function AdminAiGenerationsPage() {
             <div className="flex items-center gap-4">
               <BackButton className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors" />
               <span className="text-slate-800">|</span>
-              <Link href="/admin/posts" className="text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors">
-                文章管理
-              </Link>
+        
               <span className="text-xs font-mono text-purple-400 tracking-widest">// AI 产物管理</span>
             </div>
             <div className="flex items-center gap-3">
