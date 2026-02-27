@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ImageUpload } from '@/components/image-upload'
 import { RichTextEditor } from '@/components/rich-text-editor'
-import { Plus, Edit2, Trash2, Save, X, Loader2, FileText, Calendar, ArrowLeft, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { BackButton } from '@/components/back-button'
+import { Plus, Edit2, Trash2, Save, X, Loader2, FileText, Calendar, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import dayjs from 'dayjs'
 
 interface Tag { id: number; name: string }
@@ -161,10 +162,7 @@ export default function AdminPostsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors">
-                <ArrowLeft className="w-3.5 h-3.5" />
-                返回博客
-              </Link>
+              <BackButton className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors" />
               <span className="text-slate-800">|</span>
               <span className="text-xs font-mono text-cyan-400 tracking-widest">// 文章管理</span>
             </div>

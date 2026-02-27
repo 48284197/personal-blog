@@ -42,7 +42,7 @@ export function Navbar() {
             ))}
 
             <Link
-              href="/admin/posts"
+              href="/admin"
               className="px-3 py-1.5 text-xs font-mono border border-cyan-500/30 bg-cyan-500/5 text-cyan-500/80 hover:bg-cyan-500/12 hover:border-cyan-500/50 hover:text-cyan-400 transition-all duration-200 tracking-wider"
             >
               管理

@@ -106,9 +106,10 @@ export default async function AiGenerationDetailPage({
                 <CopyButton text={generation.prompt} />
               </div>
               <div className="p-4">
-                <pre className="text-sm font-mono text-slate-300 whitespace-pre-wrap break-words leading-relaxed">
-                  {generation.prompt}
-                </pre>
+                <div
+                  className="text-sm text-slate-300 prose prose-invert prose-sm max-w-none prose-p:leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: generation.prompt }}
+                />
               </div>
             </section>
 
@@ -123,9 +124,10 @@ export default async function AiGenerationDetailPage({
                   <CopyButton text={generation.inputParams} />
                 </div>
                 <div className="p-4">
-                  <pre className="text-xs font-mono text-slate-400 whitespace-pre-wrap break-words">
-                    {generation.inputParams}
-                  </pre>
+                  <div
+                    className="text-xs text-slate-400 prose prose-invert prose-sm max-w-none prose-p:leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: generation.inputParams }}
+                  />
                 </div>
               </section>
             )}
@@ -140,11 +142,10 @@ export default async function AiGenerationDetailPage({
                 <CopyButton text={generation.output} />
               </div>
               <div className="p-4">
-                <div className="prose prose-invert prose-sm max-w-none font-mono">
-                  <pre className="text-sm font-mono text-slate-300 whitespace-pre-wrap break-words leading-relaxed bg-transparent p-0">
-                    {generation.output}
-                  </pre>
-                </div>
+                <div
+                  className="text-sm text-slate-300 prose prose-invert prose-sm max-w-none prose-p:leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: generation.output }}
+                />
               </div>
             </section>
           </div>

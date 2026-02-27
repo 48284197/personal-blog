@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, Edit2, Trash2, Save, X, Loader2, Sparkles, Calendar, ArrowLeft, RefreshCw } from 'lucide-react'
+import { BackButton } from '@/components/back-button'
+import { RichTextEditor } from '@/components/rich-text-editor'
+import { Plus, Edit2, Trash2, Save, X, Loader2, Sparkles, Calendar, RefreshCw } from 'lucide-react'
 import dayjs from 'dayjs'
 
 interface AiGeneration {
@@ -145,10 +147,7 @@ export default function AdminAiGenerationsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors">
-                <ArrowLeft className="w-3.5 h-3.5" />
-                返回博客
-              </Link>
+              <BackButton className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors" />
               <span className="text-slate-800">|</span>
               <Link href="/admin/posts" className="text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors">
                 文章管理
@@ -259,36 +258,33 @@ export default function AdminAiGenerationsPage() {
                 {/* Prompt */}
                 <div>
                   <label className="block text-xs font-mono text-slate-500 mb-1.5 tracking-wider">提示词 (Prompt)</label>
-                  <textarea
-                    value={form.prompt}
-                    onChange={(e) => setForm({ ...form, prompt: e.target.value })}
-                    rows={5}
-                    className="w-full px-3 py-2 bg-[#080810] border border-slate-800 focus:border-cyan-500/50 text-slate-300 font-mono text-sm outline-none transition-colors resize-y placeholder:text-slate-700"
+                  <RichTextEditor
+                    content={form.prompt}
+                    onChange={(html) => setForm({ ...form, prompt: html })}
                     placeholder="输入你使用的提示词..."
+                    minHeight="200px"
                   />
                 </div>
 
                 {/* Input Params */}
                 <div>
                   <label className="block text-xs font-mono text-slate-500 mb-1.5 tracking-wider">输入参数 (可选)</label>
-                  <textarea
-                    value={form.inputParams}
-                    onChange={(e) => setForm({ ...form, inputParams: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-[#080810] border border-slate-800 focus:border-purple-500/50 text-slate-400 font-mono text-xs outline-none transition-colors resize-y placeholder:text-slate-700"
+                  <RichTextEditor
+                    content={form.inputParams}
+                    onChange={(html) => setForm({ ...form, inputParams: html })}
                     placeholder="模型参数、温度设置等 JSON 格式或其他参数..."
+                    minHeight="120px"
                   />
                 </div>
 
                 {/* Output */}
                 <div>
                   <label className="block text-xs font-mono text-slate-500 mb-1.5 tracking-wider">输出结果</label>
-                  <textarea
-                    value={form.output}
-                    onChange={(e) => setForm({ ...form, output: e.target.value })}
-                    rows={8}
-                    className="w-full px-3 py-2 bg-[#080810] border border-slate-800 focus:border-green-500/50 text-slate-300 font-mono text-sm outline-none transition-colors resize-y placeholder:text-slate-700"
+                  <RichTextEditor
+                    content={form.output}
+                    onChange={(html) => setForm({ ...form, output: html })}
                     placeholder="AI 生成的输出内容..."
+                    minHeight="320px"
                   />
                 </div>
               </div>

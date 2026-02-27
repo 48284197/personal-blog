@@ -15,6 +15,11 @@ interface AiGeneration {
 
 export const revalidate = 60
 
+// 从 HTML 中提取纯文本
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+}
+
 async function getAiGenerations(): Promise<AiGeneration[]> {
   const generations = await prisma.aiGeneration.findMany({
     where: { deletedAt: null },
@@ -109,7 +114,8 @@ export default async function AiGenerationsPage() {
                       {/* Preview of prompt */}
                       <p className="text-xs font-mono text-slate-500 line-clamp-2 mb-3">
                         <span className="text-slate-700">提示词:</span>{' '}
-                        {gen.prompt.slice(0, 120)}{gen.prompt.length > 120 ? '...' : ''}
+                        {stripHtml(gen.prompt).slice(0, 120)}
+                        {stripHtml(gen.prompt).length > 120 ? '...' : ''}
                       </p>
 
                       {/* Tags */}

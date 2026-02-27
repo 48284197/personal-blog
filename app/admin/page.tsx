@@ -1,5 +1,8 @@
+'use client'
+
 import Link from 'next/link'
-import { FileText, Sparkles, ArrowLeft } from 'lucide-react'
+import { FileText, Sparkles } from 'lucide-react'
+import { BackButton } from '@/components/back-button'
 
 export default function AdminPage() {
   return (
@@ -10,10 +13,7 @@ export default function AdminPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#080810]/90 backdrop-blur-lg border-b border-cyan-500/15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
-            <Link href="/" className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              返回博客
-            </Link>
+            <BackButton className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors" />
             <span className="text-xs font-mono text-cyan-400 tracking-widest">// 管理后台</span>
           </div>
         </div>
