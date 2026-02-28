@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FileText, Sparkles } from 'lucide-react'
+import { FileText, Sparkles, Users } from 'lucide-react'
 import { BackButton } from '@/components/back-button'
 
 export default function AdminPage() {
@@ -25,7 +25,7 @@ export default function AdminPage() {
             <span className="text-cyan-500">&gt;</span> 管理后台
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Posts Management */}
             <Link
               href="/admin/posts"
@@ -65,6 +65,27 @@ export default function AdminPage() {
               </div>
               <p className="text-xs font-mono text-slate-500">
                 管理 AI 生成的内容、提示词和输出结果
+              </p>
+            </Link>
+
+            {/* Users Management */}
+            <Link
+              href="/admin/users"
+              className="group p-6 bg-[#0e0e1a] border border-slate-800 hover:border-green-500/30 transition-all relative"
+            >
+              <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-slate-700 group-hover:border-green-500/40 transition-colors" />
+              <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-slate-700 group-hover:border-green-500/40 transition-colors" />
+              <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-slate-700 group-hover:border-green-500/40 transition-colors" />
+              <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-slate-700 group-hover:border-green-500/40 transition-colors" />
+
+              <div className="flex items-center gap-3 mb-3">
+                <Users className="w-5 h-5 text-green-500" />
+                <h2 className="text-sm font-mono font-bold text-slate-200 group-hover:text-green-400 transition-colors">
+                  用户管理
+                </h2>
+              </div>
+              <p className="text-xs font-mono text-slate-500">
+                查看用户列表、分配权限与管理员角色
               </p>
             </Link>
           </div>
