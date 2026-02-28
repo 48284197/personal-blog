@@ -16,6 +16,8 @@ model Post {
   coverImage  String?
   published   Boolean    @default(false)
   publishedAt DateTime?
+  authorId    String?
+  author      User?     @relation(fields: [authorId], references: [id])
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   deletedAt   DateTime?
@@ -43,6 +45,19 @@ model Category {
   posts     Post[]
 }
 
+model User {
+  id          String   @id @default(cuid())
+  supabaseId  String   @unique
+  email       String   @unique
+  name        String?
+  avatar      String?
+  canPublish  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+  comics      Comic[]
+}
+
 model AiGeneration {
   id          Int       @id @default(autoincrement())
   title       String
@@ -54,4 +69,17 @@ model AiGeneration {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+}
+
+model Comic {
+  id          String   @id @default(cuid())
+  title       String
+  story       String
+  images      Json
+  model       String
+  style       String
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

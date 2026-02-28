@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 const NAV_LINKS = [
   { href: '/', label: '首页' },
   { href: '/posts', label: '文章' },
+  { href: '/comic', label: 'AI漫画' },
   { href: '/about', label: '关于' },
 ]
 
