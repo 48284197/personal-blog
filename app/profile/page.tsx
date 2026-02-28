@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { Navbar } from '@/components/navbar'
 import { Loader2, Save, LogOut, User } from 'lucide-react'
 
 interface UserProfile {
@@ -74,8 +73,6 @@ export default function ProfilePage() {
     <div className="min-h-screen" style={{ background: '#080810' }}>
       <div className="fixed inset-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
       <div className="fixed inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,212,255,0.07), transparent)' }} />
-
-      <Navbar />
 
       <main className="relative pt-24 pb-16">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">

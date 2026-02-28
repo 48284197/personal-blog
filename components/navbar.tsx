@@ -18,10 +18,11 @@ interface UserInfo {
   isAdmin: boolean
 }
 
+const supabase = createSupabaseBrowserClient()
+
 export function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createSupabaseBrowserClient()
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [loggedIn, setLoggedIn] = useState(false)
@@ -60,7 +61,7 @@ export function Navbar() {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()

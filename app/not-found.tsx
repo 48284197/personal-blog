@@ -1,17 +1,11 @@
 import Link from 'next/link'
-import { Navbar } from '@/components/navbar'
 
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-[#080810] text-slate-100 relative overflow-hidden">
-      {/* Pixel grid background */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(0,212,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
-      {/* Top radial glow */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgba(0,212,255,0.07),transparent)] pointer-events-none" />
-      {/* Bottom-right secondary glow */}
       <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[radial-gradient(ellipse_at_bottom_right,rgba(139,92,246,0.06),transparent)] pointer-events-none" />
-
-      <Navbar />
 
       <main className="relative z-10 pt-28 pb-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

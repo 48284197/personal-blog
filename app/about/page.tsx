@@ -1,5 +1,3 @@
-import { Navbar } from '@/components/navbar'
-
 const skills = [
   {
     category: '前端开发',
@@ -66,8 +64,6 @@ export default function AboutPage() {
       <div className="fixed inset-0 bg-[linear-gradient(rgba(0,212,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgba(0,212,255,0.05),transparent)] pointer-events-none" />
       <div className="fixed bottom-0 right-0 w-[500px] h-[400px] bg-[radial-gradient(ellipse_at_bottom_right,rgba(139,92,246,0.06),transparent)] pointer-events-none" />
-
-      <Navbar />
 
       <main className="relative z-10 pt-28 pb-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">

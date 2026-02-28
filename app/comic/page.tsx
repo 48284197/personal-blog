@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Navbar } from '@/components/navbar'
 import { Loader2, Download, Share2, Sparkles, Image as ImageIcon } from 'lucide-react'
 
 export default function ComicPage() {
@@ -136,8 +135,6 @@ export default function ComicPage() {
           background: 'radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,212,255,0.07), transparent)'
         }}
       />
-
-      <Navbar />
 
       <main className="relative pt-24 pb-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

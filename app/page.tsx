@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import dayjs from 'dayjs'
-import { Navbar } from '@/components/navbar'
 
 export default async function Home() {
   try {
@@ -38,8 +37,6 @@ export default async function Home() {
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgba(0,212,255,0.07),transparent)] pointer-events-none" />
         {/* Bottom-right secondary glow */}
         <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[radial-gradient(ellipse_at_bottom_right,rgba(139,92,246,0.06),transparent)] pointer-events-none" />
-
-        <Navbar />
 
         <main className="relative z-10 pt-28 pb-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -269,7 +266,6 @@ export default async function Home() {
     return (
       <div className="min-h-screen bg-[#080810] relative overflow-hidden">
         <div className="fixed inset-0 bg-[linear-gradient(rgba(0,212,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
-        <Navbar />
         <main className="relative z-10 pt-28 pb-16">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-4xl font-bold text-white font-mono mb-4">欢迎来到我的博客</h1>

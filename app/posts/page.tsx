@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import dayjs from 'dayjs'
 import { Post, Tag, Category } from '@prisma/client'
-import { Navbar } from '@/components/navbar'
 
 type PostWithRelations = Post & {
   tags: Tag[]
@@ -21,8 +20,6 @@ export default async function PostsPage() {
       <div className="min-h-screen bg-[#080810] text-slate-100 relative overflow-hidden">
         <div className="fixed inset-0 bg-[linear-gradient(rgba(0,212,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgba(0,212,255,0.05),transparent)] pointer-events-none" />
-
-        <Navbar />
 
         <main className="relative z-10 pt-24 pb-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -134,7 +131,6 @@ export default async function PostsPage() {
     return (
       <div className="min-h-screen bg-[#080810] relative overflow-hidden">
         <div className="fixed inset-0 bg-[linear-gradient(rgba(0,212,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
-        <Navbar />
         <main className="relative z-10 pt-24 pb-16">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <p className="text-xs font-mono text-slate-400">
