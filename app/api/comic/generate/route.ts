@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { supabase } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { generateComicFromStory } from '@/lib/jimeng'
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
       data: {
         title,
         story,
-        images: result.images,
+        images: result.images as unknown as Prisma.InputJsonValue,
         model: model || 'jimeng-v1.4',
         style: style || 'anime',
         authorId: dbUser.id

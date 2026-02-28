@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Loader2, LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
@@ -33,7 +33,6 @@ export default function LoginPage() {
         if (error) throw error
       }
 
-      // 同步用户到数据库
       await fetch('/api/auth/sync', { method: 'POST' })
 
       router.push(redirect)
@@ -64,7 +63,6 @@ export default function LoginPage() {
       />
 
       <div className="relative w-full max-w-md mx-auto px-4">
-        {/* Logo */}
         <div className="text-center mb-8">
           <a href="/" className="inline-block font-mono font-bold text-lg tracking-wider">
             <span className="text-cyan-500">{'>'}</span>
@@ -73,9 +71,7 @@ export default function LoginPage() {
           </a>
         </div>
 
-        {/* 卡片 */}
         <div className="relative border border-slate-800 bg-[#0e0e1a] p-8">
-          {/* 四角装饰 */}
           <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-cyan-500/40" />
           <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-cyan-500/40" />
           <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-cyan-500/40" />
@@ -155,5 +151,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#080810' }}>
+          <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   )
 }
