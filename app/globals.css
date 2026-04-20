@@ -1,0 +1,120 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+    background:
+      radial-gradient(circle at top left, rgba(125, 211, 252, 0.24), transparent 26%),
+      radial-gradient(circle at top right, rgba(167, 243, 208, 0.18), transparent 24%),
+      radial-gradient(circle at bottom center, rgba(253, 224, 71, 0.08), transparent 22%),
+      linear-gradient(180deg, #f7fbff 0%, #f3fbf7 48%, #eef8ff 100%);
+  }
+
+  body {
+    min-height: 100vh;
+    overflow-y: scroll;
+    background:
+      radial-gradient(circle at top left, rgba(125, 211, 252, 0.24), transparent 26%),
+      radial-gradient(circle at top right, rgba(167, 243, 208, 0.18), transparent 24%),
+      radial-gradient(circle at bottom center, rgba(253, 224, 71, 0.08), transparent 22%),
+      linear-gradient(180deg, #f7fbff 0%, #f3fbf7 48%, #eef8ff 100%);
+    color: #0f172a;
+    font-family:
+      "PingFang SC",
+      "Hiragino Sans GB",
+      "Microsoft YaHei",
+      "Noto Sans SC",
+      system-ui,
+      sans-serif;
+  }
+
+  * {
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  ::selection {
+    background: rgba(34, 197, 94, 0.2);
+    color: #0f172a;
+  }
+
+  @keyframes sheet-rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes sheet-fall {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    to {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+
+  @keyframes overlay-fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes overlay-fade-out {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+}

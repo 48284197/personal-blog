@@ -1,0 +1,377 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  CREATOR
+  ADMIN
+}
+
+enum IdentityKind {
+  CARBON
+  SILICON
+}
+
+enum ModelTone {
+  SERIOUS
+  PLAYFUL
+  HUMOROUS
+  ANALYTICAL
+}
+
+enum ConversationScope {
+  PRIVATE
+  GROUP
+  PUBLIC
+}
+
+enum ContentType {
+  TEXT
+  IMAGE
+  AUDIO
+  FILE
+}
+
+enum TopicStatus {
+  DRAFT
+  LIVE
+  ARCHIVED
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  REVIEW
+  PUBLISHED
+}
+
+enum PublicationType {
+  DIALOGUE
+  CO_CREATE
+  DISCUSSION
+  PK
+}
+
+enum NotificationType {
+  REPLY
+  MENTION
+  LIKE
+  VOTE
+  SYSTEM
+}
+
+model User {
+  id            String          @id @default(cuid())
+  authUserId    String?         @unique
+  email         String?         @unique
+  phone         String?         @unique
+  name          String
+  avatarUrl     String?
+  bio           String?         @db.Text
+  role          UserRole        @default(USER)
+  identityKind  IdentityKind    @default(CARBON)
+  interests     String[]        @default([])
+  strengths     String[]        @default([])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  conversations Conversation[]  @relation("ConversationOwner")
+  topics        Topic[]         @relation("TopicCreator")
+  projects      Project[]       @relation("ProjectOwner")
+  publications  Publication[]   @relation("PublicationAuthor")
+  knowledge     KnowledgeItem[] @relation("KnowledgeAuthor")
+  notifications Notification[]  @relation("NotificationRecipient")
+  modelFavorites FavoriteModel[]
+  conversationParticipants ConversationParticipant[]
+  topicParticipants TopicParticipant[]
+  topicPosts      TopicPost[]
+  projectComments ProjectComment[]
+  projectVotes    ProjectVote[]
+  messages      Message[]
+}
+
+model AiModel {
+  id             String                @id @default(cuid())
+  slug           String                @unique
+  name           String
+  category       String
+  description    String                @db.Text
+  tone           ModelTone             @default(SERIOUS)
+  style          String
+  strengths      String[]              @default([])
+  promptTemplate String?               @db.Text
+  isFeatured     Boolean               @default(false)
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  favorites      FavoriteModel[]
+  participantIn  ConversationParticipant[]
+  topicParticipants TopicParticipant[]
+  topicPosts     TopicPost[]
+  messageStream  Message[]
+  projectDrafts  Project[]             @relation("ProjectModel")
+  projectComments ProjectComment[]
+}
+
+model FavoriteModel {
+  id        String   @id @default(cuid())
+  userId    String
+  modelId   String
+  createdAt DateTime @default(now())
+
+  user  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model AiModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, modelId])
+}
+
+model Conversation {
+  id           String                  @id @default(cuid())
+  title        String
+  scope        ConversationScope      @default(PRIVATE)
+  summary      String?                 @db.Text
+  tags         String[]                @default([])
+  ownerId      String
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  owner        User                    @relation("ConversationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  participantKind IdentityKind
+  userId         String?
+  modelId        String?
+  displayName    String
+  role           String?
+  joinedAt       DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  model          AiModel?     @relation(fields: [modelId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, participantKind])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderKind     IdentityKind
+  userId         String?
+  modelId        String?
+  contentType    ContentType   @default(TEXT)
+  content        String       @db.Text
+  attachments    Json?
+  metadata       Json?
+  editedAt       DateTime?
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  model          AiModel?     @relation(fields: [modelId], references: [id], onDelete: SetNull)
+}
+
+model Topic {
+  id          String         @id @default(cuid())
+  title       String
+  category    String
+  description String       @db.Text
+  status      TopicStatus   @default(LIVE)
+  deadline    DateTime?
+  creatorId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  creator     User          @relation("TopicCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  participants TopicParticipant[]
+  posts       TopicPost[]
+  insights    TopicInsight[]
+}
+
+model TopicParticipant {
+  id          String       @id @default(cuid())
+  topicId     String
+  participantKind IdentityKind
+  userId      String?
+  modelId     String?
+  displayName String
+  joinedAt    DateTime     @default(now())
+
+  topic       Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  model       AiModel?     @relation(fields: [modelId], references: [id], onDelete: SetNull)
+}
+
+model TopicPost {
+  id          String       @id @default(cuid())
+  topicId     String
+  authorKind  IdentityKind
+  userId      String?
+  modelId     String?
+  stance      String?
+  content     String       @db.Text
+  createdAt   DateTime     @default(now())
+
+  topic       Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  model       AiModel?     @relation(fields: [modelId], references: [id], onDelete: SetNull)
+}
+
+model TopicInsight {
+  id          String   @id @default(cuid())
+  topicId     String
+  title       String
+  summary     String   @db.Text
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  title       String
+  category    String
+  description String      @db.Text
+  status      ProjectStatus @default(PLANNING)
+  ownerId     String
+  modelId     String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  model       AiModel?      @relation("ProjectModel", fields: [modelId], references: [id], onDelete: SetNull)
+  versions    ProjectVersion[]
+  comments    ProjectComment[]
+  votes       ProjectVote[]
+  publications Publication[]
+}
+
+model ProjectVersion {
+  id            String   @id @default(cuid())
+  projectId     String
+  content       String   @db.Text
+  changeSummary  String?
+  createdAt     DateTime @default(now())
+
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectComment {
+  id          String       @id @default(cuid())
+  projectId   String
+  authorKind  IdentityKind
+  userId      String?
+  modelId     String?
+  content     String       @db.Text
+  createdAt   DateTime     @default(now())
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  model       AiModel?     @relation(fields: [modelId], references: [id], onDelete: SetNull)
+}
+
+model ProjectVote {
+  id         String   @id @default(cuid())
+  projectId  String
+  userId     String
+  vote       Int
+  createdAt  DateTime @default(now())
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model Publication {
+  id          String          @id @default(cuid())
+  channel     String
+  topic       String?
+  title       String
+  type        PublicationType
+  mediaType   ContentType     @default(TEXT)
+  mediaKind   String
+  mediaOrientation String?
+  mediaLabel  String?
+  mediaDetail String?
+  summary     String        @db.Text
+  content     String        @db.Text
+  coverUrl    String?
+  mediaImages Json?
+  mediaAudio  String?
+  mediaDuration String?
+  mediaSrc    String?
+  authorName  String?
+  authorAvatar String?
+  tags        String[]      @default([])
+  likes       Int           @default(0)
+  comments    Int           @default(0)
+  authorId    String?
+  projectId   String?
+  publishedAt DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  author      User?        @relation("PublicationAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  commentsList PublicationComment[]
+}
+
+model PublicationComment {
+  id             String   @id @default(cuid())
+  publicationId   String
+  authorName     String
+  avatar         String
+  content        String   @db.Text
+  replyToName    String?
+  mentions       String[] @default([])
+  likes          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  publication    Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId, createdAt])
+}
+
+model KnowledgeItem {
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  summary     String   @db.Text
+  content     String   @db.Text
+  tags        String[] @default([])
+  sourceType  String
+  sourceId    String?
+  isPublic    Boolean  @default(true)
+  authorId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User?    @relation("KnowledgeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id          String            @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  body        String          @db.Text
+  actionUrl   String?
+  readAt      DateTime?
+  createdAt   DateTime        @default(now())
+
+  user        User            @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+}
