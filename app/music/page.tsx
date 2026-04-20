@@ -6,6 +6,103 @@ import { Badge, Surface } from '@/components/landing'
 import { Navbar } from '@/components/navbar'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
+/**
+ * 根据歌词内容构建丰富的图片生成提示词
+ */
+function buildImagePromptFromLyrics(params: {
+  title: string
+  theme: string
+  lyricsPreview: string
+  lyrics: string
+}): string {
+  const { title, theme, lyricsPreview, lyrics } = params
+
+  // 从歌词中提取情感关键词
+  const emotionalKeywords = extractEmotionalKeywords(lyrics)
+
+  // 从歌词中提取视觉意象
+  const visualImages = extractVisualImages(lyricsPreview)
+
+  // 构建提示词
+  const promptParts = [
+    // 主体描述
+    `Music album cover artwork for "${title}"`,
+    // 风格定位
+    'professional music album cover design, artistic and evocative',
+    // 情感氛围
+    `mood: ${emotionalKeywords.join(', ')}`,
+    // 视觉元素
+    `visual elements: ${visualImages}`,
+    // 主题背景
+    `inspired by: ${theme}`,
+    // 艺术风格
+    'cinematic lighting, high quality, detailed, atmospheric',
+    // 构图建议
+    'centered composition, suitable for album cover, square format',
+    // 重要：禁止生成任何文字
+    'NO TEXT, NO WORDS, NO LETTERS, NO WATERMARK, clean image without any typography',
+  ]
+
+  return promptParts.join('. ')
+}
+
+/**
+ * 从歌词中提取情感关键词
+ */
+function extractEmotionalKeywords(lyrics: string): string[] {
+  const emotionMap: Record<string, string[]> = {
+    '孤独|寂寞|孤单': ['lonely', 'solitude', 'introspective'],
+    '温柔|温暖|温馨': ['warm', 'gentle', 'tender'],
+    '悲伤|难过|伤心': ['melancholic', 'sad', 'emotional'],
+    '快乐|开心|幸福': ['joyful', 'happy', 'uplifting'],
+    '思念|想念|怀念': ['nostalgic', 'longing', 'wistful'],
+    '梦想|希望|未来': ['dreamy', 'hopeful', 'aspirational'],
+    '夜晚|黑夜|星空': ['nocturnal', 'mysterious', 'ethereal'],
+    '城市|街道|霓虹': ['urban', 'modern', 'contemporary'],
+    '自然|风景|山水': ['natural', 'serene', 'peaceful'],
+    '爱情|恋爱|心动': ['romantic', 'passionate', 'intimate'],
+  }
+
+  const keywords: string[] = []
+  for (const [pattern, emotions] of Object.entries(emotionMap)) {
+    if (new RegExp(pattern, 'i').test(lyrics)) {
+      keywords.push(...emotions)
+    }
+  }
+
+  // 去重并限制数量
+  const unique = [...new Set(keywords)]
+  return unique.length > 0 ? unique.slice(0, 3) : ['atmospheric', 'emotional']
+}
+
+/**
+ * 从歌词预览中提取视觉意象
+ */
+function extractVisualImages(lyricsPreview: string): string {
+  // 常见的视觉意象映射
+  const imageKeywords: Record<string, string> = {
+    '路|街|道': 'winding road, city streets',
+    '灯|光|亮': 'warm lights, glowing ambiance',
+    '雨|泪|水': 'rain drops, water reflections',
+    '风|云|天': 'windy sky, clouds',
+    '星|月|夜': 'starry night, moonlight',
+    '花|树|草': 'flowers, trees, nature',
+    '海|浪|沙': 'ocean waves, beach',
+    '山|河|湖': 'mountains, rivers, lakes',
+    '人|影|身': 'silhouette, human figure',
+    '心|情|感': 'abstract emotional visualization',
+  }
+
+  const images: string[] = []
+  for (const [pattern, visual] of Object.entries(imageKeywords)) {
+    if (new RegExp(pattern, 'i').test(lyricsPreview)) {
+      images.push(visual)
+    }
+  }
+
+  return images.length > 0 ? images.join(', ') : 'abstract artistic interpretation'
+}
+
 type GenerateMusicResult = {
   title: string
   prompt: string
@@ -166,8 +263,29 @@ export default function MusicPage() {
     setError(null)
 
     try {
-      const imagePrompt = `${lyricsStep.data.title}，${theme}`
-      console.log('生成图片请求:', { prompt: imagePrompt })
+      // 构建丰富的图片生成提示词，结合歌词内容
+      const lyrics = lyricsStep.data.lyrics || ''
+      const title = lyricsStep.data.title
+      const lyricsPreview = lyrics
+        .replace(/\[Verse \d*\]|\[Chorus\]|\[Bridge\]|\[Outro\]/gi, '')
+        .split('\n')
+        .filter(line => line.trim())
+        .slice(0, 8)
+        .join(', ')
+      
+      // 提取歌词中的关键意象和情感
+      const imagePrompt = buildImagePromptFromLyrics({
+        title,
+        theme,
+        lyricsPreview,
+        lyrics
+      })
+      
+      console.log('生成图片请求:', { 
+        title,
+        theme,
+        prompt: imagePrompt.substring(0, 100) + '...'
+      })
       
       // 先测试 API 是否可访问
       try {
@@ -344,6 +462,13 @@ export default function MusicPage() {
       const token = session?.access_token
 
       const musicResult = musicStep.data.musicResult
+      
+      // 优先使用 musicResult.audioUrl，如果没有则使用 musicStep.data.audioUrl
+      const audioUrl = musicResult.audioUrl || musicStep.data.audioUrl
+      
+      if (!audioUrl) {
+        throw new Error('音频 URL 不存在，请重新生成音乐')
+      }
 
       const response = await fetch('/api/music/publish', {
         method: 'POST',
@@ -354,7 +479,7 @@ export default function MusicPage() {
         body: JSON.stringify({
           title: lyricsStep?.data?.title || musicResult.title,
           summary: lyricsStep?.data?.prompt || musicResult.prompt,
-          mediaAudio: musicStep.data.audioUrl,
+          mediaAudio: audioUrl,
           coverUrl: imageStep?.data?.imageUrl,
           mediaDuration: musicResult.extraInfo?.music_duration
             ? formatDuration(musicResult.extraInfo.music_duration)
@@ -410,13 +535,11 @@ export default function MusicPage() {
       <div className="relative mx-auto flex w-full max-w-6xl flex-col px-4 pb-16 pt-20 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <Badge tone="violet">music studio</Badge>
+      
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-            音乐工作台 - 分步骤模式
+            音乐工作台
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            每个步骤独立生成，审核满意后再进行下一步
-          </p>
+        
         </div>
 
         {/* Main Grid */}

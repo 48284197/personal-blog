@@ -38,6 +38,8 @@ export async function POST(request: Request) {
     console.log('火山引擎API返回结果:', {
       success: result.success,
       images_count: result.images.length,
+      result:result,
+      
     })
 
     if (!result.success || result.images.length === 0) {
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
     const uploadedImages = await Promise.all(
       result.images.map(async (img, idx) => {
         try {
-          console.log(`上传图片 ${idx}:`, img.url.substring(0, 100))
+          console.log(`上传图片 ${idx}:`, img.url)
           const s3Url = await uploadImageToS3(img.url, `generated-${Date.now()}-${idx}.png`)
           console.log(`图片 ${idx} 上传成功:`, s3Url)
           return {

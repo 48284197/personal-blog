@@ -76,25 +76,42 @@ async function generateLyricsWithDeepSeek(input: MusicWorkflowInput, prompt: str
   const messages: DeepSeekMessage[] = [
     {
       role: 'system',
-      content:
-        '你是专业中文歌词创作 agent。请输出适合音乐生成模型使用的结构化歌词，必须包含如 [Verse]、[Chorus]、[Bridge] 等段落标签；只输出歌词正文，不要解释。',
+      content: `你是一位资深中文歌词创作人，擅长为不同曲风创作有韵律、有情感、有画面感的歌词。
+
+【创作原则】
+1. 韵律感：注意押韵和节奏，让歌词朗朗上口
+2. 情感真挚：避免空洞的辞藻堆砌，表达真实情感
+3. 画面感：用具体的意象和场景，让听众能"看到"歌词
+4. 结构完整：主歌铺垫情绪，副歌爆发高潮，桥段转折升华
+
+【输出格式】
+必须使用标准段落标签：
+[Verse 1] - 主歌第一段，建立故事背景
+[Verse 2] - 主歌第二段，推进情感发展  
+[Chorus] - 副歌，核心情感表达，记忆点
+[Bridge] - 桥段（可选），情绪转折
+[Outro] - 尾声（可选），余韵收束
+
+只输出歌词正文，不要解释、不要标注。`,
     },
     {
       role: 'user',
-      content: [
-        `标题：${input.title}`,
-        `主题：${input.theme}`,
-        `曲风：${input.genre}`,
-        `情绪：${input.mood}`,
-        `场景：${input.scene}`,
-        `补充要求：${input.extraPrompt?.trim() || '无'}`,
-        `音乐提示词：${prompt}`,
-        '要求：',
-        '1. 使用中文歌词。',
-        '2. 至少包含 [Verse] 和 [Chorus]。',
-        '3. 保持画面感和可唱性。',
-        '4. 控制在 16 行左右。',
-      ].join('\n'),
+      content: `请为以下音乐创作一首高质量中文歌词：
+
+【歌曲信息】
+标题：${input.title}
+主题：${input.theme}
+曲风：${input.genre}
+情绪：${input.mood}
+场景：${input.scene}
+
+【创作要求】
+${input.extraPrompt?.trim() || '1. 歌词要有故事性和情感层次\n2. 避免陈词滥调，追求新颖表达\n3. 每段4-6行，总长度适中'}
+
+【参考风格】
+${prompt}
+
+请直接输出带段落标签的歌词：`,
     },
   ]
 

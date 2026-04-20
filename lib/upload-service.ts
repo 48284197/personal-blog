@@ -44,6 +44,39 @@ export async function uploadAudioToS3(
 }
 
 /**
+ * 从 URL 中提取文件扩展名
+ */
+function getExtensionFromUrl(url: string): string {
+  try {
+    const urlObj = new URL(url)
+    const pathname = urlObj.pathname
+    const ext = pathname.split('.').pop()
+    if (ext && ext.match(/^(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+      return ext.toLowerCase()
+    }
+  } catch {
+    // URL 解析失败，忽略
+  }
+  return 'png'
+}
+
+/**
+ * 根据文件扩展名获取 Content-Type
+ */
+function getContentTypeFromExt(ext: string): string {
+  const mimeTypes: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+    svg: 'image/svg+xml',
+  }
+  return mimeTypes[ext.toLowerCase()] || 'image/png'
+}
+
+/**
  * 上传图片文件到 S3
  */
 export async function uploadImageToS3(
@@ -51,6 +84,15 @@ export async function uploadImageToS3(
   fileName: string
 ): Promise<string> {
   try {
+    // 如果是 URL，先下载图片
+    if (typeof imageData === 'string' && imageData.startsWith('http')) {
+      const ext = getExtensionFromUrl(imageData)
+      const contentType = getContentTypeFromExt(ext)
+      // 更新文件名以匹配原始格式
+      const newFileName = fileName.replace(/\.png$/, `.${ext}`)
+      return await uploadFromUrlToS3(imageData, newFileName, contentType)
+    }
+
     // 如果是 data URL，转换为 Buffer
     let buffer: Buffer
     if (typeof imageData === 'string') {
