@@ -5,6 +5,11 @@ export interface ComicOptions {
   style?: string
   ratio?: string
   frames?: number
+  watermark?: boolean
+  prompt?: string
+  image?: string | string[]
+  sequential?: string
+  max_images?: number
 }
 
 export interface ComicImage {
@@ -19,7 +24,191 @@ export interface ComicGenerationResponse {
   comicId?: string
 }
 
-async function generateWithVolcengine(prompt: string, options: ComicOptions = {}): Promise<ComicGenerationResponse> {
+// 定义消息内容类型
+type MessageContent = 
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+
+type ChatMessage = {
+  role: 'user' | 'assistant' | 'system'
+  content: MessageContent[] | string
+}
+
+type ChatRequest = {
+  model: string
+  messages: ChatMessage[]
+  max_tokens?: number
+  temperature?: number
+  stream?: boolean
+  extra_body?: {
+    image_generation?: {
+      aspect_ratio?: string
+      num_images?: number
+      watermark?: boolean
+    }
+  }
+}
+
+async function generateWithSeedream45(prompt: string, options: ComicOptions = {}): Promise<ComicGenerationResponse> {
+  // 使用指定的API密钥
+  const apiKey = process.env.ARK_API_KEY || 'ark-497c8a78-3032-4451-a1a7-8abfd8c87962-5e720'
+  
+  if (!apiKey) {
+    throw new Error('缺少火山引擎方舟API密钥，请配置 ARK_API_KEY')
+  }
+
+  // 使用Ark API图片生成专用端点
+  const host = 'ark.cn-beijing.volces.com'
+  const endpoint = `/api/v3/images/generations`
+
+  // 构建请求体 - 使用标准的images/generations格式
+  const requestBody: any = {
+    model: options.model || 'doubao-seedream-4-5-251128',
+    prompt: prompt,
+    n: options.frames || 1,  // 生成图片数量
+    size: options.ratio ? mapRatioToSize(options.ratio) : '2048x2048',  // 尺寸
+    response_format: 'url'  // 返回URL格式
+  }
+
+  // 如果有参考图，添加image参数（图生图）
+  if (options.image) {
+    if (Array.isArray(options.image)) {
+      // 多张参考图
+      requestBody.image_urls = options.image
+    } else {
+      // 单张参考图
+      requestBody.image = options.image
+    }
+  }
+
+  console.log('Sending request to Ark images/generations API:', {
+    model: requestBody.model,
+    prompt: prompt.substring(0, 50) + '...',
+    n: requestBody.n,
+    size: requestBody.size,
+    hasImages: !!options.image
+  })
+
+  const response = await fetch(`https://${host}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+    // 添加超时设置
+    signal: AbortSignal.timeout(120000) // 120秒超时（图片生成较慢）
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Seedream 4.5 API错误: ${response.status} - ${errorText}`)
+  }
+
+  const data = await response.json()
+
+  if (data.error) {
+    throw new Error(`API错误: ${data.error.message || '未知错误'}`)
+  }
+
+  // 解析images/generations响应格式
+  // 标准格式: { data: [{ url: "..." }, { url: "..." }], created: timestamp }
+  const images: ComicImage[] = []
+  
+  // images/generations API返回data数组
+  if (data.data && Array.isArray(data.data)) {
+    data.data.forEach((item: any, index: number) => {
+      if (item.url) {
+        images.push({
+          url: item.url,
+          description: prompt,
+          frame: index + 1
+        })
+      }
+    })
+  }
+  
+  // 备用：也检查其他可能的格式
+  if (images.length === 0 && data.images && Array.isArray(data.images)) {
+    data.images.forEach((item: any, index: number) => {
+      const url = typeof item === 'string' ? item : item.url
+      if (url) {
+        images.push({
+          url: url,
+          description: prompt,
+          frame: index + 1
+        })
+      }
+    })
+  }
+
+  if (images.length === 0) {
+    console.warn('未找到生成的图片，原始响应:', JSON.stringify(data, null, 2))
+    throw new Error('图片生成成功但未获取到图片URL')
+  }
+
+  console.log('Successfully extracted images:', images.length)
+
+  return {
+    success: true,
+    images,
+    comicId: data.id || `seedream45_${Date.now()}`
+  }
+}
+
+// 将比例转换为Seedream 4.5支持的尺寸
+// Seedream 4.5要求至少3686400像素 (相当于2048x2048或更高)
+function mapRatioToSize(ratio: string): string {
+  const ratioMap: Record<string, string> = {
+    '1:1': '2048x2048',     // 4,194,304 pixels ✓
+    '4:3': '2048x1536',     // 3,145,728 pixels ✗ (太小)
+    '3:4': '1536x2048',     // 3,145,728 pixels ✗ (太小)
+    '16:9': '2048x1152',    // 2,359,296 pixels ✗ (太小)
+    '9:16': '1152x2048',    // 2,359,296 pixels ✗ (太小)
+    '3:2': '2048x1365',     // 2,799,360 pixels ✗ (太小)
+    '2:3': '1365x2048',     // 2,799,360 pixels ✗ (太小)
+    '21:9': '2048x880'      // 1,802,240 pixels ✗ (太小)
+  }
+  
+  // 对于不满足最小像素要求的比例，使用2K分辨率并调整
+  const minPixels = 3686400
+  const defaultSize = '2048x2048'
+  
+  // 计算每个尺寸的像素数，如果不够则使用更大的尺寸
+  const size = ratioMap[ratio] || defaultSize
+  const [width, height] = size.split('x').map(Number)
+  const pixels = width * height
+  
+  if (pixels < minPixels) {
+    // 对于非1:1的比例，使用更大的分辨率来满足最小像素要求
+    console.warn(`Size ${size} (${pixels} pixels) is below minimum requirement (${minPixels} pixels), using larger size`)
+    
+    // 根据比例计算合适的尺寸
+    switch (ratio) {
+      case '16:9':
+        return '2560x1440'  // 3,686,400 pixels ✓ (2K 16:9)
+      case '9:16':
+        return '1440x2560'  // 3,686,400 pixels ✓ (2K 9:16)
+      case '4:3':
+        return '2400x1800'  // 4,320,000 pixels ✓
+      case '3:4':
+        return '1800x2400'  // 4,320,000 pixels ✓
+      case '3:2':
+        return '2400x1600'  // 3,840,000 pixels ✓
+      case '2:3':
+        return '1600x2400'  // 3,840,000 pixels ✓
+      case '21:9':
+        return '3200x1372'  // 4,390,400 pixels ✓ (满足最小要求)
+      default:
+        return defaultSize
+    }
+  }
+  
+  return size
+}
+
+// 保留旧版本API作为备用
+async function generateWithLegacyVolcengine(prompt: string, options: ComicOptions = {}): Promise<ComicGenerationResponse> {
   const accessKeyId = process.env.VOLCENGINE_ACCESS_KEY_ID
   const secretKey = process.env.VOLCENGINE_SECRET_KEY
 
@@ -47,7 +236,7 @@ async function generateWithVolcengine(prompt: string, options: ComicOptions = {}
     body: JSON.stringify({
       req_key: 'jimeng_t2i_v40',
       prompt: prompt,
-      model: options.model || 'jimeng-4-0',
+      model: options.model || 'doubao-seedream-4-5-251128',
       style: options.style || 'anime',
       aspect_ratio: options.ratio || '16:9',
       image_num: options.frames || 1,
@@ -190,7 +379,7 @@ async function waitForTaskCompletion(
             if (typeof value === 'string') {
               if (
                 /^https?:\/\//.test(value) &&
-                (/\.(png|jpg|jpeg|webp|gif|bmp)/i.test(value) || value.includes('volcengine'))
+                (/(\.(png|jpg|jpeg|webp|gif|bmp))/i.test(value) || value.includes('volcengine'))
               ) {
                 imageUrl = value
                 break
@@ -232,7 +421,18 @@ async function waitForTaskCompletion(
 }
 
 export async function generateComicImage(prompt: string, options: ComicOptions = {}): Promise<ComicGenerationResponse> {
-  return generateWithVolcengine(prompt, options)
+  // 使用Seedream 4.5 API
+  try {
+    return await generateWithSeedream45(prompt, options)
+  } catch (seedreamError) {
+    console.warn('Seedream 4.5 API调用失败，尝试使用旧版本API:', seedreamError)
+    try {
+      return await generateWithLegacyVolcengine(prompt, options)
+    } catch (legacyError) {
+      console.error('旧版本API也调用失败:', legacyError)
+      throw new Error(`图片生成失败。Seedream 4.5 API错误: ${seedreamError instanceof Error ? seedreamError.message : String(seedreamError)}；旧版本API错误: ${legacyError instanceof Error ? legacyError.message : String(legacyError)}`)
+    }
+  }
 }
 
 export async function parseStoryToScenes(story: string): Promise<Array<{ frame: number, description: string, prompt: string }>> {

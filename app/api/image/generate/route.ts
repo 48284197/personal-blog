@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     
     // 使用火山引擎的官方 API
     const result = await generateComicImage(prompt.trim(), {
-      model: 'jimeng-4-0',
+      model: 'doubao-seedream-4-5-251128',
       style: 'general', // 通用风格
       ratio: width && height ? `${width}:${height}` : '1:1',
       frames: num_images || 1,
