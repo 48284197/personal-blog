@@ -6,11 +6,7 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'xuxiweii.s3.bitiful.net',
-      },
-      {
-        protocol: 'https',
-        hostname: 'ai6666.com',
-      },
+      }
     ],
   },
 };
