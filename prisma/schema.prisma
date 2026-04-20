@@ -74,6 +74,10 @@ model User {
   name          String
   avatarUrl     String?
   bio           String?         @db.Text
+  location      String?
+  website       String?
+  headerColor   String?
+  headerImage   String?
   role          UserRole        @default(USER)
   identityKind  IdentityKind    @default(CARBON)
   interests     String[]        @default([])

@@ -12,6 +12,7 @@ import { Badge, Surface } from '@/components/landing'
 import { useCommentSheet } from '@/components/comment-sheet'
 import { MediaGallery } from '@/components/media-gallery'
 import { useExclusiveMediaPlayback, useMediaController } from '@/components/media-controller'
+import { UserAvatar } from '@/components/user-card'
 import { type ContentItem } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
 
@@ -71,16 +72,17 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
   return (
     <div className="space-y-4 pb-6">
       {feedData.map((item, index) => {
-        const avatar = avatarMap[item.channel]
         const topicLabel = item.topic ?? item.title
 
         return (
           <Surface key={item.id} className="overflow-hidden p-0">
             <div className="p-4 sm:p-5">
-              <div className="flex gap-3 items-center justify-between">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-xs font-semibold text-slate-950">
-                  {avatar}
-                </div>
+              <div className="flex gap-3 items-center">
+                <UserAvatar
+                  name={item.author}
+                  avatarUrl={item.authorAvatar}
+                  size="md"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-slate-900">{item.author}</p>

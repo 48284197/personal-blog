@@ -79,6 +79,7 @@ function toContentItem(publication: {
     title: publication.title,
     summary: publication.summary,
     author: publication.authorName ?? '平台编辑',
+    authorAvatar: publication.authorAvatar ?? undefined,
     tags: publication.tags ?? [],
     likes: publication.likes ?? 0,
     comments: publication.comments ?? publication.commentsList?.length ?? 0,

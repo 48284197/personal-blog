@@ -34,11 +34,18 @@ export async function generateMusicTrack(input: MusicWorkflowInput): Promise<Mus
   const workflow = buildMusicWorkflow(input)
   const isInstrumental = input.vocalMode === 'instrumental'
 
-  const lyrics = isInstrumental
-    ? ''
-    : input.lyricsMode === 'manual'
-      ? normalizeLyrics(input.manualLyrics ?? '')
-      : await generateLyricsWithDeepSeek(input, prompt)
+  let lyrics = ''
+  let generatedTitle = input.title.trim()
+
+  if (!isInstrumental) {
+    if (input.lyricsMode === 'manual') {
+      lyrics = normalizeLyrics(input.manualLyrics ?? '')
+    } else {
+      const result = await generateLyricsWithDeepSeek(input, prompt)
+      lyrics = result.lyrics
+      generatedTitle = result.title
+    }
+  }
 
   if (!isInstrumental && !lyrics.trim()) {
     throw new Error('当前为有人声模式，但没有可用歌词。请补充手动歌词或配置 DeepSeek。')
@@ -51,7 +58,7 @@ export async function generateMusicTrack(input: MusicWorkflowInput): Promise<Mus
   })
 
   return {
-    title: input.title.trim(),
+    title: generatedTitle,
     prompt,
     lyrics,
     audioUrl: miniMaxResponse.audioUrl,
@@ -63,7 +70,7 @@ export async function generateMusicTrack(input: MusicWorkflowInput): Promise<Mus
   }
 }
 
-async function generateLyricsWithDeepSeek(input: MusicWorkflowInput, prompt: string) {
+async function generateLyricsWithDeepSeek(input: MusicWorkflowInput, prompt: string): Promise<{ title: string; lyrics: string }> {
   const apiKey = process.env.DEEPSEEK_API_KEY
 
   if (!apiKey) {
@@ -85,21 +92,25 @@ async function generateLyricsWithDeepSeek(input: MusicWorkflowInput, prompt: str
 4. 结构完整：主歌铺垫情绪，副歌爆发高潮，桥段转折升华
 
 【输出格式】
-必须使用标准段落标签：
+必须按以下格式输出：
+
+【标题】
+歌曲标题（4-8个字，有诗意，符合主题）
+
+【歌词】
 [Verse 1] - 主歌第一段，建立故事背景
 [Verse 2] - 主歌第二段，推进情感发展  
 [Chorus] - 副歌，核心情感表达，记忆点
 [Bridge] - 桥段（可选），情绪转折
 [Outro] - 尾声（可选），余韵收束
 
-只输出歌词正文，不要解释、不要标注。`,
+只输出标题和歌词，不要解释。`,
     },
     {
       role: 'user',
       content: `请为以下音乐创作一首高质量中文歌词：
 
 【歌曲信息】
-标题：${input.title}
 主题：${input.theme}
 曲风：${input.genre}
 情绪：${input.mood}
@@ -111,7 +122,7 @@ ${input.extraPrompt?.trim() || '1. 歌词要有故事性和情感层次\n2. 避�
 【参考风格】
 ${prompt}
 
-请直接输出带段落标签的歌词：`,
+请按格式输出标题和歌词：`,
     },
   ]
 
@@ -140,7 +151,9 @@ ${prompt}
     throw new Error('DeepSeek 未返回可用歌词内容。')
   }
 
-  return normalizeLyrics(content)
+  // 解析标题和歌词
+  const parsed = parseLyricsWithTitle(content)
+  return parsed
 }
 
 async function generateMusicWithMiniMax({
@@ -236,6 +249,54 @@ function normalizeLyrics(value: string) {
     .replace(/```[\w-]*\n?/g, '')
     .replace(/```/g, '')
     .trim()
+}
+
+/**
+ * 解析包含标题和歌词的文本
+ * 格式：【标题】xxx 【歌词】xxx
+ */
+function parseLyricsWithTitle(content: string): { title: string; lyrics: string } {
+  // 尝试匹配【标题】格式
+  const titleMatch = content.match(/【标题】\s*\n?([^\n【]+)/)
+  const lyricsMatch = content.match(/【歌词】\s*\n?([\s\S]+)/)
+
+  if (titleMatch && lyricsMatch) {
+    return {
+      title: titleMatch[1].trim(),
+      lyrics: lyricsMatch[1].trim(),
+    }
+  }
+
+  // 尝试匹配 "标题：" 或 "Title:" 格式
+  const altTitleMatch = content.match(/(?:标题|Title)[:：]\s*\n?([^\n]+)/i)
+  if (altTitleMatch) {
+    // 移除标题行，剩余为歌词
+    const lines = content.split('\n')
+    const titleLineIndex = lines.findIndex(line => /(?:标题|Title)[:：]/i.test(line))
+    const lyrics = lines
+      .slice(titleLineIndex + 1)
+      .join('\n')
+      .trim()
+    return {
+      title: altTitleMatch[1].trim(),
+      lyrics: lyrics || content,
+    }
+  }
+
+  // 如果都没有匹配到，尝试第一行作为标题
+  const lines = content.split('\n').filter(line => line.trim())
+  if (lines.length > 1 && lines[0].length < 20) {
+    return {
+      title: lines[0].trim(),
+      lyrics: lines.slice(1).join('\n').trim(),
+    }
+  }
+
+  // 默认返回
+  return {
+    title: '未命名歌曲',
+    lyrics: content,
+  }
 }
 
 function findAudioUrl(data: unknown): string | undefined {
