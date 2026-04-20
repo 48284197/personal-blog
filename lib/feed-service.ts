@@ -52,6 +52,7 @@ function toContentItem(publication: {
   mediaDetail: string | null
   mediaDuration: string | null
   mediaAudio: string | null
+  coverUrl: string | null
   mediaSrc: string | null
   mediaImages: Prisma.JsonValue | null
   publishedAt?: Date
@@ -85,7 +86,7 @@ function toContentItem(publication: {
     mediaLabel: publication.mediaLabel ?? '',
     mediaDetail: publication.mediaDetail ?? '',
     musicDuration: publication.mediaDuration ?? undefined,
-    musicCover: publication.mediaAudio ? publication.mediaAudio : undefined,
+    musicCover: publication.coverUrl ?? undefined,
     musicAudio: publication.mediaAudio ?? undefined,
     mediaImages: normalizeJsonArray(publication.mediaImages),
     mediaSrc: publication.mediaSrc ?? undefined,
@@ -174,6 +175,7 @@ export async function listFeedItems() {
     mediaDetail: record.mediaDetail,
     mediaDuration: record.mediaDuration,
     mediaAudio: record.mediaAudio,
+    coverUrl: record.coverUrl,
     mediaSrc: record.mediaSrc,
     mediaImages: record.mediaImages as Prisma.JsonValue | null,
   }))

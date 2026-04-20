@@ -488,6 +488,7 @@ function MusicCard({
             className="group relative aspect-square w-full overflow-hidden rounded-[16px] bg-slate-100 shadow-sm sm:h-[140px] sm:w-[140px] sm:flex-none sm:shrink-0"
           >
             {musicCover ? (
+              
               <Image
                 src={musicCover}
                 alt={title}

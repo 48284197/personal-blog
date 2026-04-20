@@ -263,51 +263,49 @@ export default function MusicPage() {
     setError(null)
 
     try {
-      // 构建丰富的图片生成提示词，结合歌词内容
       const lyrics = lyricsStep.data.lyrics || ''
       const title = lyricsStep.data.title
-      const lyricsPreview = lyrics
-        .replace(/\[Verse \d*\]|\[Chorus\]|\[Bridge\]|\[Outro\]/gi, '')
-        .split('\n')
-        .filter(line => line.trim())
-        .slice(0, 8)
-        .join(', ')
-      
-      // 提取歌词中的关键意象和情感
-      const imagePrompt = buildImagePromptFromLyrics({
-        title,
-        theme,
-        lyricsPreview,
-        lyrics
+
+      // 步骤1：使用 DeepSeek 生成优化的图片提示词
+      console.log('正在使用 DeepSeek 生成图片提示词...')
+      const promptResponse = await fetch('/api/image/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          theme,
+          lyrics,
+        }),
       })
-      
-      console.log('生成图片请求:', { 
-        title,
-        theme,
-        prompt: imagePrompt.substring(0, 100) + '...'
-      })
-      
-      // 先测试 API 是否可访问
-      try {
-        const testResponse = await fetch('/api/image/generate', {
-          method: 'GET',
-        })
-        console.log('API 测试响应:', await testResponse.json())
-      } catch (testError) {
-        console.error('API 测试失败:', testError)
-        throw new Error('无法连接到图片生成服务，请确保开发服务器正在运行')
+
+      if (!promptResponse.ok) {
+        const errorData = await promptResponse.json()
+        throw new Error(errorData.message || '生成图片提示词失败')
       }
 
+      const promptData = await promptResponse.json() as {
+        prompt: string
+        originalPrompt: string
+      }
+      
+      const imagePrompt = promptData.prompt
+      
+      console.log('DeepSeek 生成的提示词:', {
+        original: promptData.originalPrompt.substring(0, 100) + '...',
+        cleaned: imagePrompt.substring(0, 100) + '...',
+      })
+      
+      // 步骤2：使用生成的提示词生成图片
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60秒超时
+      const timeoutId = setTimeout(() => controller.abort(), 120000) // 120秒超时
 
       const response = await fetch('/api/image/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: imagePrompt,
-          width: 768,
-          height: 768,
+          width: 1024,
+          height: 1024,
           num_images: 1,
         }),
         signal: controller.signal,
