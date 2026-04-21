@@ -7,6 +7,7 @@ import { Navbar } from '@/components/navbar'
 import { Surface, Badge } from '@/components/landing'
 import { UserAvatar } from '@/components/user-card'
 import { MediaGallery } from '@/components/media-gallery'
+import { ShareModal } from '@/components/share-modal'
 import { cn } from '@/lib/utils'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem, CommentItem } from '@/lib/site-data'
@@ -21,6 +22,7 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [replyTo, setReplyTo] = useState<string | null>(null)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
 
   // 获取内容详情
   useEffect(() => {
@@ -290,7 +292,7 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
                   <MessageCircle className="h-4 w-4" />
                   {content.comments}
                 </span>
-                <button type="button" className="inline-flex items-center gap-1.5 transition hover:text-slate-600">
+                <button type="button" onClick={() => setShareModalOpen(true)} className="inline-flex items-center gap-1.5 transition hover:text-slate-600">
                   <Share2 className="h-4 w-4" />
                   分享
                 </button>
@@ -375,6 +377,13 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </Surface>
       </div>
+
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        title={content?.title || ''}
+        url={typeof window !== 'undefined' ? `${window.location.origin}/content/${id}` : ''}
+      />
     </main>
   )
 }

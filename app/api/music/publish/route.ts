@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getRequestUser } from '@/lib/auth'
+import { triggerAiComments } from '@/lib/ai-comment-service'
 
 const publishMusicSchema = z.object({
   title: z.string().min(1),
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
         mediaType: 'AUDIO',
         mediaKind: 'music',
         summary,
-        content: content || '', // 正文为空字符串，不自动填充
+        content: content || '',
         mediaAudio,
         coverUrl,
         mediaDuration,
@@ -78,6 +79,9 @@ export async function POST(request: NextRequest) {
         publishedAt: new Date(),
       },
     })
+
+    // 触发 AI 评论
+    void triggerAiComments(publication.id)
 
     return NextResponse.json({
       success: true,

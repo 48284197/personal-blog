@@ -5,6 +5,7 @@ import {
   type ContentChannelKey,
   type ContentItem,
 } from '@/lib/site-data'
+import { triggerAiComments } from '@/lib/ai-comment-service'
 
 export type FeedItemInput = {
   channel: ContentChannelKey
@@ -239,6 +240,8 @@ export async function createFeedItem(input: FeedItemInput) {
       coverUrl: input.mediaType === 'image' ? input.mediaSrc ?? input.mediaImages?.[0] ?? null : null,
     },
   })
+
+  void triggerAiComments(record.id)
 
   return toContentItem({
     ...record,

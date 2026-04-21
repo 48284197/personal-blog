@@ -7,10 +7,13 @@ import {
   Play,
   Share2,
   Flame,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react'
 import { Badge, Surface } from '@/components/landing'
 import { useCommentSheet } from '@/components/comment-sheet'
 import { MediaGallery } from '@/components/media-gallery'
+import { ShareModal } from '@/components/share-modal'
 import { useExclusiveMediaPlayback, useMediaController } from '@/components/media-controller'
 import { UserAvatar } from '@/components/user-card'
 import { type ContentItem } from '@/lib/site-data'
@@ -72,8 +75,8 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
   const { openComments } = useCommentSheet()
   const [feedData, setFeedData] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
-  // 存储每个内容的点赞状态 { [id]: { liked: boolean, likes: number } }
   const [likeStates, setLikeStates] = useState<Record<string, { liked: boolean; likes: number }>>({})
+  const [shareModal, setShareModal] = useState<{ isOpen: boolean; item: ContentItem | null }>({ isOpen: false, item: null })
 
   useEffect(() => {
     let cancelled = false
@@ -199,112 +202,123 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
   }, [feedData])
 
   return (
-    <div className="space-y-4 pb-6">
-      {feedData.map((item, index) => {
-        const topicLabel = item.topic ?? item.title
+    <>
+      <div className="space-y-4 pb-6">
+        {feedData.map((item, index) => {
+          const topicLabel = item.topic ?? item.title
 
-        return (
-          <Surface key={item.id} className="overflow-hidden p-0">
-            <div className="p-4 sm:p-5">
-              <div className="flex gap-3 items-center">
-                <UserAvatar
-                  name={item.author}
-                  avatarUrl={item.authorAvatar}
-                  size="md"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{item.author}</p>
-                  </div>
-                  {item.publishedAt && (
-                    <p className="text-xs text-slate-400 mt-0.5">{item.publishedAt}</p>
-                  )}
-                </div>
-              </div>
-
-             {item.summary ? <p className="mt-3 text-[14px] leading-6 text-slate-700">{item.summary}</p> : null}
-            </div>
-
-            <MediaPanel
-              mediaType={item.mediaType}
-              title={item.title}
-              label={item.mediaLabel}
-              detail={item.mediaDetail}
-              orientation={item.mediaOrientation}
-              musicDuration={item.musicDuration}
-              musicCover={item.musicCover}
-              musicAudio={item.musicAudio}
-              tags={item.tags}
-              images={item.mediaImages}
-              src={item.mediaSrc}
-              mediaId={`${item.mediaType}-${item.id}`}
-            />
-
-            <div className="px-4 py-3 sm:px-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-slate-400">
-                <div className="flex flex-wrap items-center gap-5">
-                  <button
-                    type="button"
-                    onClick={() => handleLike(item.id)}
-                    className={cn(
-                      "relative inline-flex items-center gap-1.5 transition active:scale-75",
-                      likeStates[item.id]?.liked
-                        ? "text-rose-500 hover:text-rose-600"
-                        : "hover:text-slate-600"
+          return (
+            <Surface key={item.id} className="overflow-hidden p-0">
+              <div className="p-4 sm:p-5">
+                <div className="flex gap-3 items-center">
+                  <UserAvatar
+                    name={item.author}
+                    avatarUrl={item.authorAvatar}
+                    size="md"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">{item.author}</p>
+                    </div>
+                    {item.publishedAt && (
+                      <p className="text-xs text-slate-400 mt-0.5">{item.publishedAt}</p>
                     )}
-                  >
-                    <span className={cn(
-                      "relative inline-flex",
-                      likeStates[item.id]?.liked && animatingLike === item.id && "animate-heartbeat"
-                    )}>
-                      <Heart
-                        className={cn(
-                          "h-4 w-4 transition-all duration-300",
-                          likeStates[item.id]?.liked && "fill-current scale-110"
-                        )}
-                      />
-                      <LikeParticles
-                        active={likeStates[item.id]?.liked && animatingLike === item.id}
-                        onComplete={() => setAnimatingLike(null)}
-                      />
-                    </span>
-                    <span className={cn(
-                      "transition-all duration-300 font-medium",
-                      likeStates[item.id]?.liked && "text-rose-500"
-                    )}>
-                      {likeStates[item.id]?.likes ?? item.likes}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openComments({
-                        id: item.id,
-                        title: item.title,
-                        summary: item.summary,
-                        author: item.author,
-                        comments: item.comments,
-                        channel: item.channel,
-                        commentPreview: item.commentPreview,
-                        onCommentCountChange: (nextCount) => handleCommentCountChange(item.id, nextCount),
-                      })
-                    }
-                    className="inline-flex items-center gap-1.5 transition hover:text-slate-600"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    {item.comments}
-                  </button>
-                  <button type="button" className="inline-flex items-center gap-1.5 transition hover:text-slate-600">
-                    <Share2 className="h-4 w-4" />
-                    分享
-                  </button>
+                  </div>
+                </div>
+
+               {item.summary ? <p className="mt-3 text-[14px] leading-6 text-slate-700">{item.summary}</p> : null}
+              </div>
+
+              <MediaPanel
+                mediaType={item.mediaType}
+                title={item.title}
+                label={item.mediaLabel}
+                detail={item.mediaDetail}
+                orientation={item.mediaOrientation}
+                musicDuration={item.musicDuration}
+                musicCover={item.musicCover}
+                musicAudio={item.musicAudio}
+                tags={item.tags}
+                images={item.mediaImages}
+                src={item.mediaSrc}
+                mediaId={`${item.mediaType}-${item.id}`}
+              />
+
+              <div className="px-4 py-3 sm:px-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-slate-400">
+                  <div className="flex flex-wrap items-center gap-5">
+                    <button
+                      type="button"
+                      onClick={() => handleLike(item.id)}
+                      className={cn(
+                        "relative inline-flex items-center gap-1.5 transition active:scale-75",
+                        likeStates[item.id]?.liked
+                          ? "text-rose-500 hover:text-rose-600"
+                          : "hover:text-slate-600"
+                      )}
+                    >
+                      <span className={cn(
+                        "relative inline-flex",
+                        likeStates[item.id]?.liked && animatingLike === item.id && "animate-heartbeat"
+                      )}>
+                        <Heart
+                          className={cn(
+                            "h-4 w-4 transition-all duration-300",
+                            likeStates[item.id]?.liked && "fill-current scale-110"
+                          )}
+                        />
+                        <LikeParticles
+                          active={likeStates[item.id]?.liked && animatingLike === item.id}
+                          onComplete={() => setAnimatingLike(null)}
+                        />
+                      </span>
+                      <span className={cn(
+                        "transition-all duration-300 font-medium",
+                        likeStates[item.id]?.liked && "text-rose-500"
+                      )}>
+                        {likeStates[item.id]?.likes ?? item.likes}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openComments({
+                          id: item.id,
+                          title: item.title,
+                          summary: item.summary,
+                          author: item.author,
+                          comments: item.comments,
+                          channel: item.channel,
+                          commentPreview: item.commentPreview,
+                          onCommentCountChange: (nextCount) => handleCommentCountChange(item.id, nextCount),
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 transition hover:text-slate-600"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      {item.comments}
+                    </button>
+                    <button type="button" onClick={() => setShareModal({ isOpen: true, item })} className="inline-flex items-center gap-1.5 transition hover:text-slate-600">
+                      <Share2 className="h-4 w-4" />
+                      分享
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Surface>
-        )
-      })}
-    </div>
+            </Surface>
+          )
+        })}
+      </div>
+
+      <ShareModal
+        isOpen={shareModal.isOpen}
+        onClose={() => setShareModal({ isOpen: false, item: null })}
+        title={shareModal.item?.title || ''}
+        url={typeof window !== 'undefined' && shareModal.item
+          ? `${window.location.origin}/content/${shareModal.item.id}`
+          : ''}
+      />
+    </>
   )
 }
 
@@ -391,8 +405,10 @@ function VideoCard({
   src?: string
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const savedPositionRef = useRef(0)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [progress, setProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState('00:00 / 00:00')
   const { setActiveMediaId, playbackPositions, setPlaybackPosition } = useMediaController()
@@ -457,27 +473,59 @@ function VideoCard({
     await requestToggle()
   }
 
+  const toggleFullscreen = async () => {
+    const container = containerRef.current
+    if (!container) return
+
+    if (!document.fullscreenElement) {
+      await container.requestFullscreen().catch(() => {})
+      setIsFullscreen(true)
+    } else {
+      await document.exitFullscreen().catch(() => {})
+      setIsFullscreen(false)
+    }
+  }
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
   return (
     <div className="px-4 pb-2 sm:px-5">
       <div
+        ref={containerRef}
         className={cn(
           'group overflow-hidden rounded-[20px] border border-white/70 bg-black/90 shadow-[0_12px_30px_rgba(15,23,42,0.12)]',
           orientation === 'vertical'
             ? 'w-[75vw] sm:mr-auto sm:w-[clamp(180px,32vw,260px)]'
-            : 'w-full max-w-[560px]'
+            : 'w-full max-w-[560px]',
+          isFullscreen && 'fixed inset-0 z-50 flex items-center justify-center rounded-none border-0 bg-black'
         )}
       >
         <button
           type="button"
           onClick={togglePlay}
-          className="relative block w-full"
+          className={cn(
+            'relative flex items-center justify-center',
+            isFullscreen && orientation === 'vertical' ? 'h-full max-h-full' : 'block w-full'
+          )}
         >
           <video
             ref={videoRef}
             src={videoSrc}
             className={cn(
-              'block w-full object-contain',
-              orientation === 'vertical' ? 'aspect-[9/16]' : 'aspect-[16/9]'
+              'object-contain',
+              orientation === 'vertical'
+                ? isFullscreen
+                  ? 'h-full max-h-full w-auto'
+                  : 'mx-auto aspect-[9/16] w-auto max-w-full'
+                : isFullscreen
+                  ? 'h-full'
+                  : 'w-full aspect-[16/9]'
             )}
             playsInline
             preload="metadata"
@@ -504,10 +552,31 @@ function VideoCard({
           </div>
         </button>
 
-        <div className="px-3 pb-3 pt-2">
+        <div
+          className={cn(
+            'px-3 pb-3 pt-2',
+            isFullscreen && orientation === 'vertical'
+              ? 'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent'
+              : 'bg-black/90'
+          )}
+        >
           <div className="flex items-center justify-between text-[10px] text-slate-400">
             <span>{isPlaying ? '播放中' : '待播放'}</span>
-            <span>{progressLabel}</span>
+            <div className="flex items-center gap-3">
+              <span>{progressLabel}</span>
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="flex h-6 w-6 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white"
+                title={isFullscreen ? '退出全屏' : '全屏'}
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="h-3.5 w-3.5" />
+                ) : (
+                  <Maximize2 className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
           </div>
           <div className="mt-1.5 h-[2px] overflow-hidden rounded-full bg-white/10">
             <div
