@@ -183,6 +183,35 @@ export async function listFeedItems() {
   }))
 }
 
+export async function getFeedItemById(id: string): Promise<ContentItem | null> {
+  const record = await prisma.publication.findUnique({
+    where: { id },
+    include: {
+      commentsList: {
+        orderBy: { createdAt: 'desc' },
+      },
+    },
+  })
+
+  if (!record) return null
+
+  return toContentItem({
+    ...record,
+    saves: 0,
+    topic: record.topic,
+    mediaType: record.mediaType,
+    mediaKind: record.mediaKind,
+    mediaOrientation: record.mediaOrientation,
+    mediaLabel: record.mediaLabel,
+    mediaDetail: record.mediaDetail,
+    mediaDuration: record.mediaDuration,
+    mediaAudio: record.mediaAudio,
+    coverUrl: record.coverUrl,
+    mediaSrc: record.mediaSrc,
+    mediaImages: record.mediaImages as Prisma.JsonValue | null,
+  })
+}
+
 export async function createFeedItem(input: FeedItemInput) {
   const record = await prisma.publication.create({
     data: {

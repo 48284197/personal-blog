@@ -12,6 +12,7 @@ import {
 import type { Dispatch, SetStateAction } from 'react'
 import { Send, X } from 'lucide-react'
 import type { CommentItem, ContentItem } from '@/lib/site-data'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type CommentTarget = Pick<
   ContentItem,
@@ -178,7 +179,31 @@ function CommentSheet({
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [isFocused, setIsFocused] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [showMentions, setShowMentions] = useState(false)
+  const [mentionSearch, setMentionSearch] = useState('')
+  const [mentionIndex, setMentionIndex] = useState(0)
+  const [cursorPosition, setCursorPosition] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const mentionsRef = useRef<HTMLDivElement | null>(null)
+
+  // 提取评论区的所有唯一用户
+  const mentionUsers = useMemo(() => {
+    const users = new Map<string, { name: string; avatar: string }>()
+    comments.forEach((comment) => {
+      if (!users.has(comment.author)) {
+        users.set(comment.author, { name: comment.author, avatar: comment.avatar })
+      }
+    })
+    return Array.from(users.values())
+  }, [comments])
+
+  // 过滤匹配的用户
+  const filteredUsers = useMemo(() => {
+    if (!mentionSearch) return mentionUsers
+    return mentionUsers.filter((user) =>
+      user.name.toLowerCase().includes(mentionSearch.toLowerCase())
+    )
+  }, [mentionUsers, mentionSearch])
 
   const handleReply = (name: string) => {
     setReplyTo(name)
@@ -193,6 +218,87 @@ function CommentSheet({
     })
   }
 
+  // 处理输入变化，检测 @ 字符
+  const handleDraftChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = event.target.value
+    const cursor = event.target.selectionStart
+    setDraft(value)
+    setCursorPosition(cursor)
+
+    // 检测是否刚输入了 @
+    const beforeCursor = value.slice(0, cursor)
+    const atIndex = beforeCursor.lastIndexOf('@')
+
+    if (atIndex !== -1) {
+      const afterAt = beforeCursor.slice(atIndex + 1)
+      // 如果在 @ 之后没有空格或换行，显示提及列表
+      if (!afterAt.includes(' ') && !afterAt.includes('\n')) {
+        setMentionSearch(afterAt)
+        setShowMentions(true)
+        setMentionIndex(0)
+      } else {
+        setShowMentions(false)
+      }
+    } else {
+      setShowMentions(false)
+    }
+  }
+
+  // 选择用户
+  const selectMentionUser = (userName: string) => {
+    const beforeCursor = draft.slice(0, cursorPosition)
+    const atIndex = beforeCursor.lastIndexOf('@')
+    const beforeAt = draft.slice(0, atIndex)
+    const afterCursor = draft.slice(cursorPosition)
+    
+    const newDraft = `${beforeAt}@${userName} ${afterCursor}`
+    setDraft(newDraft)
+    setShowMentions(false)
+    
+    // 聚焦并设置光标位置
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus()
+      const newPosition = atIndex + userName.length + 2 // +2 为 @ 和空格
+      textareaRef.current?.setSelectionRange(newPosition, newPosition)
+    })
+  }
+
+  // 键盘导航
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showMentions) return
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault()
+        setMentionIndex((prev) => (prev + 1) % filteredUsers.length)
+        break
+      case 'ArrowUp':
+        event.preventDefault()
+        setMentionIndex((prev) => (prev - 1 + filteredUsers.length) % filteredUsers.length)
+        break
+      case 'Enter':
+        if (filteredUsers.length > 0) {
+          event.preventDefault()
+          selectMentionUser(filteredUsers[mentionIndex].name)
+        }
+        break
+      case 'Escape':
+        setShowMentions(false)
+        break
+    }
+  }
+
+  // 点击外部关闭提及列表
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mentionsRef.current && !mentionsRef.current.contains(event.target as Node)) {
+        setShowMentions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const handleSend = async () => {
     const content = draft.trim()
     if (!content || isSending) return
@@ -200,19 +306,37 @@ function CommentSheet({
     setIsSending(true)
 
     try {
+      // 获取当前 session token
+      const supabase = createSupabaseBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        alert('请先登录')
+        return
+      }
+
       const response = await fetch(`/api/feed/${target.id}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          authorName: '你',
-          avatar: '你',
           content,
           replyToName: replyTo,
           mentions: extractMentions(content),
         }),
       })
 
-      if (!response.ok) return
+      if (!response.ok) {
+        if (response.status === 401) {
+          alert('请先登录')
+        }
+        return
+      }
 
       const data = (await response.json()) as {
         comment?: CommentItem
@@ -268,8 +392,16 @@ function CommentSheet({
             {comments.map((comment) => (
               <article key={comment.id} className="border-b border-slate-100 pb-4 last:border-b-0">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-sm font-semibold text-slate-950">
-                    {comment.avatar}
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-sm font-semibold text-slate-950">
+                    {comment.avatar?.startsWith('http') || comment.avatar?.startsWith('/') ? (
+                      <img
+                        src={comment.avatar}
+                        alt={comment.author}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      comment.avatar
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -304,11 +436,39 @@ function CommentSheet({
             </div>
           ) : null}
 
-          <div className="flex items-end gap-3">
+          <div className="relative flex-1">
+            {showMentions && filteredUsers.length > 0 && (
+              <div
+                ref={mentionsRef}
+                className="absolute bottom-full left-0 z-50 mb-2 w-56 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+              >
+                {filteredUsers.map((user, index) => (
+                  <button
+                    key={user.name}
+                    type="button"
+                    onClick={() => selectMentionUser(user.name)}
+                    className={[
+                      'flex w-full items-center gap-2 px-3 py-2 text-left transition',
+                      index === mentionIndex ? 'bg-cyan-50' : 'hover:bg-slate-50',
+                    ].join(' ')}
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-xs font-semibold text-slate-950">
+                      {user.avatar?.startsWith('http') || user.avatar?.startsWith('/') ? (
+                        <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                      ) : (
+                        user.avatar?.slice(0, 2) || user.name.slice(0, 2)
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-slate-900">{user.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <textarea
               ref={textareaRef}
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={handleDraftChange}
+              onKeyDown={handleKeyDown}
               placeholder="说点什么，或用 @ 提到某个人..."
               onFocus={() => setIsFocused(true)}
               onBlur={() => {
@@ -317,20 +477,20 @@ function CommentSheet({
                 }
               }}
               className={[
-                'flex-1 resize-none rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-300 transition-[min-height] duration-200',
+                'w-full resize-none rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-300 transition-[min-height] duration-200',
                 isFocused ? 'min-h-20' : 'min-h-12',
               ].join(' ')}
             />
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={isSending}
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              <Send className="h-4 w-4" />
-              {isSending ? '发送中' : '发送'}
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={isSending}
+            className="inline-flex h-12 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            <Send className="h-4 w-4" />
+            {isSending ? '发送中' : '发送'}
+          </button>
         </div>
       </div>
     </div>
