@@ -6,6 +6,7 @@ import { getRequestUser } from '@/lib/auth'
 const publishMusicSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
+  content: z.string().optional(), // 正文内容，可选
   mediaAudio: z.string().min(1),
   coverUrl: z.string().optional(),
   mediaDuration: z.string().optional(),
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { title, summary, mediaAudio, coverUrl, mediaDuration, tags } = parsed.data
+    const { title, summary, content, mediaAudio, coverUrl, mediaDuration, tags } = parsed.data
 
     // 获取当前用户
     const user = await getRequestUser(request)
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
         mediaType: 'AUDIO',
         mediaKind: 'music',
         summary,
-        content: summary,
+        content: content || '', // 正文为空字符串，不自动填充
         mediaAudio,
         coverUrl,
         mediaDuration,

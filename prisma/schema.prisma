@@ -98,6 +98,7 @@ model User {
   projectComments ProjectComment[]
   projectVotes    ProjectVote[]
   messages      Message[]
+  likes         Like[]
 }
 
 model AiModel {
@@ -331,6 +332,7 @@ model Publication {
   author      User?        @relation("PublicationAuthor", fields: [authorId], references: [id], onDelete: SetNull)
   project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   commentsList PublicationComment[]
+  likesList   Like[]
 }
 
 model PublicationComment {
@@ -365,6 +367,20 @@ model KnowledgeItem {
   updatedAt   DateTime @updatedAt
 
   author      User?    @relation("KnowledgeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+}
+
+model Like {
+  id            String       @id @default(cuid())
+  publicationId String
+  userId        String
+  createdAt     DateTime     @default(now())
+
+  publication   Publication  @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, userId]) // 一个用户只能点赞一次
+  @@index([publicationId])
+  @@index([userId])
 }
 
 model Notification {

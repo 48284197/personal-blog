@@ -15,6 +15,45 @@ import { useExclusiveMediaPlayback, useMediaController } from '@/components/medi
 import { UserAvatar } from '@/components/user-card'
 import { type ContentItem } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+
+// 点赞粒子动画组件
+function LikeParticles({ active, onComplete }: { active: boolean; onComplete: () => void }) {
+  useEffect(() => {
+    if (active) {
+      const timer = setTimeout(onComplete, 600)
+      return () => clearTimeout(timer)
+    }
+  }, [active, onComplete])
+
+  if (!active) return null
+
+  const particles = Array.from({ length: 6 }, (_, i) => ({
+    id: i,
+    angle: (i * 60) + Math.random() * 20 - 10,
+    distance: 20 + Math.random() * 15,
+    size: 4 + Math.random() * 4,
+    delay: Math.random() * 0.1,
+  }))
+
+  return (
+    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      {particles.map((p) => (
+        <Heart
+          key={p.id}
+          className="absolute fill-rose-500 text-rose-500"
+          style={{
+            width: p.size,
+            height: p.size,
+            animation: `particle-explode 0.6s ease-out ${p.delay}s forwards`,
+            '--angle': `${p.angle}deg`,
+            '--distance': `${p.distance}px`,
+          } as React.CSSProperties}
+        />
+      ))}
+    </span>
+  )
+}
 
 const feedOrder = ['dialogue', 'discussion', 'co-create', 'knowledge'] as const
 
@@ -33,6 +72,8 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
   const { openComments } = useCommentSheet()
   const [feedData, setFeedData] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
+  // 存储每个内容的点赞状态 { [id]: { liked: boolean, likes: number } }
+  const [likeStates, setLikeStates] = useState<Record<string, { liked: boolean; likes: number }>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -69,6 +110,94 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
     )
   }
 
+  // 点赞动画状态
+  const [animatingLike, setAnimatingLike] = useState<string | null>(null)
+
+  // 处理点赞/取消点赞
+  const handleLike = async (id: string) => {
+    // 触发动画
+    setAnimatingLike(id)
+    
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      const response = await fetch(`/api/feed/${id}/like`, {
+        method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        if (response.status === 401) {
+          alert('请先登录')
+          return
+        }
+        throw new Error(error.message || '操作失败')
+      }
+
+      const result = await response.json() as { liked: boolean; likes: number }
+      
+      // 更新点赞状态
+      setLikeStates((prev) => ({
+        ...prev,
+        [id]: { liked: result.liked, likes: result.likes },
+      }))
+
+      // 同时更新 feedData 中的点赞数
+      setFeedData((current) =>
+        current.map((item) =>
+          item.id === id ? { ...item, likes: result.likes } : item
+        )
+      )
+    } catch (error) {
+      console.error('Failed to toggle like:', error)
+    }
+  }
+
+  // 加载点赞状态
+  useEffect(() => {
+    const loadLikeStates = async () => {
+      const states: Record<string, { liked: boolean; likes: number }> = {}
+      
+      // 获取当前 session token
+      const supabase = createSupabaseBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const token = session?.access_token
+      
+      await Promise.all(
+        feedData.map(async (item) => {
+          try {
+            const response = await fetch(`/api/feed/${item.id}/like`, {
+              headers: {
+                ...(token && { Authorization: `Bearer ${token}` }),
+              },
+            })
+            if (response.ok) {
+              const result = await response.json() as { liked: boolean; likes: number }
+              states[item.id] = result
+            }
+          } catch {
+            // 忽略错误
+          }
+        })
+      )
+      
+      setLikeStates(states)
+    }
+
+    if (feedData.length > 0) {
+      loadLikeStates()
+    }
+  }, [feedData])
+
   return (
     <div className="space-y-4 pb-6">
       {feedData.map((item, index) => {
@@ -86,14 +215,10 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-slate-900">{item.author}</p>
-                    <Badge tone="slate" className="scale-90 origin-left opacity-80">{topicLabel}</Badge>
-                    {index === 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-orange-100/60 px-2 py-0.5 text-[10px] font-medium text-orange-700">
-                        <Flame className="h-3 w-3" />
-                        热搜 18
-                      </span>
-                    ) : null}
                   </div>
+                  {item.publishedAt && (
+                    <p className="text-xs text-slate-400 mt-0.5">{item.publishedAt}</p>
+                  )}
                 </div>
               </div>
 
@@ -118,9 +243,37 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
             <div className="px-4 py-3 sm:px-5">
               <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-slate-400">
                 <div className="flex flex-wrap items-center gap-5">
-                  <button type="button" className="inline-flex items-center gap-1.5 transition hover:text-slate-600">
-                    <Heart className="h-4 w-4" />
-                    {item.likes}
+                  <button
+                    type="button"
+                    onClick={() => handleLike(item.id)}
+                    className={cn(
+                      "relative inline-flex items-center gap-1.5 transition active:scale-75",
+                      likeStates[item.id]?.liked
+                        ? "text-rose-500 hover:text-rose-600"
+                        : "hover:text-slate-600"
+                    )}
+                  >
+                    <span className={cn(
+                      "relative inline-flex",
+                      likeStates[item.id]?.liked && animatingLike === item.id && "animate-heartbeat"
+                    )}>
+                      <Heart
+                        className={cn(
+                          "h-4 w-4 transition-all duration-300",
+                          likeStates[item.id]?.liked && "fill-current scale-110"
+                        )}
+                      />
+                      <LikeParticles
+                        active={likeStates[item.id]?.liked && animatingLike === item.id}
+                        onComplete={() => setAnimatingLike(null)}
+                      />
+                    </span>
+                    <span className={cn(
+                      "transition-all duration-300 font-medium",
+                      likeStates[item.id]?.liked && "text-rose-500"
+                    )}>
+                      {likeStates[item.id]?.likes ?? item.likes}
+                    </span>
                   </button>
                   <button
                     type="button"

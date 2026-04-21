@@ -90,6 +90,7 @@ export type ContentItem = {
   mediaImages?: string[]
   mediaSrc?: string
   commentPreview?: CommentItem[]
+  publishedAt?: string
 }
 
 export type ContentChannel = {

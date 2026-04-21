@@ -8,9 +8,9 @@ import {
 
 export type FeedItemInput = {
   channel: ContentChannelKey
-  topic: string
-  title: string
-  summary: string
+  topic?: string
+  title?: string
+  summary?: string
   authorName: string
   authorAvatar?: string
   authorId?: string | null
@@ -99,6 +99,7 @@ function toContentItem(publication: {
       time: formatRelativeTime(comment.createdAt),
       likes: comment.likes,
     })),
+    publishedAt: publication.publishedAt ? formatRelativeTime(publication.publishedAt) : undefined,
   }
 }
 
@@ -188,9 +189,9 @@ export async function createFeedItem(input: FeedItemInput) {
       channel: input.channel,
       topic: input.topic,
       type: mapSeedToDBType(input.channel),
-      title: input.title,
-      summary: input.summary,
-      content: input.summary,
+      title: input.title || '',
+      summary: input.summary || '',
+      content: input.summary || '',
       authorName: input.authorName,
       authorAvatar: input.authorAvatar ?? input.authorName.slice(0, 1),
       authorId: input.authorId ?? null,

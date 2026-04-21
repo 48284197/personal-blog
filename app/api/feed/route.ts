@@ -5,9 +5,9 @@ import { syncCurrentPlatformUser } from '@/lib/platform-user'
 
 const createFeedSchema = z.object({
   channel: z.enum(['dialogue', 'discussion', 'co-create', 'knowledge']).optional(),
-  topic: z.string().min(1),
-  title: z.string().min(1),
-  summary: z.string().min(1),
+  topic: z.string().optional(),
+  title: z.string().optional(),
+  summary: z.string().optional(),
   authorName: z.string().optional(),
   authorAvatar: z.string().optional(),
   mediaType: z.enum(['text', 'image', 'video', 'music']),
