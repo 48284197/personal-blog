@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -7,7 +8,6 @@ import {
   Pause,
   Play,
   Share2,
-  Flame,
 } from 'lucide-react'
 import { Badge, Surface } from '@/components/landing'
 import { useCommentSheet } from '@/components/comment-sheet'
@@ -31,10 +31,10 @@ function LikeParticles({ active, onComplete }: { active: boolean; onComplete: ()
 
   const particles = Array.from({ length: 6 }, (_, i) => ({
     id: i,
-    angle: (i * 60) + Math.random() * 20 - 10,
-    distance: 20 + Math.random() * 15,
-    size: 4 + Math.random() * 4,
-    delay: Math.random() * 0.1,
+    angle: i * 60 - 10,
+    distance: 20 + i * 2,
+    size: 4 + (i % 3) * 1.5,
+    delay: i * 0.03,
   }))
 
   return (
@@ -73,6 +73,7 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
   const { openComments } = useCommentSheet()
   const [feedData, setFeedData] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [shareItem, setShareItem] = useState<ContentItem | null>(null)
   // 存储每个内容的点赞状态 { [id]: { liked: boolean, likes: number } }
   const [likeStates, setLikeStates] = useState<Record<string, { liked: boolean; likes: number }>>({})
 
@@ -302,7 +303,11 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
                     <MessageCircle className="h-4 w-4" />
                     {item.comments}
                   </button>
-                  <button type="button" className="inline-flex items-center gap-1.5 transition hover:text-slate-600">
+                  <button
+                    type="button"
+                    onClick={() => setShareItem(item)}
+                    className="inline-flex items-center gap-1.5 transition hover:text-slate-600"
+                  >
                     <Share2 className="h-4 w-4" />
                     分享
                   </button>
@@ -312,6 +317,135 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
           </Surface>
         )
       })}
+      {shareItem ? createPortal(
+        <ShareModal content={shareItem} onClose={() => setShareItem(null)} />,
+        document.body
+      ) : null}
+    </div>
+  )
+}
+
+function ShareModal({
+  content,
+  onClose,
+}: {
+  content: ContentItem
+  onClose: () => void
+}) {
+  const shareUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/content/${content.id}`
+      : ''
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareUrl)}`
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      prompt('复制链接:', shareUrl)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="关闭分享弹窗"
+          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-white hover:text-slate-700"
+        >
+          <span className="text-2xl leading-none">×</span>
+        </button>
+
+        <div className="bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(251,146,60,0.12),transparent_34%)] p-6 sm:p-7">
+          <div className="pr-10">
+            <p className="text-sm font-medium tracking-[0.22em] text-cyan-600 uppercase">分享详情页</p>
+            <h3 className="mt-2 text-2xl font-semibold text-slate-900">快来扫一扫来我们平台</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              扫码即可打开这篇内容的详情页，也可以直接复制链接分享给好友。
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col items-center">
+            <div className="overflow-hidden rounded-[24px] border border-slate-100 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
+              <img src={qrCodeUrl} alt="详情页二维码" className="h-[200px] w-[200px]" />
+            </div>
+            <p className="mt-3 text-sm font-medium text-slate-500">扫码查看详情</p>
+          </div>
+
+          <div className="mt-5 rounded-[22px] border border-slate-100 bg-white/90 p-4">
+            <h4 className="text-base font-semibold text-slate-900">{content.title}</h4>
+            <p className="mt-2 text-sm leading-6 text-slate-600 line-clamp-3">{content.summary}</p>
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-sm font-semibold text-slate-950">
+                {content.authorAvatar?.startsWith('http') || content.authorAvatar?.startsWith('/') ? (
+                  <img src={content.authorAvatar} alt={content.author} className="h-full w-full object-cover" />
+                ) : (
+                  content.author.slice(0, 1)
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-900">{content.author}</p>
+                <p className="text-xs text-slate-500 truncate">{shareUrl}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="flex-1 rounded-full bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              {copied ? '已复制链接' : '复制详情链接'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: content.title,
+                    text: content.summary,
+                    url: shareUrl,
+                  })
+                } else {
+                  handleCopyLink()
+                }
+              }}
+              className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              分享到...
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

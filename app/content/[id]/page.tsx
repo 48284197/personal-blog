@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState, useRef, use } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, Share2, ArrowLeft, Send, Play, Pause } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { Surface, Badge } from '@/components/landing'
 import { UserAvatar } from '@/components/user-card'
-import { MediaGallery } from '@/components/media-gallery'
 import { cn } from '@/lib/utils'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem, CommentItem } from '@/lib/site-data'
@@ -394,9 +394,12 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </Surface>
 
-        {shareOpen && content && (
-          <ShareModal content={content} onClose={() => setShareOpen(false)} />
-        )}
+        {shareOpen && content
+          ? createPortal(
+              <ShareModal content={content} onClose={() => setShareOpen(false)} />,
+              document.body
+            )
+          : null}
       </div>
     </main>
   )
@@ -531,55 +534,90 @@ function ShareModal({
   content: ContentItem
   onClose: () => void
 }) {
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/content/${content.id}` : ''
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : ''
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareUrl)}`
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
 
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl)
-      alert('链接已复制')
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
     } catch {
       prompt('复制链接:', shareUrl)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
+        onClick={(event) => event.stopPropagation()}
+      >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700"
+          aria-label="关闭分享弹窗"
+          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-white hover:text-slate-700"
         >
-          <span className="text-xl">×</span>
+          <span className="text-2xl leading-none">×</span>
         </button>
 
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-slate-900">分享内容</h3>
-
-          <div className="mt-4 flex flex-col items-center">
-            <div className="overflow-hidden rounded-xl border-4 border-slate-100 bg-white p-2 shadow-inner">
-              <img src={qrCodeUrl} alt="二维码" className="h-[180px] w-[180px]" />
-            </div>
-            <p className="mt-3 text-xs text-slate-400">扫码查看详情</p>
+        <div className="bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(251,146,60,0.12),transparent_34%)] p-6 sm:p-7">
+          <div className="pr-10">
+            <p className="text-sm font-medium tracking-[0.22em] text-cyan-600 uppercase">分享详情页</p>
+            <h3 className="mt-2 text-2xl font-semibold text-slate-900">快来扫一扫来我们平台</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              扫码即可打开这篇内容的详情页，也可以直接复制链接分享给好友。
+            </p>
           </div>
 
-          <div className="mt-5 rounded-xl bg-slate-50 p-4">
-            <h4 className="font-medium text-slate-900">{content.title}</h4>
-            <p className="mt-1.5 text-sm text-slate-500 line-clamp-2">{content.summary}</p>
-            <div className="mt-3 flex items-center gap-2">
+          <div className="mt-6 flex flex-col items-center">
+            <div className="overflow-hidden rounded-[24px] border border-slate-100 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
+              <img src={qrCodeUrl} alt="详情页二维码" className="h-[200px] w-[200px]" />
+            </div>
+            <p className="mt-3 text-sm font-medium text-slate-500">扫码查看详情</p>
+          </div>
+
+          <div className="mt-5 rounded-[22px] border border-slate-100 bg-white/90 p-4">
+            <h4 className="text-base font-semibold text-slate-900">{content.title}</h4>
+            <p className="mt-2 text-sm leading-6 text-slate-600 line-clamp-3">{content.summary}</p>
+            <div className="mt-4 flex items-center gap-3">
               <UserAvatar name={content.author} avatarUrl={content.authorAvatar} size="sm" />
-              <span className="text-sm text-slate-600">{content.author}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-900">{content.author}</p>
+                <p className="text-xs text-slate-500 truncate">{shareUrl}</p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-4 flex gap-3">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={handleCopyLink}
-              className="flex-1 rounded-xl bg-cyan-600 py-3 text-sm font-medium text-white transition hover:bg-cyan-700"
+              className="flex-1 rounded-full bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
             >
-              复制链接
+              {copied ? '已复制链接' : '复制详情链接'}
             </button>
             <button
               type="button"
@@ -594,7 +632,7 @@ function ShareModal({
                   handleCopyLink()
                 }
               }}
-              className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               分享到...
             </button>
