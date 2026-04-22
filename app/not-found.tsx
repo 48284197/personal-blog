@@ -2,80 +2,50 @@ import Link from 'next/link'
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-[#080810] text-slate-100 relative overflow-hidden">
-      <div className="fixed inset-0 bg-[linear-gradient(rgba(0,212,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgba(0,212,255,0.07),transparent)] pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[radial-gradient(ellipse_at_bottom_right,rgba(139,92,246,0.06),transparent)] pointer-events-none" />
+    <main className="relative min-h-screen overflow-hidden bg-[#f7fbff]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.24),transparent_30%),radial-gradient(circle_at_top_right,rgba(167,243,208,0.18),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(253,224,71,0.08),transparent_22%)] z-0" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob z-0"></div>
+      <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-emerald-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 z-0"></div>
 
-      <main className="relative z-10 pt-28 pb-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-1.5 text-sm text-cyan-700 font-medium">
+            <span className="w-2 h-2 bg-cyan-400 rounded-full"></span>
+            页面未找到
+          </div>
 
-            {/* Error badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 mb-10 border border-red-500/30 bg-red-500/5 text-xs text-red-400 font-mono tracking-widest">
-              <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />
-              系统异常 · PAGE_NOT_FOUND
-            </div>
+          <h1 className="mt-8 text-[6rem] sm:text-[9rem] font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-emerald-400 to-cyan-400">
+            404
+          </h1>
 
-            {/* Large 404 */}
-            <div className="relative mb-8 select-none">
-              <div className="text-[8rem] sm:text-[12rem] font-bold font-mono leading-none text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400">
-                404
-              </div>
-              {/* Scanline overlay */}
-              <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(0,0,0,0.06)_3px,rgba(0,0,0,0.06)_4px)] pointer-events-none" />
-            </div>
+          <p className="mt-4 text-lg text-slate-600">
+            抱歉，你访问的页面不存在或已被移除
+          </p>
 
-            {/* Terminal error box */}
-            <div className="border border-slate-800 bg-[#0e0e1a] px-8 py-6 relative max-w-md w-full mb-8">
-              <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-cyan-500/50" />
-              <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-cyan-500/50" />
-              <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-purple-500/50" />
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-purple-500/50" />
-
-              <div className="font-mono text-sm space-y-2.5 text-left">
-                <p className="text-slate-600">
-                  <span className="text-cyan-500">$</span> GET /requested-path
-                </p>
-                <p>
-                  <span className="text-slate-600">HTTP/1.1 </span>
-                  <span className="text-red-400">404 Not Found</span>
-                </p>
-                <p className="text-slate-400">
-                  <span className="text-cyan-500">&gt;</span> 你访问的页面不存在或已被移除
-                  <span className="inline-block w-0.5 h-4 bg-cyan-400 ml-1 align-middle animate-pulse" />
-                </p>
-              </div>
-            </div>
-
-            {/* Action links */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-mono border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all duration-200"
-              >
-                ← 返回首页
-              </Link>
-              <Link
-                href="/posts"
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-mono border border-slate-800 text-slate-500 hover:border-purple-500/40 hover:text-purple-400 transition-all duration-200"
-              >
-                浏览文章 →
-              </Link>
-            </div>
-
-            {/* Footer status line */}
-            <div className="mt-12 text-xs font-mono text-slate-700 flex items-center gap-4">
-              <span>ERR_CODE: 0x404</span>
-              <span>·</span>
-              <span>STATUS: PAGE_MISSING</span>
-              <span>·</span>
-              <span>SYS: ONLINE</span>
-            </div>
-
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-medium text-white transition hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
+            >
+              返回首页
+            </Link>
+            <Link
+              href="/content"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/80 px-6 py-3 text-sm font-medium text-slate-600 transition hover:border-cyan-300/50 hover:bg-cyan-50"
+            >
+              浏览文章
+            </Link>
           </div>
         </div>
-      </main>
-    </div>
+
+        <div className="mt-16 flex items-center gap-6 text-sm text-slate-400">
+          <span>ERR: 404</span>
+          <span className="text-slate-300">|</span>
+          <span>STATUS: NOT_FOUND</span>
+          <span className="text-slate-300">|</span>
+          <span className="text-emerald-600">SYSTEM: ONLINE</span>
+        </div>
+      </div>
+    </main>
   )
 }

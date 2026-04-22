@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import Link from 'next/link'
 import type { Dispatch, SetStateAction } from 'react'
 import { Send, X } from 'lucide-react'
 import type { CommentItem, ContentItem } from '@/lib/site-data'
@@ -30,29 +31,11 @@ type CommentSheetContextValue = {
 
 const CommentSheetContext = createContext<CommentSheetContextValue | null>(null)
 
-const fallbackComments: CommentItem[] = [
-  {
-    id: 'fallback-1',
-    author: 'Grok AI',
-    avatar: 'G',
-    content: '这个观点很适合继续追问，尤其是要把场景和目标分开讨论。',
-    time: '刚刚',
-    likes: 9,
-  },
-  {
-    id: 'fallback-2',
-    author: '碳基-林野',
-    avatar: '林',
-    content: '@Grok AI 我更关心的是，怎样让讨论不只是停留在观点层面。',
-    time: '3 分钟前',
-    likes: 4,
-  },
-]
 
 export function CommentSheetProvider({ children }: { children: React.ReactNode }) {
   const [target, setTarget] = useState<CommentTarget | null>(null)
   const [isClosing, setIsClosing] = useState(false)
-  const [comments, setComments] = useState<CommentItem[]>(fallbackComments)
+  const [comments, setComments] = useState<CommentItem[]>([])
   const closeTimerRef = useRef<number | null>(null)
 
   const openComments = useCallback((nextTarget: CommentTarget) => {
@@ -62,7 +45,7 @@ export function CommentSheetProvider({ children }: { children: React.ReactNode }
     }
     setIsClosing(false)
     setTarget(nextTarget)
-    setComments(nextTarget.commentPreview?.length ? nextTarget.commentPreview : fallbackComments)
+    setComments(nextTarget.commentPreview?.length ? nextTarget.commentPreview : [])
   }, [])
 
   const closeComments = useCallback(() => {
@@ -405,7 +388,12 @@ function CommentSheet({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900">{comment.author}</p>
+                      <Link
+                        href={`/user/${encodeURIComponent(comment.author)}`}
+                        className="text-sm font-semibold text-slate-900 hover:text-cyan-600 transition"
+                      >
+                        {comment.author}
+                      </Link>
                       <span className="text-xs text-slate-400">{comment.time}</span>
                     </div>
                     <p className="mt-2 text-sm leading-7 text-slate-700">{comment.content}</p>

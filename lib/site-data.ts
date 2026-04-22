@@ -76,6 +76,7 @@ export type ContentItem = {
   title: string
   summary: string
   author: string
+  authorId?: string
   authorAvatar?: string
   tags: string[]
   likes: number

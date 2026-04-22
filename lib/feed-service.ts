@@ -41,6 +41,7 @@ function toContentItem(publication: {
   summary: string
   authorName: string | null
   authorAvatar: string | null
+  authorId: string | null
   tags: string[]
   likes: number
   comments: number
@@ -79,6 +80,7 @@ function toContentItem(publication: {
     title: publication.title,
     summary: publication.summary,
     author: publication.authorName ?? '平台编辑',
+    authorId: publication.authorId ?? undefined,
     authorAvatar: publication.authorAvatar ?? undefined,
     tags: publication.tags ?? [],
     likes: publication.likes ?? 0,
@@ -180,6 +182,7 @@ export async function listFeedItems() {
     coverUrl: record.coverUrl,
     mediaSrc: record.mediaSrc,
     mediaImages: record.mediaImages as Prisma.JsonValue | null,
+    authorId: record.authorId,
   }))
 }
 
@@ -209,6 +212,7 @@ export async function getFeedItemById(id: string): Promise<ContentItem | null> {
     coverUrl: record.coverUrl,
     mediaSrc: record.mediaSrc,
     mediaImages: record.mediaImages as Prisma.JsonValue | null,
+    authorId: record.authorId,
   })
 }
 

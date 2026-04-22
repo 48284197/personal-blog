@@ -14,83 +14,57 @@ export default function Error({ error, reset }: ErrorPageProps) {
   }, [error])
 
   return (
-    <div className="min-h-screen bg-[#080810] text-slate-100 relative overflow-hidden">
-      {/* Pixel grid background */}
-      <div className="fixed inset-0 bg-[linear-gradient(rgba(0,212,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
-      {/* Top radial glow — red tinted for error state */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgba(239,68,68,0.05),transparent)] pointer-events-none" />
-      {/* Bottom-right secondary glow */}
-      <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[radial-gradient(ellipse_at_bottom_right,rgba(139,92,246,0.06),transparent)] pointer-events-none" />
+    <main className="relative min-h-screen overflow-hidden bg-[#f7fbff]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.15),transparent_30%),radial-gradient(circle_at_top_right,rgba(252,165,165,0.12),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(253,224,71,0.08),transparent_22%)] z-0" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob z-0"></div>
+      <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-orange-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 z-0"></div>
 
-      <main className="relative z-10 flex items-center justify-center min-h-screen">
-        <div className="max-w-lg w-full mx-auto px-4 sm:px-6 text-center">
-
-          {/* Error badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 mb-10 border border-red-500/30 bg-red-500/5 text-xs text-red-400 font-mono tracking-widest">
-            <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
-            系统故障 · INTERNAL_SERVER_ERROR
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-1.5 text-sm text-red-600 font-medium">
+            <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+            服务器错误
           </div>
 
-          {/* Large 500 */}
-          <div className="relative mb-8 select-none">
-            <div className="text-[8rem] sm:text-[12rem] font-bold font-mono leading-none text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-purple-400">
-              500
-            </div>
-            {/* Scanline overlay */}
-            <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(0,0,0,0.06)_3px,rgba(0,0,0,0.06)_4px)] pointer-events-none" />
-          </div>
+          <h1 className="mt-8 text-[6rem] sm:text-[9rem] font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-red-400">
+            500
+          </h1>
 
-          {/* Terminal error box */}
-          <div className="border border-slate-800 bg-[#0e0e1a] px-8 py-6 relative mb-8 text-left">
-            <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-red-500/50" />
-            <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-red-500/50" />
-            <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-purple-500/50" />
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-purple-500/50" />
-
-            <div className="font-mono text-sm space-y-2.5">
-              <p className="text-slate-600">
-                <span className="text-red-500">!</span> 服务器遇到未预期的错误
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white/80 p-4 max-w-md mx-auto">
+            <p className="text-slate-600 text-sm">
+              服务器遇到了未预期的错误
+            </p>
+            {error.digest && (
+              <p className="mt-2 text-xs text-slate-400 font-mono">
+                错误码: {error.digest}
               </p>
-              {error.digest && (
-                <p className="text-slate-600">
-                  <span className="text-slate-700">DIGEST: </span>
-                  <span className="text-slate-500">{error.digest}</span>
-                </p>
-              )}
-              <p className="text-slate-400">
-                <span className="text-cyan-500">&gt;</span> 请尝试刷新页面或稍后重试
-                <span className="inline-block w-0.5 h-4 bg-cyan-400 ml-1 align-middle animate-pulse" />
-              </p>
-            </div>
+            )}
           </div>
 
-          {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={reset}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-mono border border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-400 transition-all duration-200 cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-red-500 px-6 py-3 text-sm font-medium text-white transition hover:bg-red-400 shadow-lg shadow-red-500/20 cursor-pointer"
             >
-              ↺ 重试
+              重新尝试
             </button>
             <Link
               href="/"
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-mono border border-slate-800 text-slate-500 hover:border-cyan-500/40 hover:text-cyan-400 transition-all duration-200"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/80 px-6 py-3 text-sm font-medium text-slate-600 transition hover:border-cyan-300/50 hover:bg-cyan-50"
             >
-              ← 返回首页
+              返回首页
             </Link>
           </div>
-
-          {/* Footer status line */}
-          <div className="mt-12 text-xs font-mono text-slate-700 flex items-center justify-center gap-4">
-            <span>ERR_CODE: 0x500</span>
-            <span>·</span>
-            <span>STATUS: SERVER_ERROR</span>
-            <span>·</span>
-            <span className="text-red-900">SYS: FAULT</span>
-          </div>
-
         </div>
-      </main>
-    </div>
+
+        <div className="mt-16 flex items-center gap-6 text-sm text-slate-400">
+          <span>ERR: 500</span>
+          <span className="text-slate-300">|</span>
+          <span>STATUS: SERVER_ERROR</span>
+          <span className="text-slate-300">|</span>
+          <span className="text-red-600">SYSTEM: FAULT</span>
+        </div>
+      </div>
+    </main>
   )
 }

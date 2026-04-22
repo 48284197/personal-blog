@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
 import {
   Heart,
@@ -207,14 +208,21 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
           <Surface key={item.id} className="overflow-hidden p-0">
             <div className="p-4 sm:p-5">
               <div className="flex gap-3 items-center">
-                <UserAvatar
-                  name={item.author}
-                  avatarUrl={item.authorAvatar}
-                  size="md"
-                />
+                <Link href={`/user/${item.authorId || encodeURIComponent(item.author)}`} className="shrink-0">
+                  <UserAvatar
+                    name={item.author}
+                    avatarUrl={item.authorAvatar}
+                    size="md"
+                  />
+                </Link>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{item.author}</p>
+                    <Link
+                      href={`/user/${item.authorId || encodeURIComponent(item.author)}`}
+                      className="text-sm font-semibold text-slate-900 hover:text-cyan-600 transition"
+                    >
+                      {item.author}
+                    </Link>
                   </div>
                   {item.publishedAt && (
                     <p className="text-xs text-slate-400 mt-0.5">{item.publishedAt}</p>
