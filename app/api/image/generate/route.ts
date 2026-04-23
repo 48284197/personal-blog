@@ -1,4 +1,5 @@
 import { generateComicImage } from '@/lib/jimeng'
+import { generateImageWithGrsai } from '@/lib/grsai-image-service'
 import { uploadImageToS3 } from '@/lib/upload-service'
 
 export async function GET() {
@@ -13,11 +14,12 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('图片生成请求体:', body)
 
-    const { prompt, width, height, num_images } = body as {
+    const { prompt, width, height, num_images, provider } = body as {
       prompt?: string
       width?: number
       height?: number
       num_images?: number
+      provider?: string
     }
 
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
@@ -25,31 +27,51 @@ export async function POST(request: Request) {
       return Response.json({ message: '缺少必要参数：prompt' }, { status: 400 })
     }
 
-    console.log('开始调用火山引擎API生成图片...')
-    
-    // 使用火山引擎的官方 API
-    const result = await generateComicImage(prompt.trim(), {
-      model: 'doubao-seedream-4-5-251128',
-      style: 'general', // 通用风格
-      ratio: width && height ? `${width}:${height}` : '1:1',
-      frames: num_images || 1,
-    })
+    const activeProvider = resolveProvider(provider)
+    console.log(`开始调用图片生成服务: ${activeProvider}`)
 
-    console.log('火山引擎API返回结果:', {
-      success: result.success,
-      images_count: result.images.length,
-      result:result,
-      
-    })
+    let requestId = `req-${Date.now()}`
+    let generatedImages: Array<{ url: string; base64?: string }> = []
 
-    if (!result.success || result.images.length === 0) {
-      throw new Error('图片生成失败')
+    if (activeProvider === 'grsai') {
+      const result = await generateImageWithGrsai({
+        prompt: prompt.trim(),
+        size: parseSize(width, height),
+        variants: num_images || 1,
+      })
+      requestId = result.request_id || requestId
+      generatedImages = result.images
+      console.log('GrsAI 返回结果:', {
+        requestId,
+        imagesCount: generatedImages.length,
+      })
+    } else {
+      // 默认使用火山引擎 API
+      const result = await generateComicImage(prompt.trim(), {
+        model: 'doubao-seedream-4-5-251128',
+        style: 'general',
+        ratio: width && height ? `${width}:${height}` : '1:1',
+        frames: num_images || 1,
+      })
+      console.log('火山引擎API返回结果:', {
+        success: result.success,
+        images_count: result.images.length,
+      })
+      if (!result.success || result.images.length === 0) {
+        throw new Error('图片生成失败')
+      }
+      requestId = result.comicId || requestId
+      generatedImages = result.images.map((img) => ({ url: img.url }))
+    }
+
+    if (generatedImages.length === 0) {
+      throw new Error('图片生成成功但未返回图片')
     }
 
     // 上传图片到 S3
     console.log('开始上传图片到S3...')
     const uploadedImages = await Promise.all(
-      result.images.map(async (img, idx) => {
+      generatedImages.map(async (img, idx) => {
         try {
           console.log(`上传图片 ${idx}:`, img.url)
           const s3Url = await uploadImageToS3(img.url, `generated-${Date.now()}-${idx}.png`)
@@ -70,7 +92,7 @@ export async function POST(request: Request) {
     console.log('图片生成和上传完成')
     return Response.json({
       result: {
-        request_id: result.comicId || `req-${Date.now()}`,
+        request_id: requestId,
         images: uploadedImages,
       },
     })
@@ -79,4 +101,28 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : '生图失败'
     return Response.json({ message }, { status: 500 })
   }
+}
+
+function resolveProvider(input?: string): 'volcengine' | 'grsai' {
+  const normalized = (input || process.env.IMAGE_GENERATION_PROVIDER || 'volcengine')
+    .trim()
+    .toLowerCase()
+  return normalized === 'grsai' ? 'grsai' : 'volcengine'
+}
+
+function parseSize(width?: number, height?: number): string {
+  if (!width || !height || width <= 0 || height <= 0) return '1:1'
+  const d = gcd(width, height)
+  return `${Math.round(width / d)}:${Math.round(height / d)}`
+}
+
+function gcd(a: number, b: number): number {
+  let x = Math.abs(Math.floor(a))
+  let y = Math.abs(Math.floor(b))
+  while (y !== 0) {
+    const t = x % y
+    x = y
+    y = t
+  }
+  return x || 1
 }

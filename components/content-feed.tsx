@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -56,55 +56,96 @@ function LikeParticles({ active, onComplete }: { active: boolean; onComplete: ()
   )
 }
 
-const feedOrder = ['dialogue', 'discussion', 'co-create', 'knowledge'] as const
-
-const avatarMap: Record<string, string> = {
-  dialogue: '碳',
-  discussion: '研',
-  'co-create': '创',
-  knowledge: '知',
-}
-
 type ContentFeedProps = {
   refreshKey?: number
+  initialItems?: ContentItem[]
+  initialHasMore?: boolean
 }
 
-export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
+const FEED_PAGE_SIZE = 10
+
+export function ContentFeed({
+  refreshKey = 0,
+  initialItems = [],
+  initialHasMore = true,
+}: ContentFeedProps) {
   const { openComments } = useCommentSheet()
-  const [feedData, setFeedData] = useState<ContentItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [feedData, setFeedData] = useState<ContentItem[]>(initialItems)
+  const [loading, setLoading] = useState(initialItems.length === 0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [pageOffset, setPageOffset] = useState(initialItems.length)
   const [shareItem, setShareItem] = useState<ContentItem | null>(null)
   // 存储每个内容的点赞状态 { [id]: { liked: boolean, likes: number } }
   const [likeStates, setLikeStates] = useState<Record<string, { liked: boolean; likes: number }>>({})
+  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null)
+
+  const loadFeedPage = useCallback(async ({ offset, append }: { offset: number; append: boolean }) => {
+    const response = await fetch(`/api/feed?limit=${FEED_PAGE_SIZE}&offset=${offset}`)
+    if (!response.ok) return { items: [], hasMore: false }
+
+    const data = (await response.json()) as { items?: ContentItem[]; hasMore?: boolean }
+    const nextItems = Array.isArray(data.items) ? data.items : []
+
+    setFeedData((current) => (append ? [...current, ...nextItems] : nextItems))
+    setPageOffset(offset + nextItems.length)
+    setHasMore(Boolean(data.hasMore))
+    return { items: nextItems, hasMore: Boolean(data.hasMore) }
+  }, [])
+
+  const loadInitialFeed = useCallback(async () => {
+    setLoading(true)
+    try {
+      await loadFeedPage({ offset: 0, append: false })
+    } finally {
+      setLoading(false)
+    }
+  }, [loadFeedPage])
+
+  const loadMoreFeed = useCallback(async () => {
+    if (loadingMore || loading || !hasMore) return
+
+    setLoadingMore(true)
+    try {
+      await loadFeedPage({ offset: pageOffset, append: true })
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [hasMore, loadFeedPage, loading, loadingMore, pageOffset])
 
   useEffect(() => {
-    let cancelled = false
-
-    const loadFeed = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/feed')
-        if (!response.ok) return
-
-        const data = (await response.json()) as { items?: ContentItem[] }
-        if (!cancelled && Array.isArray(data.items)) {
-          setFeedData(data.items)
-        }
-      } catch {
-        // error loading feed
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
+    if (initialItems.length === 0) {
+      void loadInitialFeed()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-    void loadFeed()
+  useEffect(() => {
+    if (refreshKey === 0) return
+    void loadInitialFeed()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey])
+
+  useEffect(() => {
+    const trigger = loadMoreTriggerRef.current
+    if (!trigger || !hasMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries
+        if (entry?.isIntersecting) {
+          void loadMoreFeed()
+        }
+      },
+      { rootMargin: '600px 0px' }
+    )
+
+    observer.observe(trigger)
 
     return () => {
-      cancelled = true
+      observer.disconnect()
     }
-  }, [refreshKey])
+  }, [hasMore, loadMoreFeed, loading, loadingMore, pageOffset])
 
   const handleCommentCountChange = (id: string, count: number) => {
     setFeedData((current) =>
@@ -200,11 +241,32 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
     }
   }, [feedData])
 
+  if (loading && feedData.length === 0) {
+    return (
+      <div className="space-y-4 pb-6">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Surface key={index} className="overflow-hidden p-0">
+            <div className="animate-pulse space-y-4 p-4 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-slate-200" />
+                <div className="space-y-2">
+                  <div className="h-3 w-24 rounded bg-slate-200" />
+                  <div className="h-2 w-16 rounded bg-slate-100" />
+                </div>
+              </div>
+              <div className="h-4 w-2/3 rounded bg-slate-200" />
+              <div className="h-40 rounded-3xl bg-slate-100" />
+              <div className="h-4 w-full rounded bg-slate-200" />
+            </div>
+          </Surface>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4 pb-6">
-      {feedData.map((item, index) => {
-        const topicLabel = item.topic ?? item.title
-
+      {feedData.map((item) => {
         return (
           <Surface key={item.id} className="overflow-hidden p-0">
             <div className="p-4 sm:p-5">
@@ -317,6 +379,13 @@ export function ContentFeed({ refreshKey = 0 }: ContentFeedProps) {
           </Surface>
         )
       })}
+      <div ref={loadMoreTriggerRef} className="h-1 w-full" />
+      {loadingMore ? (
+        <div className="py-4 text-center text-sm text-slate-500">正在加载更多内容...</div>
+      ) : null}
+      {!hasMore && feedData.length > 0 ? (
+        <div className="py-4 text-center text-sm text-slate-400">已经到底了</div>
+      ) : null}
       {shareItem ? createPortal(
         <ShareModal content={shareItem} onClose={() => setShareItem(null)} />,
         document.body

@@ -1,10 +1,10 @@
 import { ContentType, Prisma, PublicationType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
-  type CommentItem,
   type ContentChannelKey,
   type ContentItem,
 } from '@/lib/site-data'
+import { triggerAiComments } from '@/lib/ai-comment-service'
 
 export type FeedItemInput = {
   channel: ContentChannelKey
@@ -157,9 +157,22 @@ function mapDBMediaKind(mediaKind: string, fallback: ContentItem['mediaType']) {
   return fallback
 }
 
-export async function listFeedItems() {
+export type FeedPageResult = {
+  items: ContentItem[]
+  hasMore: boolean
+}
+
+export async function listFeedItemsPage({
+  limit = 10,
+  offset = 0,
+}: {
+  limit?: number
+  offset?: number
+} = {}): Promise<FeedPageResult> {
   const records = await prisma.publication.findMany({
     orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+    take: limit + 1,
+    skip: offset,
     include: {
       commentsList: {
         orderBy: { createdAt: 'desc' },
@@ -168,7 +181,61 @@ export async function listFeedItems() {
     },
   })
 
-  return records.map((record) => toContentItem({
+  const hasMore = records.length > limit
+  const pageRecords = hasMore ? records.slice(0, limit) : records
+
+  return {
+    items: pageRecords.map((record) => toContentItem({
+      ...record,
+      saves: 0,
+      topic: record.topic,
+      mediaType: record.mediaType,
+      mediaKind: record.mediaKind,
+      mediaOrientation: record.mediaOrientation,
+      mediaLabel: record.mediaLabel,
+      mediaDetail: record.mediaDetail,
+      mediaDuration: record.mediaDuration,
+      mediaAudio: record.mediaAudio,
+      coverUrl: record.coverUrl,
+      mediaSrc: record.mediaSrc,
+      mediaImages: record.mediaImages as Prisma.JsonValue | null,
+      authorId: record.authorId,
+    })),
+    hasMore,
+  }
+}
+
+export async function listFeedItems() {
+  const { items } = await listFeedItemsPage()
+  return items
+}
+
+export async function getFeedItemPageItem(record: {
+  id: string
+  channel: string
+  topic: string | null
+  title: string
+  summary: string
+  authorName: string | null
+  authorAvatar: string | null
+  authorId: string | null
+  tags: string[]
+  likes: number
+  comments: number
+  saves: number
+  mediaType: string
+  mediaKind: string | null
+  mediaOrientation: string | null
+  mediaLabel: string | null
+  mediaDetail: string | null
+  mediaDuration: string | null
+  mediaAudio: string | null
+  coverUrl: string | null
+  mediaSrc: string | null
+  mediaImages: Prisma.JsonValue | null
+  publishedAt?: Date
+}) {
+  return toContentItem({
     ...record,
     saves: 0,
     topic: record.topic,
@@ -183,7 +250,7 @@ export async function listFeedItems() {
     mediaSrc: record.mediaSrc,
     mediaImages: record.mediaImages as Prisma.JsonValue | null,
     authorId: record.authorId,
-  }))
+  })
 }
 
 export async function getFeedItemById(id: string): Promise<ContentItem | null> {
@@ -243,6 +310,8 @@ export async function createFeedItem(input: FeedItemInput) {
       coverUrl: input.mediaType === 'image' ? input.mediaSrc ?? input.mediaImages?.[0] ?? null : null,
     },
   })
+
+  void triggerAiComments(record.id)
 
   return toContentItem({
     ...record,

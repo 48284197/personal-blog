@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createFeedItem, listFeedItems } from '@/lib/feed-service'
+import { createFeedItem, listFeedItemsPage } from '@/lib/feed-service'
 import { syncCurrentPlatformUser } from '@/lib/platform-user'
 
 const createFeedSchema = z.object({
@@ -23,9 +23,14 @@ const createFeedSchema = z.object({
 
 export async function GET(request: NextRequest) {
   const channel = request.nextUrl.searchParams.get('channel')
-  const feed = await listFeedItems()
-  const items = channel ? feed.filter((item) => item.channel === channel) : feed
-  return NextResponse.json({ items })
+  const limit = Number(request.nextUrl.searchParams.get('limit') ?? '10')
+  const offset = Number(request.nextUrl.searchParams.get('offset') ?? '0')
+  const { items, hasMore } = await listFeedItemsPage({
+    limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
+    offset: Number.isFinite(offset) && offset >= 0 ? offset : 0,
+  })
+  const filtered = channel ? items.filter((item) => item.channel === channel) : items
+  return NextResponse.json({ items: filtered, hasMore })
 }
 
 export async function POST(request: NextRequest) {

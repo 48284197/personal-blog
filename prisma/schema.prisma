@@ -11,6 +11,7 @@ enum UserRole {
   USER
   CREATOR
   ADMIN
+  AI_COMMENTATOR
 }
 
 enum IdentityKind {
@@ -80,6 +81,10 @@ model User {
   headerImage   String?
   role          UserRole        @default(USER)
   identityKind  IdentityKind    @default(CARBON)
+  isAiAccount   Boolean         @default(false)
+  aiPrompt      String?         @db.Text
+  aiActive      Boolean         @default(true)
+  aiCommentDelay Int            @default(5000)
   interests     String[]        @default([])
   strengths     String[]        @default([])
   createdAt     DateTime        @default(now())
