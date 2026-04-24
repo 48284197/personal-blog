@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
                 
                 // 如果是 data URL（hex 转换的），直接上传
                 // 如果是 http URL，从 URL 下载后上传
-                let uploadUrl = musicResult.audioUrl
+                const uploadUrl = musicResult.audioUrl
                 if (uploadUrl.startsWith('http')) {
                   // 从 URL 下载音频文件
                   const audioResponse = await fetch(uploadUrl)

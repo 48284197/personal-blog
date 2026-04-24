@@ -62,7 +62,7 @@ async function generateWithSeedream45(prompt: string, options: ComicOptions = {}
   const endpoint = `/api/v3/images/generations`
 
   // 构建请求体 - 使用标准的images/generations格式
-  const requestBody: any = {
+  const requestBody: Record<string, unknown> = {
     model: options.model || 'doubao-seedream-4-5-251128',
     prompt: prompt,
     n: options.frames || 1,  // 生成图片数量
@@ -117,7 +117,7 @@ async function generateWithSeedream45(prompt: string, options: ComicOptions = {}
   
   // images/generations API返回data数组
   if (data.data && Array.isArray(data.data)) {
-    data.data.forEach((item: any, index: number) => {
+    data.data.forEach((item: { url?: string }, index: number) => {
       if (item.url) {
         images.push({
           url: item.url,
@@ -130,7 +130,7 @@ async function generateWithSeedream45(prompt: string, options: ComicOptions = {}
   
   // 备用：也检查其他可能的格式
   if (images.length === 0 && data.images && Array.isArray(data.images)) {
-    data.images.forEach((item: any, index: number) => {
+    data.images.forEach((item: string | { url?: string }, index: number) => {
       const url = typeof item === 'string' ? item : item.url
       if (url) {
         images.push({
