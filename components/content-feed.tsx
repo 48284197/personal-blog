@@ -254,7 +254,7 @@ function MediaPanel({ item }: { item: ContentItem }) {
 }
 
 // --- 5. 主 Feed 组件 ---
-export function ContentFeed({ initialItems = [], initialHasMore = true }: { initialItems?: ContentItem[]; initialHasMore?: boolean }) {
+export function ContentFeed({ initialItems = [], initialHasMore = true, refreshKey }: { initialItems?: ContentItem[]; initialHasMore?: boolean; refreshKey?: number }) {
   const [feedData, setFeedData] = useState<ContentItem[]>(initialItems)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(initialHasMore)
