@@ -3,6 +3,7 @@ type GrsaiImageGenerationRequest = {
   size?: string
   variants?: number
   model?: string
+  imageUrls?: string[]
 }
 
 type GrsaiImageGenerationResponse = {
@@ -13,8 +14,8 @@ type GrsaiImageGenerationResponse = {
   }>
 }
 
-const DEFAULT_BASE_URL = 'https://grsaiapi.com'
-const DEFAULT_MODEL = 'gpt-image-1.5'
+const DEFAULT_BASE_URL = 'https://grsai.dakka.com.cn'
+const DEFAULT_MODEL = 'gpt-image-2'
 
 export async function generateImageWithGrsai(
   input: GrsaiImageGenerationRequest
@@ -32,6 +33,7 @@ export async function generateImageWithGrsai(
     prompt: input.prompt,
     size: input.size || '1:1',
     variants: normalizeVariants(input.variants),
+    ...(input.imageUrls?.length ? { image_urls: input.imageUrls } : {}),
   }
 
   const response = await fetch(`${baseUrl}/v1/draw/completions`, {
@@ -159,6 +161,46 @@ function parseStreamingOrJsonResponse(raw: string, phase: 'completions' | 'resul
         pushImage(asString(item.url) || asString(item.image_url))
       })
     }
+
+    if (isRecord(obj.data)) {
+      const data = obj.data
+      pushImage(asString(data.url))
+      pushImage(asString(data.image_url))
+      pushImage(asString(data.result_url))
+      pushTaskId(taskIds, data)
+
+      if (Array.isArray(data.results)) {
+        data.results.forEach((item) => {
+          if (typeof item === 'string') {
+            pushImage(item)
+            return
+          }
+          if (isRecord(item)) {
+            pushImage(
+              asString(item.url) ||
+                asString(item.image_url) ||
+                asString(item.result_url)
+            )
+          }
+        })
+      }
+    }
+
+    if (Array.isArray(obj.results)) {
+      obj.results.forEach((item) => {
+        if (typeof item === 'string') {
+          pushImage(item)
+          return
+        }
+        if (isRecord(item)) {
+          pushImage(
+            asString(item.url) ||
+              asString(item.image_url) ||
+              asString(item.result_url)
+          )
+        }
+      })
+    }
   }
 
   const unique = [...new Set(images)]
@@ -198,7 +240,7 @@ function pushTaskId(taskIds: string[], obj: Record<string, unknown>) {
 async function fetchResultByTaskId(baseUrl: string, apiKey: string, taskIds: string[]): Promise<GrsaiImageGenerationResponse> {
   const uniqueTaskIds = [...new Set(taskIds)].filter(Boolean)
   const timeoutAt = Date.now() + 45000
-  let lastError: string | undefined
+  let lastFatalError: string | undefined
 
   while (Date.now() < timeoutAt) {
     for (const taskId of uniqueTaskIds) {
@@ -222,7 +264,15 @@ async function fetchResultByTaskId(baseUrl: string, apiKey: string, taskIds: str
 
         const raw = await response.text()
         if (!response.ok) {
-          lastError = `GrsAI 结果查询失败: ${response.status} ${safeTrim(raw, 200)}`
+          const message = `GrsAI 结果查询失败: ${response.status} ${safeTrim(raw, 200)}`
+          if (isResultNotReadyMessage(raw) || isResultNotReadyMessage(message)) {
+            continue
+          }
+          lastFatalError = message
+          break
+        }
+
+        if (isResultNotReadyMessage(raw)) {
           continue
         }
 
@@ -235,15 +285,22 @@ async function fetchResultByTaskId(baseUrl: string, apiKey: string, taskIds: str
         }
 
         if (parsed.lastErrorMessage) {
-          lastError = parsed.lastErrorMessage
+          if (isResultNotReadyMessage(parsed.lastErrorMessage)) {
+            continue
+          }
+          lastFatalError = parsed.lastErrorMessage
         }
       }
+
+      if (lastFatalError) break
     }
+
+    if (lastFatalError) break
     await sleep(1500)
   }
 
-  if (lastError) {
-    throw new Error(lastError)
+  if (lastFatalError) {
+    throw new Error(lastFatalError)
   }
 
   return {
@@ -281,4 +338,9 @@ function safeTrim(value: string, maxLength: number): string {
   const normalized = value.replace(/\s+/g, ' ').trim()
   if (normalized.length <= maxLength) return normalized
   return `${normalized.slice(0, maxLength)}...`
+}
+
+function isResultNotReadyMessage(message?: string): boolean {
+  if (!message) return false
+  return /result not exist|task not exist|not found|pending|processing|in progress/i.test(message)
 }

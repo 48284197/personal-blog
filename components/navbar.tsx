@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Menu, X, Music, LayoutDashboard, LogIn } from 'lucide-react'
+import { User, Menu, X, Music, LayoutDashboard, LogIn, Image as ImageIcon } from 'lucide-react'
 import { Surface } from '@/components/landing'
 import { brand } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
@@ -93,6 +93,7 @@ export function Navbar({ className }: NavbarProps) {
             <nav className="hidden md:flex items-center gap-1">
               <NavLink href="/content" icon={<LayoutDashboard className="h-4 w-4" />}>内容区</NavLink>
               <NavLink href="/music" icon={<Music className="h-4 w-4" />} highlight>音乐工作台</NavLink>
+              <NavLink href="/image" icon={<ImageIcon className="h-4 w-4" />}>图片服务</NavLink>
             </nav>
 
             {/* 右侧操作区 */}
@@ -143,6 +144,12 @@ export function Navbar({ className }: NavbarProps) {
                     icon={<Music className="h-5 w-5" />} 
                     label="音乐工作台" 
                     highlight
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  />
+                  <MobileNavLink 
+                    href="/image" 
+                    icon={<ImageIcon className="h-5 w-5" />} 
+                    label="图片服务" 
                     onClick={() => setIsMobileMenuOpen(false)}
                   />
                   {!userName && (

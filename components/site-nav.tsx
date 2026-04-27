@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { User } from 'lucide-react'
+import { Image as ImageIcon, User } from 'lucide-react'
 import { Surface } from '@/components/landing'
 import { brand } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
@@ -59,6 +59,13 @@ export function SiteNav({
               className="hidden rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 transition hover:border-cyan-300 hover:bg-cyan-100 sm:inline-flex"
             >
               音乐工作台
+            </Link>
+            <Link
+              href="/image"
+              className="hidden items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 sm:inline-flex"
+            >
+              <ImageIcon className="h-4 w-4" />
+              图片服务
             </Link>
             <Link
               href={userHref}

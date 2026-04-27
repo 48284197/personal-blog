@@ -14,12 +14,13 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('图片生成请求体:', body)
 
-    const { prompt, width, height, num_images, provider } = body as {
+    const { prompt, width, height, num_images, provider, imageUrls } = body as {
       prompt?: string
       width?: number
       height?: number
       num_images?: number
       provider?: string
+      imageUrls?: string[]
     }
 
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
         prompt: prompt.trim(),
         size: parseSize(width, height),
         variants: num_images || 1,
+        imageUrls: Array.isArray(imageUrls) ? imageUrls.filter(Boolean) : undefined,
       })
       requestId = result.request_id || requestId
       generatedImages = result.images

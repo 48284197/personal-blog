@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { FileUp, Loader2, X, AlertCircle } from 'lucide-react'
+import { AlertCircle, FileUp, Image as ImageIcon, Loader2, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type UploadedFile = {
@@ -48,7 +48,6 @@ export function FileUploader({
 }: FileUploaderProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
 
   const files = useMemo(() => value.filter(Boolean), [value])
 
@@ -105,7 +104,6 @@ export function FileUploader({
 
     setUploading(true)
     setError('')
-    setUploadProgress({})
 
     try {
       const formData = new FormData()
@@ -131,7 +129,6 @@ export function FileUploader({
       setError(uploadError instanceof Error ? uploadError.message : '上传失败')
     } finally {
       setUploading(false)
-      setUploadProgress({})
     }
   }
 
@@ -154,27 +151,52 @@ export function FileUploader({
       <div
         {...getRootProps()}
         className={cn(
-          'rounded-2xl border border-dashed px-4 py-4 transition',
+          'group relative overflow-hidden rounded-[28px] border border-dashed transition',
+          previewMode === 'image'
+            ? 'border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.92))] p-5 shadow-[0_20px_50px_rgba(15,23,42,0.05)]'
+            : 'border-slate-200 bg-white px-4 py-4',
           isDragActive
-            ? 'border-cyan-300 bg-cyan-50'
-            : 'border-slate-200 bg-white hover:bg-slate-50'
+            ? 'border-cyan-300 bg-cyan-50/70'
+            : 'hover:border-cyan-200 hover:bg-cyan-50/40'
         )}
       >
         <input {...getInputProps()} />
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={open}
-            disabled={uploading}
-            className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
-            {uploading ? '上传中...' : buttonLabel}
-          </button>
-          <div className="text-sm text-slate-500">
-            {helperText ?? '拖拽文件到这里，或者点击选择文件'}
+        {previewMode === 'image' ? (
+          <div className="flex flex-col items-center justify-center gap-4 rounded-[24px] border border-white/70 bg-white/70 px-6 py-10 text-center backdrop-blur-sm">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-900 text-white shadow-[0_16px_30px_rgba(15,23,42,0.18)]">
+              <ImageIcon className="h-7 w-7" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-slate-900">上传图片</p>
+              <p className="text-sm text-slate-500">
+                {isDragActive ? '松开即可上传' : '拖拽或点击选择图片'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={open}
+              disabled={uploading}
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {uploading ? '上传中' : buttonLabel}
+            </button>
+            {helperText ? <div className="text-sm text-slate-500">{helperText}</div> : null}
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={open}
+              disabled={uploading}
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+              {uploading ? '上传中...' : buttonLabel}
+            </button>
+            {helperText ? <div className="text-sm text-slate-500">{helperText}</div> : null}
+          </div>
+        )}
       </div>
 
       {error ? (
@@ -185,18 +207,23 @@ export function FileUploader({
       ) : null}
 
       {files.length > 0 ? (
-        <div className={cn('grid gap-3', previewMode === 'image' ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-1')}>
+        <div className={cn('grid gap-3', previewMode === 'image' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1')}>
           {files.map((file, index) => (
             <div
               key={file + index}
               className={cn(
-                'group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50',
-                previewMode === 'image' ? 'aspect-square' : 'px-4 py-3'
+                'group relative overflow-hidden border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]',
+                previewMode === 'image' ? 'aspect-square rounded-[24px]' : 'rounded-2xl px-4 py-3'
               )}
             >
               {previewMode === 'image' ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={file} alt="upload preview" className="h-full w-full object-cover" />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={file} alt="upload preview" className="h-full w-full object-cover" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/60 via-slate-900/0 to-transparent p-3">
+                    <p className="truncate text-[11px] text-white/90">{file.split('/').pop()}</p>
+                  </div>
+                </>
               ) : (
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
