@@ -37,6 +37,20 @@ function getGradientFromName(name: string): string {
   return PRESET_GRADIENTS[index]
 }
 
+function getSafeImageSrc(src?: string | null) {
+  if (!src) return null
+  const value = src.trim()
+  if (!value) return null
+  if (value.startsWith('/')) return value
+
+  try {
+    const url = new URL(value)
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
 export function UserCard({
   name,
   avatarUrl,
@@ -84,6 +98,8 @@ export function UserCard({
 
   const classes = sizeClasses[size]
 
+  const safeAvatarUrl = getSafeImageSrc(avatarUrl)
+
   return (
     <div className={cn('flex', classes.container, className)}>
       {/* Avatar with optional header background */}
@@ -103,9 +119,9 @@ export function UserCard({
             classes.avatar
           )}
         >
-          {avatarUrl ? (
+          {safeAvatarUrl ? (
             <Image
-              src={avatarUrl}
+              src={safeAvatarUrl}
               alt={name}
               fill
               className="object-cover"
@@ -201,6 +217,7 @@ export function UserAvatar({
   className?: string
 }) {
   const gradient = getGradientFromName(name)
+  const safeAvatarUrl = getSafeImageSrc(avatarUrl)
 
   const sizeClasses = {
     sm: 'w-7 h-7 text-xs',
@@ -217,9 +234,9 @@ export function UserAvatar({
         className
       )}
     >
-      {avatarUrl ? (
+      {safeAvatarUrl ? (
         <Image
-          src={avatarUrl}
+          src={safeAvatarUrl}
           alt={name}
           fill
           className="object-cover"
