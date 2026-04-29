@@ -1,7 +1,13 @@
 'use client'
 
 import { useMemo, useState, type FormEvent } from 'react'
-import { ArrowRight, CheckCircle2, Lock, Mail, UserRound } from 'lucide-react'
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  UserRound,
+} from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Badge, Surface } from '@/components/landing'
 import { cn } from '@/lib/utils'
@@ -13,21 +19,6 @@ type AuthPanelProps = {
   initialMode?: AuthMode
 }
 
-const loginBenefits = [
-  {
-    title: '发内容',
-    text: '发布图片、视频、音乐和话题内容。',
-  },
-  {
-    title: '参与讨论',
-    text: '评论、回复、@ 某个人。',
-  },
-  {
-    title: '保存身份',
-    text: '登录后自动记住你的名字和状态。',
-  },
-]
-
 function getDisplayName(email: string, fallback?: string) {
   const prefix = email.split('@')[0]?.trim()
   return fallback?.trim() || prefix || '碳基用户'
@@ -38,6 +29,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -147,97 +139,147 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
   }
 
   return (
-    <Surface className="overflow-hidden border-white/70 bg-white/90 p-0 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
-      <div className="relative p-5 sm:p-7">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-emerald-400 to-orange-400" />
+    <Surface className="overflow-hidden border-white/80 bg-white/95 p-0 shadow-[0_30px_90px_rgba(15,23,42,0.12)]">
+      <div className="relative px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+        <div className="absolute inset-x-0 top-0 h-1 bg-[#f5c233]" />
 
-        <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 p-1 text-sm">
-          <button
-            type="button"
-            onClick={() => {
-              setMode('login')
-              setError('')
-              setSuccess('')
-            }}
-            className={cn(
-              'flex-1 rounded-full px-4 py-2 transition',
-              mode === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-            )}
-          >
-            登录
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode('register')
-              setError('')
-              setSuccess('')
-            }}
-            className={cn(
-              'flex-1 rounded-full px-4 py-2 transition',
-              mode === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-            )}
-          >
-            注册
-          </button>
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex rounded-full border border-black/5 bg-[#f7f5f2] p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('login')
+                setError('')
+                setSuccess('')
+              }}
+              className={cn(
+                'min-w-[92px] rounded-full px-5 py-2 text-[14px] font-semibold transition',
+                mode === 'login' ? 'bg-white text-[#1f140f] shadow-sm' : 'text-[#8c837a]'
+              )}
+            >
+              登录
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('register')
+                setError('')
+                setSuccess('')
+              }}
+              className={cn(
+                'min-w-[92px] rounded-full px-5 py-2 text-[14px] font-semibold transition',
+                mode === 'register' ? 'bg-white text-[#1f140f] shadow-sm' : 'text-[#8c837a]'
+              )}
+            >
+              注册
+            </button>
+          </div>
+
+          <Badge tone="orange" className="border-[#f3dfb7] bg-[#fff8e9] text-[#d89000]">
+            {mode === 'login' ? 'welcome back' : 'join maoqiu'}
+          </Badge>
         </div>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        <div className="mt-8 text-center">
+          <h2 className="text-[clamp(2rem,2.8vw,3rem)] font-black tracking-[-0.05em] text-[#1f140f]">
+            {mode === 'login' ? '欢迎回来' : '加入毛球'}
+            <span className="ml-2">{mode === 'login' ? '👋' : '✨'}</span>
+          </h2>
+          <p className="mt-3 text-[15px] leading-7 text-[#8c837a]">
+            {mode === 'login'
+              ? '登录毛球账号，继续你的萌宠之旅'
+              : '创建账号，开启你的萌宠社区'}
+          </p>
+        </div>
+
+        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
           {mode === 'register' ? (
             <label className="block">
-              <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
-                <UserRound className="h-4 w-4 text-cyan-600" />
+              <span className="mb-2 flex items-center gap-2 text-[14px] font-medium text-[#6f645a]">
+                <UserRound className="h-4 w-4 text-[#b28a2d]" />
                 昵称
               </span>
-              <input
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="你的社区名字"
-                required
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100/70"
-              />
+              <div className="rounded-[18px] border border-black/10 bg-white px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                <input
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="请输入昵称"
+                  required
+                  className="w-full bg-transparent text-[15px] text-[#1f140f] outline-none placeholder:text-[#b0a8a0]"
+                />
+              </div>
             </label>
           ) : null}
 
           <label className="block">
-            <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
-              <Mail className="h-4 w-4 text-cyan-600" />
+            <span className="mb-2 flex items-center gap-2 text-[14px] font-medium text-[#6f645a]">
+              <Mail className="h-4 w-4 text-[#b28a2d]" />
               邮箱
             </span>
+            <div className="flex items-center gap-3 rounded-[18px] border border-black/10 bg-white px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+              <Mail className="h-4 w-4 shrink-0 text-[#8f8379]" />
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 type="email"
-                placeholder="name@example.com"
+                placeholder="请输入邮箱"
                 required
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100/70"
+                className="w-full bg-transparent text-[15px] text-[#1f140f] outline-none placeholder:text-[#b0a8a0]"
               />
+            </div>
           </label>
 
           <label className="block">
-            <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
-              <Lock className="h-4 w-4 text-cyan-600" />
+            <span className="mb-2 flex items-center gap-2 text-[14px] font-medium text-[#6f645a]">
+              <Lock className="h-4 w-4 text-[#b28a2d]" />
               密码
             </span>
+            <div className="flex items-center gap-3 rounded-[18px] border border-black/10 bg-white px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+              <Lock className="h-4 w-4 shrink-0 text-[#8f8379]" />
               <input
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                type="password"
-                placeholder="至少 6 位"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="请输入密码"
                 required
                 minLength={6}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100/70"
+                className="w-full bg-transparent text-[15px] text-[#1f140f] outline-none placeholder:text-[#b0a8a0]"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#8f8379] transition hover:bg-[#f7f5f2]"
+                aria-label={showPassword ? '隐藏密码' : '显示密码'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </label>
 
+          <div className="flex items-center justify-between gap-4 text-[14px]">
+            <label className="flex items-center gap-2 text-[#6f645a]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-black/15 text-[#f5c233] focus:ring-[#f5c233]"
+              />
+              记住我
+            </label>
+            <button
+              type="button"
+              className="font-medium text-[#f39a00] transition hover:text-[#d58900]"
+            >
+              忘记密码？
+            </button>
+          </div>
+
           {error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] text-rose-700">
               {error}
             </div>
           ) : null}
 
           {success ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] text-emerald-700">
               {success}
             </div>
           ) : null}
@@ -245,34 +287,39 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex h-14 w-full items-center justify-center rounded-full bg-[#f5c233] text-[17px] font-bold text-[#2e1a14] shadow-[0_14px_30px_rgba(245,194,51,0.26)] transition hover:bg-[#efba18] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {submitLabel}
-            <ArrowRight className="h-4 w-4" />
           </button>
         </form>
 
-        <div className="mt-6 grid gap-3">
-          {loginBenefits.map((item) => (
-            <div key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{item.text}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="mt-7 flex items-center gap-4 text-[#b9b1a7]">
+          <span className="h-px flex-1 bg-[#ebe4d9]" />
+          <span className="text-[14px]">或</span>
+          <span className="h-px flex-1 bg-[#ebe4d9]" />
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          <Badge tone="cyan">supabase auth</Badge>
-          <Badge tone="slate">评论</Badge>
-          <Badge tone="slate">发内容</Badge>
-          <Badge tone="slate">@ 回复</Badge>
+        <button
+          type="button"
+          className="mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white text-[15px] font-medium text-[#1f140f] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition hover:bg-[#faf8f4]"
+        >
+          <Mail className="h-4 w-4 text-[#8f8379]" />
+          使用邮箱验证码登录
+        </button>
+
+        <div className="mt-7 text-center text-[15px] text-[#7d7269]">
+          还没有账号？
+          <button
+            type="button"
+            onClick={() => {
+              setMode('register')
+              setError('')
+              setSuccess('')
+            }}
+            className="ml-2 font-semibold text-[#f39a00] transition hover:text-[#d58900]"
+          >
+            立即注册 →
+          </button>
         </div>
       </div>
     </Surface>

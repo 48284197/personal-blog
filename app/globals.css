@@ -14,19 +14,15 @@
     overflow-y: scroll;
     scrollbar-gutter: stable;
     background:
-      radial-gradient(circle at top left, rgba(125, 211, 252, 0.24), transparent 26%),
-      radial-gradient(circle at top right, rgba(167, 243, 208, 0.18), transparent 24%),
-      radial-gradient(circle at bottom center, rgba(253, 224, 71, 0.08), transparent 22%),
-      linear-gradient(180deg, #f7fbff 0%, #f3fbf7 48%, #eef8ff 100%);
+      radial-gradient(circle at top center, rgba(255, 244, 213, 0.68), transparent 30%),
+      linear-gradient(180deg, #fffaf1 0%, #fdf6ea 40%, #fffdf9 100%);
   }
 
   body {
     min-height: 100vh;
     background:
-      radial-gradient(circle at top left, rgba(125, 211, 252, 0.24), transparent 26%),
-      radial-gradient(circle at top right, rgba(167, 243, 208, 0.18), transparent 24%),
-      radial-gradient(circle at bottom center, rgba(253, 224, 71, 0.08), transparent 22%),
-      linear-gradient(180deg, #f7fbff 0%, #f3fbf7 48%, #eef8ff 100%);
+      radial-gradient(circle at top center, rgba(255, 244, 213, 0.68), transparent 30%),
+      linear-gradient(180deg, #fffaf1 0%, #fdf6ea 40%, #fffdf9 100%);
     color: #0f172a;
     font-family:
       "PingFang SC",

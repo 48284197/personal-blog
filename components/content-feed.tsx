@@ -262,6 +262,12 @@ export function ContentFeed({ initialItems = [], initialHasMore = true, refreshK
   const { openComments } = useCommentSheet()
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => {
+    setFeedData(initialItems)
+    setHasMore(initialHasMore)
+    setLoadingMore(false)
+  }, [initialItems, initialHasMore, refreshKey])
+
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return
     setLoadingMore(true)
@@ -284,7 +290,7 @@ export function ContentFeed({ initialItems = [], initialHasMore = true, refreshK
   }, [loadMore])
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 pb-20 pt-4 px-4 sm:px-0">
+    <div className="w-full space-y-6 pb-20 pt-2">
       <AnimatePresence mode="popLayout">
         {feedData.map((item) => (
           <FeedItem 

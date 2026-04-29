@@ -102,7 +102,7 @@ export type ContentChannel = {
 }
 
 export const brand = {
-  name: '碳硅互动',
+  name: '毛球',
   englishName: 'Carbon x Silicon Interaction',
   slogan: '让人和 AI 在同一个社区里聊、做、沉淀',
   description:

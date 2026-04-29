@@ -1,179 +1,339 @@
-'use client'
+import Image from "next/image";
+import Link from "next/link";
+import type { ReactNode } from "react";
+import {
+  CalendarDays,
+  ChevronRight,
+  Heart,
+  MessageSquare,
+  Play,
+  PawPrint,
+  Sparkles,
+  Users,
+  UsersRound,
+} from "lucide-react";
+import { Navbar } from "@/components/navbar";
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
-import { MessageSquareMore, Sparkles, Users, ArrowRight } from 'lucide-react'
-import { Badge, Surface } from '@/components/landing'
-import { Navbar } from '@/components/navbar'
-import { brand } from '@/lib/site-data'
+const topics = ["推荐", "关注", "狗狗", "猫咪", "小宠", "日常", "知识", "活动"];
 
-const highlights = [
-  { icon: Users, title: '找到一起聊的人', text: '把同频用户聚在一起，讨论会更自然。', color: 'cyan' },
-  { icon: Sparkles, title: '找到合适的 AI', text: '按场景选择更适合的硅基角色。', color: 'emerald' },
-  { icon: MessageSquareMore, title: '把内容留下来', text: '好观点、好作品、好结论都能沉淀。', color: 'orange' },
-]
+const cards = [
+  {
+    title: "带柯基去公园玩耍的一天",
+    image:
+      "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=80",
+    author: "柯基小元气",
+    likes: "1.2万",
+    featured: true,
+  },
+  {
+    title: "猫咪的迷惑行为大赏",
+    image:
+      "https://images.unsplash.com/photo-1514888286974-6c03e2ca1f?auto=format&fit=crop&w=900&q=80",
+    author: "喵喵酱",
+    likes: "9823",
+  },
+  {
+    title: "春天与你和毛孩子更配哦",
+    image:
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80",
+    author: "毛球妈妈",
+    likes: "1.1万",
+  },
+  {
+    title: "兔兔的可爱瞬间",
+    image:
+      "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=900&q=80",
+    author: "软糯兔宝",
+    likes: "6234",
+  },
+];
 
-// 动画变体配置
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.15 }
-  }
-}
+const sidebarItems = [
+  {
+    label: "分享萌宠日常",
+    icon: MessageSquare,
+    color: "text-[#f5a300] bg-[#fff1cc]",
+  },
+  {
+    label: "结识同城宠友",
+    icon: UsersRound,
+    color: "text-[#f08c3f] bg-[#ffe5cf]",
+  },
+  {
+    label: "参与有趣活动",
+    icon: CalendarDays,
+    color: "text-[#6a7cf3] bg-[#e8ecff]",
+  },
+];
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } }
-}
-
-export default function Home() {
-  const [showCompactNav, setShowCompactNav] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setShowCompactNav(window.scrollY > 400)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
+function StatItem({
+  value,
+  label,
+  icon,
+}: {
+  value: string;
+  label: string;
+  icon: ReactNode;
+}) {
   return (
-    <main className="relative overflow-hidden bg-[#f7fbff] min-h-screen selection:bg-cyan-100">
-      {/* 动态背景装饰 */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-cyan-200/30 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-200/20 blur-[120px] rounded-full animate-pulse delay-700" />
+    <div className="flex items-center gap-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff0c8] text-[#2e1a14] shadow-[0_8px_18px_rgba(245,194,51,0.14)]">
+        {icon}
       </div>
+      <div>
+        <div className="text-[16px] font-extrabold leading-none text-[#2e1a14]">
+          {value}
+        </div>
+        <div className="mt-1 text-[13px] text-[#7f736b]">{label}</div>
+      </div>
+    </div>
+  );
+}
 
-      <Navbar className={showCompactNav ? 'opacity-0 pointer-events-none' : 'opacity-100 transition-opacity'} />
+export default function HomePage() {
+  return (
+    <div className="min-h-screen bg-[#f9f3e7] text-[#2e1a14]">
+      <Navbar />
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-12 pt-28 sm:px-6 lg:px-8">
-        
-        {/* 右下角悬浮按钮 - 使用 AnimatePresence 实现平滑出现 */}
-        <AnimatePresence>
-          {showCompactNav && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8, x: 20 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.8, x: 20 }}
-              className="fixed bottom-6 right-6 z-50 flex flex-col gap-3"
-            >
-              <button
-                onClick={() => window.location.href = '/content'}
-                className="group flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-xl hover:shadow-cyan-200/50 transition-all border border-slate-100"
-              >
-                <span className="text-[10px] font-bold text-slate-600 [writing-mode:vertical-rl]">换一换</span>
-              </button>
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl hover:bg-slate-800 transition-all"
-              >
-                <ArrowRight className="-rotate-90 h-5 w-5" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <main className="pt-[74px]">
+        <section className="relative overflow-hidden border-b border-black/5 bg-[linear-gradient(180deg,#fbf6eb_0%,#fbf7ef_52%,#fffdf9_100%)]">
+          <div className="mx-auto grid w-full max-w-[1520px] gap-8 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-10 lg:pb-24 lg:pt-20">
+            <div className="flex flex-col justify-center pb-10 lg:pb-20">
+              <p className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-[#f6d99b] bg-white/70 px-4 py-2 text-[14px] font-semibold text-[#c68a00] shadow-[0_10px_30px_rgba(245,194,51,0.12)]">
+                <PawPrint className="h-4 w-4" />
+                温暖有爱的宠物社区
+              </p>
 
-        {/* Hero Section */}
-        <motion.section 
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="mt-8 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center"
-        >
-          <div>
-            <motion.div variants={itemVariants}>
-              <Badge tone="cyan" className="px-4 py-1">Community First</Badge>
-            </motion.div>
-            
-            <motion.h1 variants={itemVariants} className="mt-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl lg:text-7xl leading-[1.1]">
-              让人和 AI
-              <span className="block mt-2 bg-gradient-to-r from-cyan-600 via-emerald-500 to-orange-400 bg-clip-text text-transparent">
-                在同一个社区里交流
-              </span>
-            </motion.h1>
+              <h1 className="max-w-[560px] text-[clamp(3rem,5.4vw,6.2rem)] font-black leading-[0.98] tracking-[-0.06em] text-[#2f1a12]">
+                和有趣的人
+                <br />
+                分享萌宠生活
+              </h1>
 
-            <motion.p variants={itemVariants} className="mt-8 max-w-xl text-lg leading-relaxed text-slate-500">
-              这里不是冰冷的技术展示页，而是一个可以
-              <span className="text-slate-900 font-medium"> 自由共创 </span>
-              的数字空间。让好的观点像种子一样在这里生根。
-            </motion.p>
+              <p className="mt-8 text-[18px] leading-8 text-[#65584f] sm:text-[20px]">
+                毛球，温暖有爱的宠物社区
+              </p>
 
-            <motion.div variants={itemVariants} className="mt-10 flex flex-wrap gap-4">
-              <Link
-                href="/content"
-                className="group relative overflow-hidden rounded-full bg-slate-900 px-8 py-4 text-sm font-semibold text-white transition-all hover:scale-105 active:scale-95"
-              >
-                <span className="relative z-10">探索内容区</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-              <a
-                href="#highlights"
-                className="rounded-full border border-slate-200 bg-white px-8 py-4 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300"
-              >
-                查看特性
-              </a>
-            </motion.div>
-          </div>
+              <div className="mt-10 flex flex-wrap items-center gap-4">
+                <Link
+                  href="/login?mode=register"
+                  className="inline-flex h-14 items-center justify-center rounded-full bg-[#f5c233] px-10 text-[17px] font-bold text-[#2e1a14] shadow-[0_12px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#efba18]"
+                >
+                  立即加入
+                </Link>
+                <Link
+                  href="#discover"
+                  className="inline-flex h-14 items-center justify-center gap-3 rounded-full border border-black/10 bg-white px-10 text-[17px] font-bold text-[#2e1a14] shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:bg-[#faf8f4]"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10">
+                    <Play className="ml-0.5 h-4 w-4 fill-current" />
+                  </span>
+                  了解毛球
+                </Link>
+              </div>
 
-          {/* 右侧卡片组 - 带有错落出现的效果 */}
-          <motion.div variants={itemVariants}>
-            <Surface className="relative overflow-hidden border-none shadow-2xl shadow-cyan-900/5 p-8 bg-white/70 backdrop-blur-2xl">
-              <div className="flex items-center justify-between mb-8">
-                <Badge tone="emerald" className="animate-pulse">Live Discussion</Badge>
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-8 w-8 rounded-full border-2 border-white bg-slate-200" />
-                  ))}
+              <div className="mt-14 flex flex-wrap gap-8 lg:gap-10">
+                <StatItem
+                  value="50万+"
+                  label="宠物用户"
+                  icon={<Users className="h-4 w-4" />}
+                />
+                <StatItem
+                  value="200万+"
+                  label="萌宠分享"
+                  icon={<Heart className="h-4 w-4" />}
+                />
+                <StatItem
+                  value="1000万+"
+                  label="互动点赞"
+                  icon={<Sparkles className="h-4 w-4" />}
+                />
+              </div>
+            </div>
+
+            <div className="relative flex min-h-[360px] items-end justify-center lg:min-h-[300px]">
+              <div className="relative w-full max-w-[780px]">
+                <div className="relative h-[520px] w-full sm:h-[600px] lg:h-[660px]">
+                  <Image
+                    src="https://xuxiweii.s3.bitiful.net/uploads/1777434188799-h1cj144us1k-UI.png"
+                    alt="宠物主视觉"
+                    fill
+                    sizes="(min-width: 1024px) 780px, 100vw"
+                    className="object-contain "
+                    unoptimized
+                  />
+                </div>
+
+                <div className="absolute bottom-12 left-1/2 w-[92%] -translate-x-1/2 rounded-full border border-white/80 bg-white px-4 py-3 shadow-[0_20px_50px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:w-[88%] sm:px-6 sm:py-4">
+                  <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                    <div className="flex -space-x-3">
+                      {["#f6c27a", "#c9a18a", "#f3e0ce", "#d7c5af"].map(
+                        (color, index) => (
+                          <span
+                            key={color}
+                            className="h-11 w-11 rounded-full border-2 border-white shadow-sm"
+                            style={{
+                              background: color,
+                              marginLeft: index === 0 ? 0 : undefined,
+                            }}
+                          />
+                        ),
+                      )}
+                    </div>
+                    <div className="min-w-0 text-[15px] text-[#4d4037]">
+                      <p className="truncate">
+                        已有{" "}
+                        <span className="font-extrabold text-[#f5a300]">
+                          500,000+
+                        </span>{" "}
+                        毛孩子在这里
+                      </p>
+                      <p className="mt-1 truncate text-[#6f6258]">
+                        找到属于他们的温暖家园
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid gap-4">
-                {highlights.map((item, idx) => (
-                  <motion.div
-                    key={item.title}
-                    whileHover={{ x: 10 }}
-                    className="group flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-4 transition-shadow hover:shadow-md"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600 group-hover:bg-cyan-50 group-hover:text-cyan-600 transition-colors">
-                      <item.icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900">{item.title}</h3>
-                      <p className="mt-1 text-sm text-slate-500 leading-snug">{item.text}</p>
-                    </div>
-                  </motion.div>
-                ))}
+              <div className="absolute bottom-20 left-14 hidden rotate-12 lg:block">
+                <div className="space-y-2">
+                  <span className="block h-[5px] w-10 rounded-full bg-[#f5c233]" />
+                  <span className="block h-[5px] w-16 rounded-full bg-[#f5c233]/90" />
+                  <span className="block h-[5px] w-7 rounded-full bg-[#f5c233]/80" />
+                </div>
               </div>
-            </Surface>
-          </motion.div>
-        </motion.section>
+            </div>
+          </div>
+        </section>
 
-        {/* 底部功能卡片 - 滚动触发动画 */}
-        <motion.section 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={containerVariants}
-          id="highlights" 
-          className="mt-24 grid gap-6 sm:grid-cols-3"
-        >
-          {[
-            { label: '交流', title: '聊得起来', desc: '从一句话开始，快速进入讨论。', icon: '💬' },
-            { label: '共创', title: '一起做内容', desc: '文字、观点、方案都能一起完善。', icon: '🎨' },
-            { label: '沉淀', title: '留下有用的东西', desc: '好的内容会进入精选和知识库。', icon: '📚' },
-          ].map((card) => (
-            <motion.div key={card.title} variants={itemVariants}>
-              <Surface className="group h-full p-8 transition-all hover:-translate-y-2 hover:shadow-xl border-slate-100">
-                <span className="text-2xl mb-4 block">{card.icon}</span>
-                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">{card.label}</p>
-                <h3 className="mt-3 text-xl font-bold text-slate-900 group-hover:text-cyan-600 transition-colors">{card.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-500">{card.desc}</p>
-              </Surface>
-            </motion.div>
-          ))}
-        </motion.section>
-      </div>
-    </main>
-  )
+        <section id="discover" className="-mt-6 bg-white rounded-[44px] overflow-hidden z-[1000] relative">
+          <div className="mx-auto w-full max-w-[1520px] px-4 pb-16 sm:px-6 lg:px-10">
+            <div className="rounded-[44px]  px-4 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:px-6 lg:px-8 lg:py-10">
+              <div className="grid gap-8 lg:grid-cols-[1fr_310px]">
+                <div>
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[22px]">🐾</span>
+                        <h2 className="text-[24px] font-black tracking-[-0.04em] text-[#1f140f] sm:text-[32px]">
+                          发现更多精彩
+                        </h2>
+                      </div>
+                      <p className="mt-3 text-[14px] text-[#8f8379] sm:text-[16px]">
+                        探索萌宠世界的无限乐趣
+                      </p>
+                    </div>
+
+                    <Link
+                      href="#"
+                      className="inline-flex items-center gap-1 text-[14px] font-medium text-[#8f8379] transition hover:text-[#2e1a14]"
+                    >
+                      查看全部
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {topics.map((topic, index) => (
+                      <button
+                        key={topic}
+                        className={`h-10 rounded-full px-5 text-[15px] font-medium transition ${
+                          index === 0
+                            ? "bg-[#f5d87d] text-[#2e1a14] shadow-[0_10px_20px_rgba(245,194,51,0.2)]"
+                            : "bg-[#f6f5f3] text-[#90857a] hover:bg-[#efece7]"
+                        }`}
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {cards.map((card) => (
+                      <article
+                        key={card.title}
+                        className="overflow-hidden rounded-[22px] border border-black/5 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)]"
+                      >
+                        <div className="relative h-[230px]">
+                          <Image
+                            src={card.image}
+                            alt={card.title}
+                            fill
+                            sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
+                            className="object-cover"
+                            unoptimized
+                          />
+                          {card.featured ? (
+                            <div className="absolute left-3 top-3 rounded-full bg-[#f5c233] px-3 py-1 text-[12px] font-bold text-[#2e1a14] shadow-[0_10px_18px_rgba(245,194,51,0.22)]">
+                              猫顶
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="px-4 pb-4 pt-4">
+                          <h3 className="min-h-[36px] text-[17px] font-semibold  text-[#241711]">
+                            {card.title}
+                          </h3>
+                          <div className="flex items-center justify-between text-[13px] text-[#8f8379]">
+                            <div className="flex items-center gap-2">
+                              <span className="h-6 w-6 rounded-full bg-[#cdb79f]" />
+                              <span>{card.author}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Heart className="h-4 w-4" />
+                              <span>{card.likes}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+
+                <aside className="rounded-[30px] border border-[#f3dfb7] bg-[linear-gradient(180deg,#fff9ea_0%,#fffdf8_100%)] px-6 py-8 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+                  <div className="flex items-center gap-2 text-[#2e1a14]">
+                    <h3 className="text-[26px] font-black tracking-[-0.04em]">
+                      加入毛球大家庭
+                    </h3>
+                    <span className="text-[22px]">🐾</span>
+                  </div>
+
+                  <p className="mt-4 text-[15px] leading-7 text-[#887c71]">
+                    记录、分享、交流
+                    <br />
+                    让我们一起陪伴毛孩子成长
+                  </p>
+
+                  <Link
+                    href="/login?mode=register"
+                    className="mt-8 flex h-14 items-center justify-center rounded-full bg-[#f5c233] text-[17px] font-bold text-[#2e1a14] shadow-[0_12px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#efba18]"
+                  >
+                    立即注册
+                  </Link>
+
+                  <div className="mt-6 space-y-3">
+                    {sidebarItems.map(({ label, icon: Icon, color }) => (
+                      <Link
+                        key={label}
+                        href="/login"
+                        className="flex h-14 items-center rounded-full border border-black/5 bg-white px-4 text-[15px] font-medium text-[#2e1a14] shadow-[0_10px_22px_rgba(15,23,42,0.04)] transition hover:bg-[#faf8f4]"
+                      >
+                        <span
+                          className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full ${color}`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        {label}
+                      </Link>
+                    ))}
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 }
