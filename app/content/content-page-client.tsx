@@ -6,24 +6,21 @@ import Link from 'next/link'
 import {
   ChevronRight,
   CirclePlus,
-  Compass,
-  Flame,
   Hash,
   Home,
   ImagePlus,
   Loader2,
-  MapPin,
   Megaphone,
-  PawPrint,
   Plus,
-  Rss,
   Video,
+  MessageCircle,
+  X,
 } from 'lucide-react'
 import { ContentFeed } from '@/components/content-feed'
 import { Navbar } from '@/components/navbar'
 import { Surface } from '@/components/landing'
 import { useCommentSheet } from '@/components/comment-sheet'
-import type { ContentItem } from '@/lib/site-data'
+import type { ContentItem, ContentChannelKey } from '@/lib/site-data'
 
 type ContentPageClientProps = {
   initialItems: ContentItem[]
@@ -36,76 +33,31 @@ type AuthProfile = {
   avatarUrl?: string | null
 }
 
-type DraftState = {
-  content: string
-  images: string[]
-  video: string
-  topics: string[]
+type SidebarState = {
+  hotTopics: Array<{ title: string; count: number; hot: boolean; displayCount: string }>
+  suggestedUsers: Array<{ id: string; name: string; fans: string; avatarUrl: string }>
+  activities: Array<{ id: string; title: string; time: string; avatarUrl: string }>
 }
 
-const leftNavItems = [
-  { label: '推荐', icon: Home, active: true },
-  { label: '关注', icon: PawPrint },
-  { label: '最新', icon: Flame },
-  { label: '话题', icon: Hash },
-  { label: '附近', icon: MapPin },
-  { label: '萌宠日常', icon: CirclePlus },
-  { label: '狗狗专区', icon: PawPrint },
-  { label: '猫咪专区', icon: Rss },
-  { label: '小宠专区', icon: Compass },
+const CHANNEL_TABS: Array<{ key: ContentChannelKey | ''; label: string; icon: typeof Home }> = [
+  { key: '', label: '推荐', icon: Home },
+  { key: 'dialogue', label: '对话', icon: MessageCircle },
+  { key: 'discussion', label: '讨论', icon: Megaphone },
+  { key: 'co-create', label: '共创', icon: CirclePlus },
+  { key: 'knowledge', label: '知识', icon: Hash },
 ]
 
-const hotTopics = [
-  { title: '春天和宠物的100种合影', count: '2.5万讨论', hot: true },
-  { title: '我家毛孩子的迷惑行为', count: '1.8万讨论', hot: true },
-  { title: '新手养宠必备清单', count: '1.2万讨论', hot: false },
-  { title: '宠物的治愈瞬间', count: '9876讨论', hot: false },
-  { title: '你家宠物最爱吃什么', count: '8765讨论', hot: false },
-]
 
-const suggestedUsers = [
-  { name: '金毛小太阳', fans: '2.3万', avatar: 'https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=256&q=80' },
-  { name: '奶茶是只猫', fans: '1.8万', avatar: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1f?auto=format&fit=crop&w=256&q=80' },
-  { name: '柯基小元气', fans: '1.2万', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=256&q=80' },
-  { name: '兔兔那么可爱', fans: '9867', avatar: 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=256&q=80' },
-]
-
-const activityItems = [
-  { title: '毛球妈妈 赞了你的评论', time: '2 分钟前', avatar: 'https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=128&q=80' },
-  { title: '软糖是只猫 发布了新动态', time: '10 分钟前', avatar: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1f?auto=format&fit=crop&w=128&q=80' },
-  { title: '金毛小太阳 关注了你', time: '30 分钟前', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=128&q=80' },
-]
-
-const topicSuggestions = hotTopics.map((item) => item.title)
-
-function createDefaultDraft(): DraftState {
-  return {
-    content: '',
-    images: [],
-    video: '',
-    topics: [],
-  }
+function formatFansCount(n: number): string {
+  if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '万'
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+  return String(n)
 }
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function appendTopic(content: string, topic: string) {
-  const cleanTopic = topic.replace(/^#/, '').trim()
-  if (!cleanTopic) return content
-
-  const hashtag = `#${cleanTopic}`
-  const trimmed = content.trimEnd()
-  if (!trimmed) return hashtag
-  if (new RegExp(`(^|\\s)${escapeRegExp(hashtag)}(\\s|$)`).test(trimmed)) return trimmed
-  return `${trimmed} ${hashtag}`.trim()
-}
-
-function removeTopic(content: string, topic: string) {
-  const hashtag = `#${topic.replace(/^#/, '').trim()}`
-  const pattern = new RegExp(`(?:\\s|^)${escapeRegExp(hashtag)}(?=\\s|$)`, 'g')
-  return content.replace(pattern, ' ').replace(/\s+/g, ' ').trim()
+function formatTopicCount(n: number): string {
+  if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '万讨论'
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k讨论'
+  return n + '讨论'
 }
 
 async function uploadFiles(files: File[]) {
@@ -127,482 +79,160 @@ async function uploadFiles(files: File[]) {
 }
 
 export function ContentPageClient({ initialItems, initialHasMore }: ContentPageClientProps) {
-  const [feedItems, setFeedItems] = useState(initialItems)
-  const [feedHasMore, setFeedHasMore] = useState(initialHasMore)
   const [feedVersion, setFeedVersion] = useState(0)
-  const [draft, setDraft] = useState(createDefaultDraft)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
-  const [publishing, setPublishing] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [publishError, setPublishError] = useState('')
-  const [uploadError, setUploadError] = useState('')
-  const [authProfile, setAuthProfile] = useState<AuthProfile | null>(null)
-  const [showTopics, setShowTopics] = useState(false)
-  const imageInputRef = useRef<HTMLInputElement | null>(null)
-  const videoInputRef = useRef<HTMLInputElement | null>(null)
+  const [activeChannel, setActiveChannel] = useState<ContentChannelKey | ''>('')
+  const [sidebar, setSidebar] = useState<SidebarState | null>(null)
+  const [sidebarLoading, setSidebarLoading] = useState(true)
   const { isOpen } = useCommentSheet()
 
-  useEffect(() => {
-    setFeedItems(initialItems)
-    setFeedHasMore(initialHasMore)
-  }, [initialItems, initialHasMore, feedVersion])
-
+  // 加载侧栏数据
   useEffect(() => {
     let cancelled = false
+    setSidebarLoading(true)
 
-    const loadAuth = async () => {
+    const loadSidebar = async () => {
       try {
-        const response = await fetch('/api/auth/me', { cache: 'no-store' })
-        if (!response.ok) {
+        const res = await fetch('/api/feed/sidebar')
+        if (!res.ok) {
+          if (!cancelled) setSidebarLoading(false)
           return
         }
+        const data = await res.json()
+        if (cancelled) return
 
-        const data = (await response.json()) as { user?: AuthProfile }
-        if (!cancelled) {
-          setAuthProfile(data.user ?? null)
-        }
+        setSidebar({
+          hotTopics: (data.hotTopics ?? []).map((t: { title: string; count: number; hot: boolean }) => ({
+            title: t.title,
+            count: t.count,
+            hot: t.hot,
+            displayCount: formatTopicCount(t.count),
+          })),
+          suggestedUsers: (data.suggestedUsers ?? []).map((u: { id: string; name: string; fans: number; avatarUrl: string }) => ({
+            id: u.id,
+            name: u.name,
+            fans: formatFansCount(u.fans),
+            avatarUrl: u.avatarUrl,
+          })),
+          activities: (data.activities ?? []).slice(0, 10).map((a: { id: string; title: string; time: string; avatarUrl: string }) => ({
+            id: a.id,
+            title: a.title,
+            time: a.time,
+            avatarUrl: a.avatarUrl,
+          })),
+        })
       } catch {
-        if (!cancelled) {
-          setAuthProfile(null)
-        }
+        // 保持默认空状态
+      } finally {
+        if (!cancelled) setSidebarLoading(false)
       }
     }
 
-    void loadAuth()
-
-    return () => {
-      cancelled = true
-    }
+    void loadSidebar()
+    return () => { cancelled = true }
   }, [])
 
-  const publishDisabled = useMemo(() => {
-    if (publishing) return true
-    return !draft.content.trim() && draft.images.length === 0 && !draft.video.trim()
-  }, [draft.content, draft.images.length, draft.video, publishing])
-
-  const openImagePicker = () => {
-    if (!isComposerOpen) setIsComposerOpen(true)
-    imageInputRef.current?.click()
+  const handleChannelChange = (channel: ContentChannelKey | '') => {
+    setActiveChannel(channel)
   }
 
-  const openVideoPicker = () => {
-    if (!isComposerOpen) setIsComposerOpen(true)
-    videoInputRef.current?.click()
-  }
-
-  const handleImageSelected = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? [])
-    event.target.value = ''
-    if (files.length === 0) return
-
-    setUploading(true)
-    setUploadError('')
-    try {
-      const urls = await uploadFiles(files)
-      if (urls.length > 0) {
-        setDraft((current) => ({ ...current, images: [...current.images, ...urls] }))
-      }
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : '上传失败')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleVideoSelected = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? [])
-    event.target.value = ''
-    if (files.length === 0) return
-
-    setUploading(true)
-    setUploadError('')
-    try {
-      const urls = await uploadFiles(files)
-      if (urls[0]) {
-        setDraft((current) => ({ ...current, video: urls[0] }))
-      }
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : '上传失败')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const toggleTopic = (topic: string) => {
-    setDraft((current) => {
-      const selected = current.topics.includes(topic)
-      return {
-        ...current,
-        topics: selected ? current.topics.filter((item) => item !== topic) : [...current.topics, topic],
-        content: selected ? removeTopic(current.content, topic) : appendTopic(current.content, topic),
-      }
-    })
-  }
-
-  const removeImage = (index: number) => {
-    setDraft((current) => ({
-      ...current,
-      images: current.images.filter((_, currentIndex) => currentIndex !== index),
-    }))
-  }
-
-  const handlePublish = async () => {
-    if (publishDisabled) return
-    setPublishing(true)
-    setPublishError('')
-
-    try {
-      const summary = draft.content.trim()
-      const mediaType = draft.video.trim() ? 'video' : draft.images.length > 0 ? 'image' : 'text'
-
-      const payload = {
-        channel: 'discussion' as const,
-        topic: summary.slice(0, 24) || '毛球社区',
-        title: summary.slice(0, 32) || '毛球社区新动态',
-        summary,
-        mediaType,
-        mediaOrientation: mediaType === 'video' ? 'horizontal' : undefined,
-        mediaDetail: summary || undefined,
-        mediaImages: mediaType === 'image' ? draft.images : undefined,
-        mediaSrc: mediaType === 'video' ? draft.video || undefined : draft.images[0],
-        tags: draft.topics.length > 0 ? draft.topics : ['毛球'],
-      }
-
-      const response = await fetch('/api/feed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { message?: string } | null
-        throw new Error(body?.message ?? '发布失败，请稍后重试。')
-      }
-
-      const data = (await response.json()) as { item?: ContentItem }
-      if (data.item) {
-        setFeedItems((current) => [data.item!, ...current])
-        setFeedVersion((current) => current + 1)
-        setDraft(createDefaultDraft())
-        setShowTopics(false)
-        setIsComposerOpen(false)
-      }
-    } catch (error) {
-      setPublishError(error instanceof Error ? error.message : '发布失败，请稍后重试。')
-    } finally {
-      setPublishing(false)
-    }
-  }
+  const dynamicTopicSuggestions = useMemo(() => {
+    return sidebar?.hotTopics.map((topic) => topic.title) ?? []
+  }, [sidebar])
 
   return (
-    <main className="min-h-screen bg-[#fbf4e8] text-[#2e1a14]">
-      <Navbar
-        activeLabel="社区"
-        showPublish
-        publishHref="#quick-publish"
-        userAvatarSrc={
-          authProfile?.avatarUrl ??
-          'https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=128&q=80'
-        }
-        userName={authProfile?.name ?? '毛球'}
-      />
+    <main className="relative min-h-screen bg-[#f6f4f2]">
+      <Navbar />
 
-      <div className="relative mx-auto max-w-[1520px] px-4 pb-8 pt-[90px] sm:px-6 lg:px-10">
-        <div className="grid gap-6 xl:grid-cols-[200px_minmax(0,1fr)_360px]">
-          <aside className="hidden xl:block">
-            <div className="sticky top-[94px] space-y-6">
-              <Surface className="overflow-hidden border-white/80 bg-white/90 p-0 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-                <div className="space-y-1 p-4">
-                  {leftNavItems.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <button
-                        key={item.label}
-                        type="button"
-                        className={[
-                          'flex w-full items-center gap-4 rounded-[18px] px-4 py-4 text-[16px] font-semibold transition',
-                          item.active
-                            ? 'bg-[#f5c233] text-[#2e1a14] shadow-[0_10px_20px_rgba(245,194,51,0.14)]'
-                            : 'text-[#2f1c16] hover:bg-[#faf6ef]',
-                        ].join(' ')}
-                      >
-                        <Icon className="h-5 w-5 shrink-0" />
-                        {item.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </Surface>
+      {/* 提示：当详情页评论区打开时导航栏样式需保持 */}
+      <div className="relative mx-auto max-w-[1520px] px-4 pt-[84px] sm:px-6 lg:px-10">
+        <div className="flex items-start gap-8">
+          {/* 左侧导航 */}
+          <aside className="sticky top-[84px] hidden w-[200px] shrink-0 lg:block">
+            <nav className="space-y-1">
+              {CHANNEL_TABS.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeChannel === tab.key
+                return (
+                  <button
+                    key={tab.key || 'all'}
+                    type="button"
+                    onClick={() => handleChannelChange(tab.key)}
+                    className={[
+                      'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition',
+                      isActive
+                        ? 'bg-[#f5c233]/15 text-[#2e1a14] font-bold'
+                        : 'text-[#65584f] hover:bg-black/5',
+                    ].join(' ')}
+                  >
+                    <span className={isActive ? 'text-[#f5c233]' : 'text-[#8f8379]'}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </nav>
 
-              <Surface className="overflow-hidden border-[#f4e3bf] bg-[linear-gradient(180deg,#fff7df_0%,#fffdf7_100%)] p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-                <div className="text-center">
-                  <p className="text-[18px] font-black leading-8 tracking-[-0.04em] text-[#2e1a14]">
-                    分享萌宠生活
-                    <br />
-                    记录美好瞬间
-                  </p>
-                </div>
-
-                <div className="mt-6 flex h-[140px] items-end justify-center overflow-hidden rounded-[22px] bg-gradient-to-b from-[#fff6da] to-[#fffef9]">
-                  <div className="relative h-[128px] w-[154px]">
-                    <Image
-                      src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=600&q=80"
-                      alt="宠物插画"
-                      fill
-                      className="object-contain"
-                      unoptimized
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsComposerOpen(true)
-                    document.getElementById('quick-publish')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }}
-                  className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f5c233] text-[15px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.22)] transition hover:bg-[#efba18]"
-                >
-                  <Plus className="h-4 w-4" />
-                  快捷发布
-                </button>
-              </Surface>
+            <div className="mt-8 border-t border-black/5 pt-6">
+              <button
+                type="button"
+                onClick={() => setIsComposerOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#f5c233] px-4 py-3 text-[15px] font-bold text-[#2e1a14] shadow-[0_8px_18px_rgba(245,194,51,0.2)] transition hover:bg-[#efba18]"
+              >
+                <Plus className="h-5 w-5" />
+                发布内容
+              </button>
             </div>
           </aside>
 
-          <section className={['space-y-6 transition-transform duration-300', isOpen ? 'scale-[0.98]' : 'scale-100'].join(' ')}>
-            <div id="quick-publish">
-              <Surface className="overflow-hidden border-white/80 bg-white/92 p-0 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-                {isComposerOpen ? (
-                  <div className="px-5 py-5 sm:px-6">
-                    <div className="flex items-start gap-4">
-                      <Image
-                        src={
-                          authProfile?.avatarUrl ??
-                          'https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=128&q=80'
-                        }
-                        alt="头像"
-                        width={48}
-                        height={48}
-                        className="h-12 w-12 rounded-full object-cover"
-                        unoptimized
-                      />
-
-                      <div className="relative flex-1">
-                        <textarea
-                          value={draft.content}
-                          onChange={(event) => {
-                            setDraft((current) => ({ ...current, content: event.target.value }))
-                            setPublishError('')
-                          }}
-                          placeholder="有什么新鲜事想告诉大家？"
-                          rows={3}
-                          className={[
-                            'min-h-[160px] w-full resize-none rounded-[24px] border border-black/5 bg-[#fbfaf7] px-5 py-4 pb-24 text-[15px] leading-7 text-[#2e1a14] outline-none transition placeholder:text-[#a39a90] focus:border-[#f5c233] focus:bg-white focus:ring-4 focus:ring-[#f5c233]/15',
-                            showTopics ? 'pb-28' : '',
-                          ].join(' ')}
-                        />
-
-                        {(draft.images.length > 0 || draft.video) && (
-                          <div className="absolute inset-x-4 bottom-4">
-                            <div className="flex items-end gap-2 overflow-x-auto rounded-[18px] border border-black/5 bg-white/90 px-3 py-2 shadow-[0_8px_20px_rgba(15,23,42,0.04)] backdrop-blur-sm">
-                              {draft.images.length > 0 ? (
-                                draft.images.map((image, index) => (
-                                  <button
-                                    key={image}
-                                    type="button"
-                                    onClick={() => removeImage(index)}
-                                    className="group relative h-10 w-10 shrink-0 overflow-hidden rounded-[12px] bg-[#faf7f2]"
-                                    aria-label="移除图片"
-                                  >
-                                    <Image src={image} alt="已上传图片" fill className="object-cover" unoptimized />
-                                    <span className="absolute right-0.5 top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black/60 text-[9px] text-white opacity-0 transition group-hover:opacity-100">
-                                      ×
-                                    </span>
-                                  </button>
-                                ))
-                              ) : null}
-
-                              {draft.video ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setDraft((current) => ({ ...current, video: '' }))}
-                                  className="group relative flex h-10 min-w-[120px] items-center gap-2 overflow-hidden rounded-[12px] bg-[#faf7f2] px-2"
-                                  aria-label="移除视频"
-                                >
-                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#fff0c8] text-[#2e1a14]">
-                                    <Video className="h-3.5 w-3.5" />
-                                  </span>
-                                  <span className="min-w-0 truncate text-[11px] text-[#5f5348]">视频</span>
-                                  <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black/60 text-[9px] text-white opacity-0 transition group-hover:opacity-100">
-                                    ×
-                                  </span>
-                                </button>
-                              ) : null}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={openImagePicker}
-                          className="inline-flex h-10 items-center gap-2 rounded-full bg-[#faf7f2] px-4 text-[14px] font-medium text-[#5f5348] transition hover:bg-[#f5f1ea]"
-                        >
-                          <ImagePlus className="h-4 w-4" />
-                          图片
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={openVideoPicker}
-                          className="inline-flex h-10 items-center gap-2 rounded-full bg-[#faf7f2] px-4 text-[14px] font-medium text-[#5f5348] transition hover:bg-[#f5f1ea]"
-                        >
-                          <Video className="h-4 w-4" />
-                          视频
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setShowTopics((current) => !current)}
-                          className={[
-                            'inline-flex h-10 items-center gap-2 rounded-full px-4 text-[14px] font-medium transition',
-                            showTopics
-                              ? 'bg-[#fff0c8] text-[#2e1a14]'
-                              : 'bg-[#faf7f2] text-[#5f5348] hover:bg-[#f5f1ea]',
-                          ].join(' ')}
-                        >
-                          <Megaphone className="h-4 w-4" />
-                          话题
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handlePublish}
-                        disabled={publishDisabled}
-                        className="inline-flex h-11 items-center justify-center rounded-full bg-[#f5c233] px-7 text-[15px] font-semibold text-[#2e1a14] shadow-[0_10px_22px_rgba(245,194,51,0.2)] transition hover:bg-[#efba18] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        {publishing ? '发布中...' : '发布'}
-                      </button>
-                    </div>
-
-                    {showTopics ? (
-                      <div className="mt-4 rounded-[24px] border border-black/5 bg-[#fffdf8] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-[14px] font-semibold text-[#1f140f]">热门话题</p>
-                          <button
-                            type="button"
-                            onClick={() => setShowTopics(false)}
-                            className="text-[13px] text-[#8f8379] transition hover:text-[#2e1a14]"
-                          >
-                            收起
-                          </button>
-                        </div>
-
-                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                          {topicSuggestions.map((topic) => {
-                            const active = draft.topics.includes(topic)
-
-                            return (
-                              <button
-                                key={topic}
-                                type="button"
-                                onClick={() => toggleTopic(topic)}
-                                className={[
-                                  'flex items-center justify-between rounded-[18px] border px-4 py-3 text-left transition',
-                                  active
-                                    ? 'border-[#f5c233] bg-[#fff3c9] text-[#2e1a14]'
-                                    : 'border-black/5 bg-white text-[#2e1a14] hover:bg-[#faf7f2]',
-                                ].join(' ')}
-                              >
-                                <span className="text-[14px] font-medium">#{topic}</span>
-                                <span
-                                  className={[
-                                    'flex h-5 w-5 items-center justify-center rounded-full text-[12px]',
-                                    active ? 'bg-[#f5c233] text-[#2e1a14]' : 'bg-[#f4efe7] text-[#8c837a]',
-                                  ].join(' ')}
-                                >
-                                  {active ? '✓' : '+'}
-                                </span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {uploadError ? (
-                      <div className="mt-4 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] text-rose-700">
-                        {uploadError}
-                      </div>
-                    ) : null}
-
-                    {publishError ? (
-                      <div className="mt-4 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] text-rose-700">
-                        {publishError}
-                      </div>
-                    ) : null}
-
-                    <div className="mt-4 text-[13px] text-[#8f8379]">
-                      {uploading ? '上传中...' : '点击图片/视频即可直接上传'}
-                    </div>
-
-                    <input
-                      ref={imageInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleImageSelected}
-                    />
-                    <input
-                      ref={videoInputRef}
-                      type="file"
-                      accept="video/*"
-                      className="hidden"
-                      onChange={handleVideoSelected}
-                    />
-                  </div>
-                ) : (
-                  <div className="px-5 py-5 sm:px-6">
-                    <button
-                      type="button"
-                      onClick={() => setIsComposerOpen(true)}
-                      className="flex min-h-[76px] w-full items-center gap-4 rounded-[28px] border border-black/5 bg-[#fbfaf7] px-5 text-left transition hover:bg-[#f6f2eb] focus:outline-none focus:ring-4 focus:ring-[#f5c233]/15"
-                    >
-                      <Image
-                        src={
-                          authProfile?.avatarUrl ??
-                          'https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=128&q=80'
-                        }
-                        alt="头像"
-                        width={44}
-                        height={44}
-                        className="h-11 w-11 rounded-full object-cover"
-                        unoptimized
-                      />
-
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-[15px] font-medium text-[#a39a90]">
-                          有什么新鲜事想告诉大家？
-                        </span>
-                        <span className="mt-1 block text-[13px] text-[#c0b7ad]">我也要分享</span>
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </Surface>
+          {/* 中间内容区 */}
+          <section className="min-w-0 flex-1">
+            {/* 频道标签栏（移动端） */}
+            <div className="mb-4 flex gap-2 overflow-x-auto pb-2 lg:hidden">
+              {CHANNEL_TABS.map((tab) => {
+                const isActive = activeChannel === tab.key
+                return (
+                  <button
+                    key={tab.key || 'all'}
+                    type="button"
+                    onClick={() => handleChannelChange(tab.key)}
+                    className={[
+                      'shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition whitespace-nowrap',
+                      isActive
+                        ? 'bg-[#f5c233] text-[#2e1a14] font-bold'
+                        : 'bg-white/80 text-[#65584f] border border-black/5',
+                    ].join(' ')}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
             </div>
 
-            <ContentFeed refreshKey={feedVersion} initialItems={feedItems} initialHasMore={feedHasMore} />
+            {/* 发布快捷入口（移动端） */}
+            <div className="mb-4 flex items-center gap-3 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setIsComposerOpen(true)}
+                className="flex flex-1 items-center gap-2 rounded-xl bg-[#f5c233] px-4 py-3 text-[14px] font-bold text-[#2e1a14] shadow-[0_8px_18px_rgba(245,194,51,0.2)] transition hover:bg-[#efba18]"
+              >
+                <Plus className="h-4 w-4" />
+                发布新内容
+              </button>
+            </div>
+
+            <ContentFeed
+              refreshKey={feedVersion}
+              initialItems={initialItems}
+              initialHasMore={initialHasMore}
+              channel={activeChannel}
+            />
           </section>
 
-          <aside className="space-y-6">
+          {/* 右侧栏 */}
+          <aside className="sticky top-[84px] hidden w-[320px] shrink-0 xl:block space-y-6">
+            {/* 热门话题 */}
             <Surface className="overflow-hidden border-white/80 bg-white/92 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
               <div className="flex items-center justify-between">
                 <h3 className="text-[18px] font-black text-[#1f140f]">热门话题</h3>
@@ -613,34 +243,43 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
               </div>
 
               <div className="mt-5 space-y-4">
-                {hotTopics.map((topic, index) => (
-                  <div key={topic.title} className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span
-                        className={[
-                          'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px] font-bold',
-                          index < 3 ? 'bg-[#fff0c6] text-[#d69200]' : 'bg-[#f4efe7] text-[#8c837a]',
-                        ].join(' ')}
-                      >
-                        {index + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-[15px] font-medium text-[#2e1a14]">
-                          {topic.title}
-                          {topic.hot ? (
-                            <span className="ml-2 rounded-full bg-[#ffe3d8] px-2 py-0.5 text-[11px] font-semibold text-[#ff5a3a]">
-                              热
-                            </span>
-                          ) : null}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="shrink-0 text-[14px] text-[#8f8379]">{topic.count}</span>
+                {sidebarLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
                   </div>
-                ))}
+                ) : sidebar?.hotTopics.length ? (
+                  sidebar.hotTopics.map((topic, index) => (
+                    <div key={topic.title} className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          className={[
+                            'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[13px] font-bold',
+                            index < 3 ? 'bg-[#fff0c6] text-[#d69200]' : 'bg-[#f4efe7] text-[#8c837a]',
+                          ].join(' ')}
+                        >
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-[15px] font-medium text-[#2e1a14]">
+                            {topic.title}
+                            {topic.hot ? (
+                              <span className="ml-2 rounded-full bg-[#ffe3d8] px-2 py-0.5 text-[11px] font-semibold text-[#ff5a3a]">
+                                热
+                              </span>
+                            ) : null}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[14px] text-[#8f8379]">{topic.displayCount}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[14px] text-[#8f8379] py-2">暂无数据</p>
+                )}
               </div>
             </Surface>
 
+            {/* 推荐用户 */}
             <Surface className="overflow-hidden border-white/80 bg-white/92 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
               <div className="flex items-center justify-between">
                 <h3 className="text-[18px] font-black text-[#1f140f]">推荐用户</h3>
@@ -651,58 +290,393 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
               </div>
 
               <div className="mt-5 space-y-4">
-                {suggestedUsers.map((user) => (
-                  <div key={user.name} className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <Image
-                        src={user.avatar}
-                        alt={user.name}
-                        width={44}
-                        height={44}
-                        className="h-11 w-11 rounded-full object-cover"
-                        unoptimized
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate text-[15px] font-medium text-[#2e1a14]">{user.name}</p>
-                        <p className="text-[13px] text-[#8f8379]">粉丝 {user.fans}</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="inline-flex h-9 items-center justify-center rounded-full border border-[#f5c233] px-4 text-[14px] font-semibold text-[#f39a00]"
-                    >
-                      + 关注
-                    </button>
+                {sidebarLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
                   </div>
-                ))}
+                ) : sidebar?.suggestedUsers.length ? (
+                  sidebar.suggestedUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#cdb79f]">
+                          {user.avatarUrl ? (
+                            <Image
+                              src={user.avatarUrl}
+                              alt={user.name}
+                              width={44}
+                              height={44}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                              {user.name.slice(0, 1)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-[15px] font-medium text-[#2e1a14]">{user.name}</p>
+                          <p className="text-[13px] text-[#8f8379]">粉丝 {user.fans}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-[#f5c233] px-4 text-[14px] font-semibold text-[#f39a00]"
+                      >
+                        + 关注
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[14px] text-[#8f8379] py-2">暂无数据</p>
+                )}
               </div>
             </Surface>
 
+            {/* 热门动态 */}
             <Surface className="overflow-hidden border-white/80 bg-white/92 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
               <h3 className="text-[18px] font-black text-[#1f140f]">热门动态</h3>
 
               <div className="mt-5 space-y-4">
-                {activityItems.map((item) => (
-                  <div key={item.title} className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <Image
-                        src={item.avatar}
-                        alt={item.title}
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 rounded-full object-cover"
-                        unoptimized
-                      />
-                      <p className="truncate text-[14px] text-[#2e1a14]">{item.title}</p>
-                    </div>
-                    <span className="shrink-0 text-[13px] text-[#a39a90]">{item.time}</span>
+                {sidebarLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
                   </div>
-                ))}
+                ) : sidebar?.activities.length ? (
+                  sidebar.activities.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-[#cdb79f]">
+                          {item.avatarUrl ? (
+                            <Image
+                              src={item.avatarUrl}
+                              alt=""
+                              width={28}
+                              height={28}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">
+                              宠
+                            </div>
+                          )}
+                        </div>
+                        <p className="truncate text-[14px] text-[#2e1a14]">{item.title}</p>
+                      </div>
+                      <span className="shrink-0 text-[13px] text-[#a39a90]">{item.time}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[14px] text-[#8f8379] py-2">暂无数据</p>
+                )}
               </div>
             </Surface>
           </aside>
         </div>
       </div>
+
+      {/* 发布弹窗 */}
+      {isComposerOpen ? (
+        <ComposerModal
+          channel={activeChannel}
+          topicSuggestions={dynamicTopicSuggestions}
+          onClose={() => setIsComposerOpen(false)}
+          onPublished={() => {
+            setFeedVersion((v) => v + 1)
+            setIsComposerOpen(false)
+          }}
+        />
+      ) : null}
+
+      <style jsx global>{`
+        ${isOpen ? '.navbar-blur { filter: blur(4px); pointer-events: none; }' : ''}
+      `}</style>
     </main>
+  )
+}
+
+// ========= 发布弹窗组件 =========
+
+type ComposerModalProps = {
+  channel: ContentChannelKey | ''
+  topicSuggestions: string[]
+  onClose: () => void
+  onPublished: () => void
+}
+
+function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: ComposerModalProps) {
+  const [content, setContent] = useState('')
+  const [images, setImages] = useState<string[]>([])
+  const [videoUrl, setVideoUrl] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
+  const [publishing, setPublishing] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const [authProfile, setAuthProfile] = useState<AuthProfile | null>(null)
+  const [authLoaded, setAuthLoaded] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+
+    const loadAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (res.ok) {
+          const data = await res.json()
+          setAuthProfile(data.user ?? null)
+        }
+      } catch {
+        // ignore
+      } finally {
+        setAuthLoaded(true)
+      }
+    }
+
+    void loadAuth()
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', handleKey)
+    }
+  }, [onClose])
+
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+
+    setUploading(true)
+    setError('')
+    try {
+      const urls = await uploadFiles(Array.from(files))
+      setImages(prev => [...prev, ...urls])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '上传失败')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleAddTag = () => {
+    const tag = tagInput.trim()
+    if (tag && !tags.includes(tag)) {
+      setTags(prev => [...prev, tag])
+    }
+    setTagInput('')
+  }
+
+  const handlePublish = async () => {
+    const trimmed = content.trim()
+    if (!trimmed) {
+      setError('请输入内容')
+      return
+    }
+
+    setPublishing(true)
+    setError('')
+
+    try {
+      const mediaType = videoUrl ? 'video' : images.length > 0 ? 'image' : 'text'
+      const payload = {
+        channel: channel || 'discussion',
+        mediaType,
+        mediaSrc: videoUrl || images[0] || undefined,
+        mediaImages: images.length ? images : undefined,
+        topic: trimmed.slice(0, 50),
+        title: trimmed.slice(0, 80),
+        summary: trimmed,
+        mediaDetail: trimmed,
+        tags,
+      }
+
+      const res = await fetch('/api/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error((body as { message?: string }).message ?? '发布失败')
+      }
+
+      await res.json()
+      onPublished()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '发布失败')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm pt-[10vh] pb-10">
+      <div className="relative w-full max-w-lg rounded-[24px] bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <h2 className="text-[17px] font-bold text-[#2e1a14]">发布新内容</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+          {/* 文字内容 */}
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="分享你的萌宠日常..."
+            className="w-full min-h-[120px] resize-none rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-[15px] leading-relaxed text-[#2e1a14] outline-none placeholder:text-slate-400 focus:border-[#f5c233] focus:bg-white transition"
+          />
+
+          {/* 图片预览 */}
+          {images.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {images.map((url, i) => (
+                <div key={i} className="relative h-20 w-20 overflow-hidden rounded-[12px] border border-slate-200">
+                  <Image src={url} alt="" fill className="object-cover" unoptimized />
+                  <button
+                    type="button"
+                    onClick={() => setImages(prev => prev.filter((_, j) => j !== i))}
+                    className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white text-[10px]"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {/* 上传按钮 */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[14px] font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              <ImagePlus className="h-4 w-4" />
+              {uploading ? '上传中...' : '添加图片'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const url = prompt('输入视频链接')
+                if (url) setVideoUrl(url)
+              }}
+              className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[14px] font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              <Video className="h-4 w-4" />
+              添加视频
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+          </div>
+
+          {topicSuggestions.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {topicSuggestions.slice(0, 6).map((topic) => {
+                const normalized = topic.replace(/^#/, '')
+                const selected = tags.includes(normalized)
+
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    onClick={() => {
+                      setTags((current) =>
+                        selected
+                          ? current.filter((tag) => tag !== normalized)
+                          : [...current, normalized]
+                      )
+                    }}
+                    className={[
+                      'rounded-full px-3 py-1 text-[12px] font-medium transition',
+                      selected
+                        ? 'bg-[#fff0c6] text-[#d69200]'
+                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+                    ].join(' ')}
+                  >
+                    #{normalized}
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
+
+          {/* 标签 */}
+          <div className="flex flex-wrap items-center gap-2">
+            {tags.map(tag => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setTags(prev => prev.filter(t => t !== tag))}
+                className="inline-flex items-center gap-1 rounded-full bg-[#fff0c6] px-3 py-1 text-[13px] font-medium text-[#d69200]"
+              >
+                #{tag}
+                <span className="text-[10px]">×</span>
+              </button>
+            ))}
+            <div className="flex items-center gap-1">
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag() } }}
+                placeholder="添加标签"
+                className="w-20 border-0 bg-transparent text-[13px] text-slate-500 outline-none placeholder:text-slate-400"
+              />
+              {tagInput ? (
+                <button type="button" onClick={handleAddTag} className="text-[12px] text-[#f5c233] font-bold">+</button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* 登录提示 */}
+          {authLoaded && !authProfile ? (
+            <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-700">
+              未登录，发布后不会关联你的账号。{' '}
+              <Link href="/login" className="underline font-medium">去登录</Link>
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="rounded-[12px] border border-rose-200 bg-rose-50 p-3 text-[13px] text-rose-700">
+              {error}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-[12px] border border-slate-200 bg-white px-5 py-2.5 text-[14px] font-medium text-slate-600 transition hover:bg-slate-50"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handlePublish}
+            disabled={publishing || !content.trim()}
+            className="inline-flex items-center gap-2 rounded-[12px] bg-[#f5c233] px-5 py-2.5 text-[14px] font-bold text-[#2e1a14] shadow-[0_8px_18px_rgba(245,194,51,0.2)] transition hover:bg-[#efba18] disabled:opacity-50"
+          >
+            {publishing ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> 发布中</>
+            ) : (
+              '发布'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }

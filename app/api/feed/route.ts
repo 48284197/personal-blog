@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createFeedItem, listFeedItemsPage } from '@/lib/feed-service'
 import { syncCurrentPlatformUser } from '@/lib/platform-user'
+import type { ContentChannelKey } from '@/lib/site-data'
 
 const createFeedSchema = z.object({
   channel: z.enum(['dialogue', 'discussion', 'co-create', 'knowledge']).optional(),
@@ -21,16 +22,23 @@ const createFeedSchema = z.object({
   tags: z.array(z.string()).optional(),
 })
 
+const VALID_CHANNELS: ContentChannelKey[] = ['dialogue', 'discussion', 'co-create', 'knowledge']
+
 export async function GET(request: NextRequest) {
-  const channel = request.nextUrl.searchParams.get('channel')
+  const channelParam = request.nextUrl.searchParams.get('channel')
   const limit = Number(request.nextUrl.searchParams.get('limit') ?? '10')
   const offset = Number(request.nextUrl.searchParams.get('offset') ?? '0')
+  const channel = channelParam && VALID_CHANNELS.includes(channelParam as ContentChannelKey)
+    ? (channelParam as ContentChannelKey)
+    : undefined
+
   const { items, hasMore } = await listFeedItemsPage({
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
     offset: Number.isFinite(offset) && offset >= 0 ? offset : 0,
+    channel,
   })
-  const filtered = channel ? items.filter((item) => item.channel === channel) : items
-  return NextResponse.json({ items: filtered, hasMore })
+
+  return NextResponse.json({ items, hasMore })
 }
 
 export async function POST(request: NextRequest) {

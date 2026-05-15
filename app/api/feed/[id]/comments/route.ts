@@ -18,10 +18,8 @@ type RouteParams = {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
-  
-  // 获取当前用户（可选）用于判断是否已点赞评论等
-  const user = await getRequestUser(request)
-  
+
+  void request
   const comments = await listFeedComments(id)
   return NextResponse.json({ comments })
 }
@@ -74,4 +72,3 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   
   return NextResponse.json(result, { status: 201 })
 }
-

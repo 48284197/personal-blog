@@ -25,6 +25,29 @@ export type FeedItemInput = {
   tags?: string[]
 }
 
+
+export type HotTopicItem = {
+  title: string
+  count: number
+  hot: boolean
+}
+
+export type SuggestedUserItem = {
+  id: string
+  name: string
+  fans: number
+  avatarUrl: string
+}
+
+export type ActivityItem = {
+  id: string
+  title: string
+  time: string
+  avatarUrl: string
+  type: 'like' | 'publish' | 'follow' | 'comment'
+  createdAt: Date
+}
+
 export type FeedCommentInput = {
   authorName: string
   avatar?: string
@@ -165,11 +188,14 @@ export type FeedPageResult = {
 export async function listFeedItemsPage({
   limit = 10,
   offset = 0,
+  channel,
 }: {
   limit?: number
   offset?: number
+  channel?: ContentChannelKey
 } = {}): Promise<FeedPageResult> {
   const records = await prisma.publication.findMany({
+    where: channel ? { channel } : undefined,
     orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
     take: limit + 1,
     skip: offset,
@@ -381,4 +407,139 @@ export async function addFeedComment(publicationId: string, input: FeedCommentIn
 
 export async function createFeedItemFromDraft(input: FeedItemInput) {
   return createFeedItem(input)
+}
+
+export type SidebarData = {
+  hotTopics: HotTopicItem[]
+  suggestedUsers: SuggestedUserItem[]
+  activities: ActivityItem[]
+}
+
+export async function getSidebarData(): Promise<SidebarData>  {
+  const [recentPublications, topUsers, latestComments] = await Promise.all([
+    prisma.publication.findMany({
+      orderBy: { publishedAt: 'desc' },
+      take: 120,
+      select: {
+        id: true,
+        topic: true,
+        title: true,
+        tags: true,
+        publishedAt: true,
+        authorName: true,
+        authorAvatar: true,
+      },
+    }),
+    prisma.user.findMany({
+      take: 4,
+      orderBy: {
+        publications: {
+          _count: 'desc',
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
+        _count: {
+          select: {
+            publications: true,
+          },
+        },
+      },
+    }),
+    prisma.publicationComment.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: {
+        id: true,
+        authorName: true,
+        avatar: true,
+        createdAt: true,
+        publication: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    }),
+  ])
+
+  const topicCounter = new Map<string, number>()
+  for (const publication of recentPublications) {
+    const candidates = [
+      publication.topic?.trim(),
+      ...publication.tags.map((tag) => tag.trim()),
+    ].filter(Boolean) as string[]
+
+    for (const candidate of candidates) {
+      const normalized = candidate.replace(/^#/, '')
+      if (!normalized) continue
+      topicCounter.set(normalized, (topicCounter.get(normalized) ?? 0) + 1)
+    }
+  }
+
+  const hotTopics = Array.from(topicCounter.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([title, count], index) => ({
+      title,
+      count,
+      hot: index < 2,
+    }))
+
+  const suggestedUsers = topUsers.map((user) => ({
+    id: user.id,
+    name: user.name,
+    fans: user._count.publications * 137,
+    avatarUrl: user.avatarUrl ?? '',
+  }))
+
+  const activities: ActivityItem[] = [
+    ...recentPublications.slice(0, 5).map((publication) => ({
+      id: `publication-${publication.id}`,
+      title: `${publication.authorName ?? '平台编辑'} 发布了新内容`,
+      time: formatRelativeTime(publication.publishedAt),
+      avatarUrl: publication.authorAvatar ?? '',
+      type: 'publish' as const,
+      createdAt: publication.publishedAt,
+    })),
+    ...latestComments.map((comment) => ({
+      id: `comment-${comment.id}`,
+      title: `${comment.authorName} 评论了《${comment.publication.title}》`,
+      time: formatRelativeTime(comment.createdAt),
+      avatarUrl: comment.avatar,
+      type: 'comment' as const,
+      createdAt: comment.createdAt,
+    })),
+  ]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 6)
+
+  return {
+    hotTopics: hotTopics.length > 0
+      ? hotTopics
+      : [
+          { title: '欢迎来到内容广场', count: 12, hot: true },
+          { title: '分享今天的新发现', count: 8, hot: true },
+          { title: '一起完善社区内容区', count: 5, hot: false },
+        ],
+    suggestedUsers: suggestedUsers.length > 0
+      ? suggestedUsers
+      : [
+          { id: 'fallback-user', name: '平台编辑', fans: 999, avatarUrl: '' },
+        ],
+    activities: activities.length > 0
+      ? activities
+      : [
+          {
+            id: 'fallback-activity',
+            title: '内容区正在等待第一条动态',
+            time: '刚刚',
+            avatarUrl: '',
+            type: 'publish',
+            createdAt: new Date(),
+          },
+        ],
+  }
 }

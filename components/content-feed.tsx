@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
-import { createPortal } from 'react-dom'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -11,14 +10,13 @@ import {
   Share2,
   Loader2,
 } from 'lucide-react'
-import { Badge, Surface } from '@/components/landing'
+import { Surface } from '@/components/landing'
 import { useCommentSheet } from '@/components/comment-sheet'
 import { MediaGallery } from '@/components/media-gallery'
 import { useExclusiveMediaPlayback, useMediaController } from '@/components/media-controller'
 import { UserAvatar } from '@/components/user-card'
-import { type ContentItem } from '@/lib/site-data'
+import { type ContentChannelKey, type ContentItem } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 // --- 1. 基础动画配置 ---
 const fadeInScale = {
@@ -62,7 +60,7 @@ function VideoCard({ mediaId, orientation, src }: { mediaId: string, orientation
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
-  const { setPlaybackPosition, playbackPositions } = useMediaController()
+  const { playbackPositions } = useMediaController()
   const { requestToggle } = useExclusiveMediaPlayback(mediaId, videoRef)
 
   useEffect(() => {
@@ -167,13 +165,53 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
   const [likeCount, setLikeCount] = useState(item.likes)
   const [isAnimating, setIsAnimating] = useState(false)
 
+  useEffect(() => {
+    setLikeCount(item.likes)
+  }, [item.likes])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadLikeState = async () => {
+      try {
+        const response = await fetch(`/api/feed/${item.id}/like`, { cache: 'no-store' })
+        if (!response.ok) return
+
+        const data = (await response.json()) as { liked?: boolean; likes?: number }
+        if (cancelled) return
+
+        setIsLiked(Boolean(data.liked))
+        setLikeCount(typeof data.likes === 'number' ? data.likes : item.likes)
+      } catch {
+        // keep optimistic defaults when like state cannot be fetched
+      }
+    }
+
+    void loadLikeState()
+
+    return () => {
+      cancelled = true
+    }
+  }, [item.id, item.likes])
+
   const handleLike = async () => {
     const nextState = !isLiked
     setIsLiked(nextState)
     setLikeCount(prev => nextState ? prev + 1 : prev - 1)
     setIsAnimating(true)
+
     try {
-      // TODO: 调用 API
+      const response = await fetch(`/api/feed/${item.id}/like`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        throw new Error('like request failed')
+      }
+
+      const data = (await response.json()) as { liked?: boolean; likes?: number }
+      setIsLiked(Boolean(data.liked))
+      setLikeCount(typeof data.likes === 'number' ? data.likes : likeCount)
     } catch {
       setIsLiked(!nextState)
       setLikeCount(prev => !nextState ? prev + 1 : prev - 1)
@@ -254,32 +292,86 @@ function MediaPanel({ item }: { item: ContentItem }) {
 }
 
 // --- 5. 主 Feed 组件 ---
-export function ContentFeed({ initialItems = [], initialHasMore = true, refreshKey }: { initialItems?: ContentItem[]; initialHasMore?: boolean; refreshKey?: number }) {
+export function ContentFeed({
+  initialItems = [],
+  initialHasMore = true,
+  refreshKey = 0,
+  channel = '',
+}: {
+  initialItems?: ContentItem[]
+  initialHasMore?: boolean
+  refreshKey?: number
+  channel?: ContentChannelKey | ''
+}) {
   const [feedData, setFeedData] = useState<ContentItem[]>(initialItems)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [shareItem, setShareItem] = useState<ContentItem | null>(null)
   const { openComments } = useCommentSheet()
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null)
+  const hasBootstrappedRef = useRef(false)
 
   useEffect(() => {
     setFeedData(initialItems)
     setHasMore(initialHasMore)
     setLoadingMore(false)
-  }, [initialItems, initialHasMore, refreshKey])
+  }, [initialItems, initialHasMore])
+
+  const loadFirstPage = useCallback(async () => {
+    setLoadingMore(true)
+    try {
+      const params = new URLSearchParams({
+        offset: '0',
+        limit: '10',
+      })
+      if (channel) {
+        params.set('channel', channel)
+      }
+
+      const response = await fetch(`/api/feed?${params}`, { cache: 'no-store' })
+      if (!response.ok) {
+        return
+      }
+
+      const data = (await response.json()) as { items?: ContentItem[]; hasMore?: boolean }
+      setFeedData(Array.isArray(data.items) ? data.items : [])
+      setHasMore(Boolean(data.hasMore))
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [channel])
+
+  useEffect(() => {
+    if (!hasBootstrappedRef.current) {
+      hasBootstrappedRef.current = true
+      return
+    }
+
+    void loadFirstPage()
+  }, [channel, refreshKey, loadFirstPage])
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return
     setLoadingMore(true)
     try {
-      const res = await fetch(`/api/feed?offset=${feedData.length}&limit=10`)
-      const data = await res.json()
-      setFeedData(prev => [...prev, ...data.items])
-      setHasMore(data.hasMore)
+      const params = new URLSearchParams({
+        offset: String(feedData.length),
+        limit: '10',
+      })
+      if (channel) {
+        params.set('channel', channel)
+      }
+
+      const res = await fetch(`/api/feed?${params}`)
+      if (!res.ok) return
+
+      const data = (await res.json()) as { items?: ContentItem[]; hasMore?: boolean }
+      setFeedData(prev => [...prev, ...(data.items ?? [])])
+      setHasMore(Boolean(data.hasMore))
     } finally {
       setLoadingMore(false)
     }
-  }, [feedData.length, hasMore, loadingMore])
+  }, [channel, feedData.length, hasMore, loadingMore])
 
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
@@ -297,7 +389,26 @@ export function ContentFeed({ initialItems = [], initialHasMore = true, refreshK
             key={item.id} 
             item={item} 
             onShare={setShareItem}
-            onOpenComments={(item: ContentItem) => openComments({ id: item.id, title: item.title, summary: item.summary, author: item.author, comments: item.comments, channel: item.channel, onCommentCountChange: () => {} })} 
+            onOpenComments={(item: ContentItem) =>
+              openComments({
+                id: item.id,
+                title: item.title,
+                summary: item.summary,
+                author: item.author,
+                comments: item.comments,
+                channel: item.channel,
+                commentPreview: item.commentPreview,
+                onCommentCountChange: (count: number) => {
+                  setFeedData((current) =>
+                    current.map((currentItem) =>
+                      currentItem.id === item.id
+                        ? { ...currentItem, comments: count }
+                        : currentItem
+                    )
+                  )
+                },
+              })
+            } 
           />
         ))}
       </AnimatePresence>
