@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+function deriveTitleFromContent(content?: string | null) {
+  const normalized = content?.replace(/\s+/g, ' ').trim() ?? ''
+  if (!normalized) return ''
+  return normalized.slice(0, 40)
+}
+
 export async function GET(
   _: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -37,9 +43,8 @@ export async function GET(
       channel: pub.channel as 'dialogue' | 'discussion' | 'co-create' | 'knowledge',
       mediaType: (pub.mediaKind || pub.mediaType) as 'text' | 'image' | 'video' | 'music',
       mediaOrientation: pub.mediaOrientation as 'horizontal' | 'vertical' | undefined,
-      topic: pub.topic || undefined,
-      title: pub.title,
-      summary: pub.summary,
+      title: deriveTitleFromContent(pub.content),
+      content: pub.content,
       author: user.name,
       authorId: user.id,
       authorAvatar: user.avatarUrl || undefined,

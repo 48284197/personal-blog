@@ -104,6 +104,7 @@ model User {
   projectVotes    ProjectVote[]
   messages      Message[]
   likes         Like[]
+  commentLikes  CommentLike[]
 }
 
 model AiModel {
@@ -308,15 +309,12 @@ model ProjectVote {
 model Publication {
   id          String          @id @default(cuid())
   channel     String
-  topic       String?
-  title       String
   type        PublicationType
   mediaType   ContentType     @default(TEXT)
   mediaKind   String
   mediaOrientation String?
   mediaLabel  String?
   mediaDetail String?
-  summary     String        @db.Text
   content     String        @db.Text
   coverUrl    String?
   mediaImages Json?
@@ -338,6 +336,9 @@ model Publication {
   project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   commentsList PublicationComment[]
   likesList   Like[]
+
+  @@index([channel, publishedAt(sort: Desc), createdAt(sort: Desc)])
+  @@index([publishedAt(sort: Desc), createdAt(sort: Desc)])
 }
 
 model PublicationComment {
@@ -353,6 +354,7 @@ model PublicationComment {
   updatedAt      DateTime @updatedAt
 
   publication    Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  likesList      CommentLike[]
 
   @@index([publicationId, createdAt])
 }
@@ -385,6 +387,20 @@ model Like {
 
   @@unique([publicationId, userId]) // 一个用户只能点赞一次
   @@index([publicationId])
+  @@index([userId])
+}
+
+model CommentLike {
+  id         String             @id @default(cuid())
+  commentId  String
+  userId     String
+  createdAt  DateTime           @default(now())
+
+  comment    PublicationComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
   @@index([userId])
 }
 

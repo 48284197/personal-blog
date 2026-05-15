@@ -97,8 +97,8 @@ export default function HomePage() {
 
       <main className="pt-[74px]">
         <section className="relative overflow-hidden border-b border-black/5 bg-[linear-gradient(180deg,#fbf6eb_0%,#fbf7ef_52%,#fffdf9_100%)]">
-          <div className="mx-auto grid w-full max-w-[1520px] gap-8 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-10 lg:pb-24 lg:pt-20">
-            <div className="flex flex-col justify-center pb-10 lg:pb-20">
+          <div className="mx-auto grid w-full max-w-[1520px] gap-8 px-4 pb-20 pt-16 sm:px-6 xl:grid-cols-[0.92fr_1.08fr] xl:px-10 xl:pb-24 xl:pt-20">
+            <div className="flex flex-col justify-center pb-10 xl:pb-20">
               <p className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-[#f6d99b] bg-white/70 px-4 py-2 text-[14px] font-semibold text-[#c68a00] shadow-[0_10px_30px_rgba(245,194,51,0.12)]">
                 <PawPrint className="h-4 w-4" />
                 温暖有爱的宠物社区
@@ -132,7 +132,7 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              <div className="mt-14 flex flex-wrap gap-8 lg:gap-10">
+              <div className="mt-14 flex flex-wrap gap-8 xl:gap-10">
                 <StatItem
                   value="50万+"
                   label="宠物用户"
@@ -151,9 +151,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="relative flex min-h-[360px] items-end justify-center lg:min-h-[300px]">
+            <div className="relative flex min-h-[360px] items-end justify-center xl:min-h-[300px]">
               <div className="relative w-full max-w-[780px]">
-                <div className="relative h-[520px] w-full sm:h-[600px] lg:h-[660px]">
+                <div className="relative h-[520px] w-full sm:h-[600px] xl:h-[660px]">
                   <Image
                     src="https://xuxiweii.s3.bitiful.net/uploads/1777434188799-h1cj144us1k-UI.png"
                     alt="宠物主视觉"
@@ -196,7 +196,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="absolute bottom-20 left-14 hidden rotate-12 lg:block">
+              <div className="absolute bottom-20 left-14 hidden rotate-12 xl:block">
                 <div className="space-y-2">
                   <span className="block h-[5px] w-10 rounded-full bg-[#f5c233]" />
                   <span className="block h-[5px] w-16 rounded-full bg-[#f5c233]/90" />
@@ -208,11 +208,11 @@ export default function HomePage() {
         </section>
 
         <section id="discover" className="-mt-6 bg-white rounded-[44px] overflow-hidden z-[1000] relative">
-          <div className="mx-auto w-full max-w-[1520px] px-4 pb-16 sm:px-6 lg:px-10">
-            <div className="rounded-[44px]  px-4 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:px-6 lg:px-8 lg:py-10">
-              <div className="grid gap-8 lg:grid-cols-[1fr_310px]">
+          <div className="mx-auto w-full max-w-[1520px] px-4 pb-16 sm:px-6 xl:px-10">
+            <div className="rounded-[44px]  px-4 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:px-6 xl:px-8 xl:py-10">
+              <div className="grid gap-8 xl:grid-cols-[1fr_310px]">
                 <div>
-                  <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-[22px]">🐾</span>

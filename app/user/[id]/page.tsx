@@ -241,7 +241,7 @@ function ContentCard({ item }: { item: ContentItem }) {
             {isVideo ? (
               <video ref={videoRef} src={item.mediaSrc} className="h-full w-full object-cover" muted playsInline />
             ) : (
-              coverImage && <Image src={coverImage} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+              coverImage && <Image src={coverImage} alt={item.title || '内容封面'} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
             )}
             
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -253,8 +253,8 @@ function ContentCard({ item }: { item: ContentItem }) {
           </div>
 
           <div className="p-5">
-            <h3 className="font-bold text-slate-900 group-hover:text-cyan-600 transition-colors line-clamp-1">{item.title}</h3>
-            <p className="mt-2 text-sm text-slate-500 line-clamp-2 leading-relaxed">{item.summary}</p>
+            <h3 className="font-bold text-slate-900 group-hover:text-cyan-600 transition-colors line-clamp-1">{item.title || '这条内容'}</h3>
+            <p className="mt-2 text-sm text-slate-500 line-clamp-2 leading-relaxed">{item.content}</p>
             
             <div className="mt-4 flex items-center justify-between border-t border-slate-50 pt-4">
               <div className="flex gap-4">

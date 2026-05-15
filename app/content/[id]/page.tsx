@@ -212,7 +212,12 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
           <div className="p-4 sm:p-5">
             <div className="flex gap-3 items-center">
               <Link href={`/user/${content.authorId || encodeURIComponent(content.author)}`} className="shrink-0">
-                <UserAvatar name={content.author} avatarUrl={content.authorAvatar} size="md" />
+                <UserAvatar
+                  name={content.author}
+                  avatarUrl={content.authorAvatar}
+                  href={content.authorId ? `/user/${content.authorId}` : undefined}
+                  size="md"
+                />
               </Link>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -235,8 +240,10 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             <div className="mt-4">
-              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">{content.title}</h1>
-              <p className="mt-2 text-sm leading-7 text-slate-700">{content.summary}</p>
+              {content.title ? (
+                <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">{content.title}</h1>
+              ) : null}
+              <p className="mt-2 text-sm leading-7 text-slate-700">{content.content}</p>
             </div>
           </div>
 
@@ -247,10 +254,10 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
             <div className="px-4 pb-2 sm:px-5">
               <div className="flex items-center gap-3 rounded-[20px] border border-slate-100 bg-gradient-to-r from-cyan-50 to-orange-50 p-4">
                 {content.musicCover && (
-                  <img src={content.musicCover} alt={content.title} className="h-16 w-16 rounded-lg object-cover" />
+                  <img src={content.musicCover} alt={content.title || '音乐封面'} className="h-16 w-16 rounded-lg object-cover" />
                 )}
                 <div className="flex-1">
-                  <p className="font-medium text-slate-900">{content.title}</p>
+                  <p className="font-medium text-slate-900">{content.title || '音乐内容'}</p>
                   {content.musicDuration && (
                     <p className="text-sm text-slate-500">时长: {content.musicDuration}</p>
                   )}
@@ -599,11 +606,16 @@ function ShareModal({
             <p className="mt-3 text-sm font-medium text-slate-500">扫码查看详情</p>
           </div>
 
-          <div className="mt-5 rounded-[22px] border border-slate-100 bg-white/90 p-4">
-            <h4 className="text-base font-semibold text-slate-900">{content.title}</h4>
-            <p className="mt-2 text-sm leading-6 text-slate-600 line-clamp-3">{content.summary}</p>
+            <div className="mt-5 rounded-[22px] border border-slate-100 bg-white/90 p-4">
+            <h4 className="text-base font-semibold text-slate-900">{content.title || '这条内容'}</h4>
+            <p className="mt-2 text-sm leading-6 text-slate-600 line-clamp-3">{content.content}</p>
             <div className="mt-4 flex items-center gap-3">
-              <UserAvatar name={content.author} avatarUrl={content.authorAvatar} size="sm" />
+              <UserAvatar
+                name={content.author}
+                avatarUrl={content.authorAvatar}
+                href={content.authorId ? `/user/${content.authorId}` : undefined}
+                size="sm"
+              />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-slate-900">{content.author}</p>
                 <p className="text-xs text-slate-500 truncate">{shareUrl}</p>
@@ -624,8 +636,8 @@ function ShareModal({
               onClick={() => {
                 if (navigator.share) {
                   navigator.share({
-                    title: content.title,
-                    text: content.summary,
+                    title: content.title || '这条内容',
+                    text: content.content,
                     url: shareUrl,
                   })
                 } else {

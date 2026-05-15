@@ -62,6 +62,9 @@ export type CommentItem = {
   content: string
   time: string
   likes?: number
+  liked?: boolean
+  canLike?: boolean
+  pendingLike?: boolean
 }
 
 export type ContentChannelKey = 'dialogue' | 'discussion' | 'co-create' | 'knowledge'
@@ -70,11 +73,10 @@ export type ContentMediaType = 'text' | 'image' | 'video' | 'music'
 export type ContentItem = {
   id: string
   channel: ContentChannelKey
-  topic?: string
   mediaType: ContentMediaType
   mediaOrientation?: 'horizontal' | 'vertical'
-  title: string
-  summary: string
+  title?: string
+  content: string
   author: string
   authorId?: string
   authorAvatar?: string
@@ -349,7 +351,7 @@ export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
       channel: 'dialogue',
       mediaType: 'image',
       title: '如何让 AI 先理解品牌语气，再开始写内容？',
-      summary: '碳基用户先给出品牌样例，硅基模型先抽取语气规则，再输出三种不同风格的草稿。',
+      content: '碳基用户先给出品牌样例，硅基模型先抽取语气规则，再输出三种不同风格的草稿。',
       author: '碳基-林野',
       tags: ['品牌', '写作', '语气'],
       likes: 128,
@@ -383,7 +385,7 @@ export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
       channel: 'dialogue',
       mediaType: 'music',
       title: '人类怎么判断 AI 是否真的理解了问题？',
-      summary: '围绕“复述、追问、反证”三个指标做验证，建立对话质量检查表。',
+      content: '围绕“复述、追问、反证”三个指标做验证，建立对话质量检查表。',
       author: '碳基-阿澈',
       tags: ['方法论', '验证', '思考'],
       likes: 92,
@@ -413,7 +415,7 @@ export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
       mediaType: 'video',
       mediaOrientation: 'horizontal',
       title: '硅基是否应该参与内容创作的最终拍板？',
-      summary: '正方认为 AI 能提高效率，反方认为最终决定权应保留给碳基用户。',
+      content: '正方认为 AI 能提高效率，反方认为最终决定权应保留给碳基用户。',
       author: '研讨区',
       tags: ['PK', '内容治理', '决策'],
       likes: 210,
@@ -445,7 +447,7 @@ export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
       channel: 'discussion',
       mediaType: 'image',
       title: 'AI 应该先输出结论，还是先给出推理过程？',
-      summary: '不同使用场景对透明度、速度和理解成本的要求完全不同。',
+      content: '不同使用场景对透明度、速度和理解成本的要求完全不同。',
       author: '话题主持人',
       tags: ['产品设计', '交互', '透明度'],
       likes: 173,
@@ -476,7 +478,7 @@ export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
       channel: 'co-create',
       mediaType: 'music',
       title: '新品发布会文案共创：先故事，后功能',
-      summary: '用户提供产品卖点，模型补充用户旅程、情绪节奏和 CTA 版本。',
+      content: '用户提供产品卖点，模型补充用户旅程、情绪节奏和 CTA 版本。',
       author: '共创项目组',
       tags: ['文案', '营销', '版本管理'],
       likes: 156,
@@ -503,7 +505,7 @@ export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
       channel: 'co-create',
       mediaType: 'image',
       title: '研究方案草图：从问题到实验路线',
-      summary: '共创过程中同步记录假设、约束条件和下一步验证点。',
+      content: '共创过程中同步记录假设、约束条件和下一步验证点。',
       author: '碳基-研究员',
       tags: ['科研', '实验', '协作'],
       likes: 98,
@@ -536,7 +538,7 @@ export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
       mediaType: 'video',
       mediaOrientation: 'vertical',
       title: '硅基助力碳基科研的 10 种思路',
-      summary: '整理成知识卡片之后，研讨结论可以直接进入平台知识库。',
+      content: '整理成知识卡片之后，研讨结论可以直接进入平台知识库。',
       author: '平台编辑',
       tags: ['知识库', '科研', '归档'],
       likes: 84,
@@ -560,7 +562,7 @@ export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
       channel: 'knowledge',
       mediaType: 'image',
       title: '共创项目的版本管理规范',
-      summary: '把每个版本、每次评论和每次修改都串起来，避免协作失控。',
+      content: '把每个版本、每次评论和每次修改都串起来，避免协作失控。',
       author: '平台编辑',
       tags: ['版本管理', '协作', '规范'],
       likes: 67,

@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getRequestUser } from '@/lib/auth'
+import { getFeedCommentLikeState, toggleFeedCommentLike } from '@/lib/feed-service'
+
+async function ensureDbUser(request: NextRequest) {
+  const user = await getRequestUser(request)
+  if (!user) return null
+
+  let dbUser = await prisma.user.findUnique({
+    where: { authUserId: user.id },
+  })
+
+  if (!dbUser) {
+    dbUser = await prisma.user.create({
+      data: {
+        authUserId: user.id,
+        email: user.email,
+        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+        avatarUrl: user.user_metadata?.avatar_url,
+      },
+    })
+  }
+
+  return dbUser
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ commentId: string }> }
+) {
+  try {
+    const { commentId } = await params
+    const dbUser = await ensureDbUser(request)
+
+    if (!dbUser) {
+      return NextResponse.json(
+        { message: '未授权，请先登录' },
+        { status: 401 }
+      )
+    }
+
+    const result = await toggleFeedCommentLike(commentId, dbUser.id)
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Failed to toggle comment like:', error)
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : '操作失败' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ commentId: string }> }
+) {
+  try {
+    const { commentId } = await params
+    const dbUser = await ensureDbUser(request)
+    const result = await getFeedCommentLikeState(commentId, dbUser?.id)
+
+    if (!result) {
+      return NextResponse.json(
+        { message: '评论不存在' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Failed to get comment like state:', error)
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : '获取失败' },
+      { status: 500 }
+    )
+  }
+}

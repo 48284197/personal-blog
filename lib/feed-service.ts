@@ -8,9 +8,7 @@ import { triggerAiComments } from '@/lib/ai-comment-service'
 
 export type FeedItemInput = {
   channel: ContentChannelKey
-  topic?: string
-  title?: string
-  summary?: string
+  content?: string
   authorName: string
   authorAvatar?: string
   authorId?: string | null
@@ -56,12 +54,16 @@ export type FeedCommentInput = {
   mentions?: string[]
 }
 
+function deriveTitleFromSummary(summary?: string) {
+  const normalized = summary?.replace(/\s+/g, ' ').trim() ?? ''
+  if (!normalized) return ''
+  return normalized.slice(0, 40)
+}
+
 function toContentItem(publication: {
   id: string
   channel: string
-  topic: string | null
-  title: string
-  summary: string
+  content: string
   authorName: string | null
   authorAvatar: string | null
   authorId: string | null
@@ -91,17 +93,19 @@ function toContentItem(publication: {
     mentions: string[]
   }>
 }): ContentItem {
+  const normalizedContent = publication.content?.trim() ?? ''
+  const derivedTitle = deriveTitleFromSummary(normalizedContent)
+
   return {
     id: publication.id,
     channel: publication.channel as ContentChannelKey,
-    topic: publication.topic ?? publication.title,
     mediaType: mapDBMediaKind(
       publication.mediaKind ?? publication.mediaType,
       publication.mediaAudio ? 'music' : publication.mediaImages ? 'image' : 'video'
     ),
     mediaOrientation: publication.mediaOrientation as ContentItem['mediaOrientation'] | undefined,
-    title: publication.title,
-    summary: publication.summary,
+    title: derivedTitle,
+    content: normalizedContent,
     author: publication.authorName ?? '平台编辑',
     authorId: publication.authorId ?? undefined,
     authorAvatar: publication.authorAvatar ?? undefined,
@@ -185,6 +189,29 @@ export type FeedPageResult = {
   hasMore: boolean
 }
 
+const publicationFeedSelect = {
+  id: true,
+  channel: true,
+  content: true,
+  authorName: true,
+  authorAvatar: true,
+  authorId: true,
+  tags: true,
+  likes: true,
+  comments: true,
+  mediaType: true,
+  mediaKind: true,
+  mediaOrientation: true,
+  mediaLabel: true,
+  mediaDetail: true,
+  mediaDuration: true,
+  mediaAudio: true,
+  coverUrl: true,
+  mediaSrc: true,
+  mediaImages: true,
+  publishedAt: true,
+} satisfies Prisma.PublicationSelect
+
 export async function listFeedItemsPage({
   limit = 10,
   offset = 0,
@@ -199,12 +226,7 @@ export async function listFeedItemsPage({
     orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
     take: limit + 1,
     skip: offset,
-    include: {
-      commentsList: {
-        orderBy: { createdAt: 'desc' },
-        take: 3,
-      },
-    },
+    select: publicationFeedSelect,
   })
 
   const hasMore = records.length > limit
@@ -214,7 +236,6 @@ export async function listFeedItemsPage({
     items: pageRecords.map((record) => toContentItem({
       ...record,
       saves: 0,
-      topic: record.topic,
       mediaType: record.mediaType,
       mediaKind: record.mediaKind,
       mediaOrientation: record.mediaOrientation,
@@ -239,9 +260,7 @@ export async function listFeedItems() {
 export async function getFeedItemPageItem(record: {
   id: string
   channel: string
-  topic: string | null
-  title: string
-  summary: string
+  content: string
   authorName: string | null
   authorAvatar: string | null
   authorId: string | null
@@ -264,7 +283,6 @@ export async function getFeedItemPageItem(record: {
   return toContentItem({
     ...record,
     saves: 0,
-    topic: record.topic,
     mediaType: record.mediaType,
     mediaKind: record.mediaKind,
     mediaOrientation: record.mediaOrientation,
@@ -294,7 +312,6 @@ export async function getFeedItemById(id: string): Promise<ContentItem | null> {
   return toContentItem({
     ...record,
     saves: 0,
-    topic: record.topic,
     mediaType: record.mediaType,
     mediaKind: record.mediaKind,
     mediaOrientation: record.mediaOrientation,
@@ -310,14 +327,19 @@ export async function getFeedItemById(id: string): Promise<ContentItem | null> {
 }
 
 export async function createFeedItem(input: FeedItemInput) {
+  const trimmedContent = input.content?.trim() ?? ''
+  const trimmedMediaDetail = input.mediaDetail?.trim() ?? ''
+
+  const normalizedMediaDetail =
+    trimmedMediaDetail && trimmedMediaDetail !== trimmedContent
+      ? trimmedMediaDetail
+      : null
+
   const record = await prisma.publication.create({
     data: {
       channel: input.channel,
-      topic: input.topic,
       type: mapSeedToDBType(input.channel),
-      title: input.title || '',
-      summary: input.summary || '',
-      content: input.summary || '',
+      content: trimmedContent,
       authorName: input.authorName,
       authorAvatar: input.authorAvatar ?? input.authorName.slice(0, 1),
       authorId: input.authorId ?? null,
@@ -328,7 +350,7 @@ export async function createFeedItem(input: FeedItemInput) {
       mediaKind: input.mediaType,
       mediaOrientation: input.mediaOrientation ?? null,
       mediaLabel: input.mediaLabel ?? null,
-      mediaDetail: input.mediaDetail ?? null,
+      mediaDetail: normalizedMediaDetail,
       mediaDuration: input.mediaDuration ?? null,
       mediaAudio: input.mediaAudio ?? null,
       mediaSrc: input.mediaSrc ?? null,
@@ -373,6 +395,32 @@ export async function listFeedComments(publicationId: string) {
   }))
 }
 
+export async function listFeedCommentsWithLikeState(publicationId: string, userId?: string | null) {
+  const comments = await prisma.publicationComment.findMany({
+    where: { publicationId },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      likesList: {
+        where: { userId: userId ?? '__anonymous__' },
+        select: { id: true },
+      },
+    },
+  })
+
+  return comments.map((comment) => ({
+    id: comment.id,
+    author: comment.authorName,
+    avatar: comment.avatar,
+    content: comment.content,
+    time: formatRelativeTime(comment.createdAt),
+    likes: comment.likes,
+    liked: userId ? (comment.likesList?.length ?? 0) > 0 : false,
+    canLike: Boolean(userId),
+    replyToName: comment.replyToName ?? undefined,
+    mentions: comment.mentions ?? [],
+  }))
+}
+
 export async function addFeedComment(publicationId: string, input: FeedCommentInput) {
   const created = await prisma.publicationComment.create({
     data: {
@@ -405,6 +453,96 @@ export async function addFeedComment(publicationId: string, input: FeedCommentIn
   }
 }
 
+export async function toggleFeedCommentLike(commentId: string, userId: string) {
+  const existingLike = await prisma.commentLike.findUnique({
+    where: {
+      commentId_userId: {
+        commentId,
+        userId,
+      },
+    },
+  })
+
+  if (existingLike) {
+    await prisma.commentLike.delete({
+      where: { id: existingLike.id },
+    })
+
+    const updatedComment = await prisma.publicationComment.update({
+      where: { id: commentId },
+      data: {
+        likes: {
+          decrement: 1,
+        },
+      },
+      select: {
+        likes: true,
+      },
+    })
+
+    return {
+      liked: false,
+      likes: updatedComment.likes,
+    }
+  }
+
+  await prisma.commentLike.create({
+    data: {
+      commentId,
+      userId,
+    },
+  })
+
+  const updatedComment = await prisma.publicationComment.update({
+    where: { id: commentId },
+    data: {
+      likes: {
+        increment: 1,
+      },
+    },
+    select: {
+      likes: true,
+    },
+  })
+
+  return {
+    liked: true,
+    likes: updatedComment.likes,
+  }
+}
+
+export async function getFeedCommentLikeState(commentId: string, userId?: string | null) {
+  const comment = await prisma.publicationComment.findUnique({
+    where: { id: commentId },
+    select: { likes: true },
+  })
+
+  if (!comment) {
+    return null
+  }
+
+  if (!userId) {
+    return {
+      liked: false,
+      likes: comment.likes,
+    }
+  }
+
+  const existingLike = await prisma.commentLike.findUnique({
+    where: {
+      commentId_userId: {
+        commentId,
+        userId,
+      },
+    },
+  })
+
+  return {
+    liked: Boolean(existingLike),
+    likes: comment.likes,
+  }
+}
+
 export async function createFeedItemFromDraft(input: FeedItemInput) {
   return createFeedItem(input)
 }
@@ -422,8 +560,7 @@ export async function getSidebarData(): Promise<SidebarData>  {
       take: 120,
       select: {
         id: true,
-        topic: true,
-        title: true,
+        content: true,
         tags: true,
         publishedAt: true,
         authorName: true,
@@ -458,7 +595,7 @@ export async function getSidebarData(): Promise<SidebarData>  {
         createdAt: true,
         publication: {
           select: {
-            title: true,
+            content: true,
           },
         },
       },
@@ -468,7 +605,6 @@ export async function getSidebarData(): Promise<SidebarData>  {
   const topicCounter = new Map<string, number>()
   for (const publication of recentPublications) {
     const candidates = [
-      publication.topic?.trim(),
       ...publication.tags.map((tag) => tag.trim()),
     ].filter(Boolean) as string[]
 
@@ -506,7 +642,7 @@ export async function getSidebarData(): Promise<SidebarData>  {
     })),
     ...latestComments.map((comment) => ({
       id: `comment-${comment.id}`,
-      title: `${comment.authorName} 评论了《${comment.publication.title}》`,
+      title: `${comment.authorName} 评论了「${deriveTitleFromSummary(comment.publication.content) || '这条内容'}」`,
       time: formatRelativeTime(comment.createdAt),
       avatarUrl: comment.avatar,
       type: 'comment' as const,

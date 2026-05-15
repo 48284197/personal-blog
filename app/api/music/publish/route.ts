@@ -5,9 +5,7 @@ import { getRequestUser } from '@/lib/auth'
 import { triggerAiComments } from '@/lib/ai-comment-service'
 
 const publishMusicSchema = z.object({
-  title: z.string().min(1),
-  summary: z.string().min(1),
-  content: z.string().optional(), // 正文内容，可选
+  content: z.string().min(1),
   mediaAudio: z.string().min(1),
   coverUrl: z.string().optional(),
   mediaDuration: z.string().optional(),
@@ -29,7 +27,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { title, summary, content, mediaAudio, coverUrl, mediaDuration, tags } = parsed.data
+    const { content, mediaAudio, coverUrl, mediaDuration, tags } = parsed.data
 
     // 获取当前用户
     const user = await getRequestUser(request)
@@ -63,12 +61,10 @@ export async function POST(request: NextRequest) {
     const publication = await prisma.publication.create({
       data: {
         channel: 'music-studio',
-        title,
         type: 'CO_CREATE',
         mediaType: 'AUDIO',
         mediaKind: 'music',
-        summary,
-        content: content || '',
+        content,
         mediaAudio,
         coverUrl,
         mediaDuration,

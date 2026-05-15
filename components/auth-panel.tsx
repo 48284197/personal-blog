@@ -143,8 +143,8 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
       <div className="relative px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
         <div className="absolute inset-x-0 top-0 h-1 bg-[#f5c233]" />
 
-        <div className="flex items-center justify-between gap-3">
-          <div className="inline-flex rounded-full border border-black/5 bg-[#f7f5f2] p-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="inline-flex w-full rounded-full border border-black/5 bg-[#f7f5f2] p-1 sm:w-auto">
             <button
               type="button"
               onClick={() => {
@@ -153,7 +153,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
                 setSuccess('')
               }}
               className={cn(
-                'min-w-[92px] rounded-full px-5 py-2 text-[14px] font-semibold transition',
+                'min-w-0 flex-1 whitespace-nowrap rounded-full px-5 py-2 text-[14px] font-semibold transition sm:min-w-[92px] sm:flex-none',
                 mode === 'login' ? 'bg-white text-[#1f140f] shadow-sm' : 'text-[#8c837a]'
               )}
             >
@@ -167,7 +167,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
                 setSuccess('')
               }}
               className={cn(
-                'min-w-[92px] rounded-full px-5 py-2 text-[14px] font-semibold transition',
+                'min-w-0 flex-1 whitespace-nowrap rounded-full px-5 py-2 text-[14px] font-semibold transition sm:min-w-[92px] sm:flex-none',
                 mode === 'register' ? 'bg-white text-[#1f140f] shadow-sm' : 'text-[#8c837a]'
               )}
             >
@@ -175,7 +175,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
             </button>
           </div>
 
-          <Badge tone="orange" className="border-[#f3dfb7] bg-[#fff8e9] text-[#d89000]">
+          <Badge tone="orange" className="w-fit self-start whitespace-nowrap border-[#f3dfb7] bg-[#fff8e9] text-[#d89000] sm:self-auto">
             {mode === 'login' ? 'welcome back' : 'join maoqiu'}
           </Badge>
         </div>

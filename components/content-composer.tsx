@@ -158,16 +158,12 @@ export function ContentComposer({ open, onClose, onPublished }: ContentComposerP
     setLoading(true)
     setError('')
 
-    // 使用用户输入或留空，不再自动生成"内容-"前缀
     const userContent = draft.summary.trim()
     const payload = {
-      topic: userContent || undefined,
-      title: userContent || undefined,
-      summary: userContent || undefined,
+      content: userContent || undefined,
       mediaType: draft.mediaType,
       mediaOrientation: draft.mediaType === 'video' ? draft.mediaOrientation : undefined,
       mediaLabel: undefined,
-      mediaDetail: userContent || undefined,
       mediaImages: draft.mediaType === 'image' ? draft.mediaImages : undefined,
       mediaSrc:
         draft.mediaType === 'video'

@@ -105,7 +105,7 @@ export function InteractionHub() {
             : 'horizontal'
           : undefined,
       title: content.slice(0, 26),
-      summary: content,
+      content,
       author: '你',
       tags: activeChannel === 'dialogue'
         ? ['即时对话', '发布']
@@ -146,15 +146,12 @@ export function InteractionHub() {
 
     void (async () => {
       try {
-        const topic = draft.trim().slice(0, 24) || '未命名话题'
         const response = await fetch('/api/feed', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             channel: activeChannel,
-            topic,
-            title: nextItem.title,
-            summary: nextItem.summary,
+            content: nextItem.content,
             authorName: '你',
             authorAvatar: '你',
             mediaType,
@@ -340,16 +337,16 @@ export function InteractionHub() {
                   className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-cyan-300/30 hover:bg-white/[0.05]"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
+                  <div>
                       <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{item.mediaLabel}</p>
-                      <h4 className="mt-2 text-lg font-semibold text-white">{item.title}</h4>
+                      <h4 className="mt-2 text-lg font-semibold text-white">{item.title || '这条内容'}</h4>
                     </div>
                     <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-slate-300">
                       {item.mediaDetail}
                     </div>
                   </div>
 
-                  <p className="mt-4 text-sm leading-7 text-slate-300">{item.summary}</p>
+                  <p className="mt-4 text-sm leading-7 text-slate-300">{item.content}</p>
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {item.tags.map((tag) => (

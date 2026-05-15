@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { addFeedComment, listFeedComments } from '@/lib/feed-service'
+import { addFeedComment, listFeedCommentsWithLikeState } from '@/lib/feed-service'
 import { getRequestUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -19,8 +19,18 @@ type RouteParams = {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
 
-  void request
-  const comments = await listFeedComments(id)
+  const requestUser = await getRequestUser(request)
+  let dbUserId: string | null = null
+
+  if (requestUser) {
+    const dbUser = await prisma.user.findUnique({
+      where: { authUserId: requestUser.id },
+      select: { id: true },
+    })
+    dbUserId = dbUser?.id ?? null
+  }
+
+  const comments = await listFeedCommentsWithLikeState(id, dbUserId)
   return NextResponse.json({ comments })
 }
 

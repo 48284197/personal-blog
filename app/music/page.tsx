@@ -474,7 +474,7 @@ export default function MusicPage() {
               按顺序完成创作，体验更佳
             </div>
           </div>
-          <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr]">
+          <div className="grid gap-3 xl:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr]">
             {stepUi.map((item, index) => {
               const Icon = item.icon
               return (
@@ -492,7 +492,7 @@ export default function MusicPage() {
                     </div>
                   </div>
                   {index < stepUi.length - 1 && (
-                    <div className="hidden items-center justify-center lg:flex">
+                    <div className="hidden items-center justify-center xl:flex">
                       <ChevronRight className="h-5 w-5 text-slate-300" />
                     </div>
                   )}
@@ -502,7 +502,7 @@ export default function MusicPage() {
           </div>
         </Surface>
 
-        <div className="grid gap-5 lg:grid-cols-[37%_1fr]">
+        <div className="grid gap-5 xl:grid-cols-[37%_1fr]">
           <div className="space-y-5">
             <Surface className="p-5 sm:p-6">
               <h3 className="mb-4 text-3xl font-black tracking-tight text-slate-900">创作主题</h3>

@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart,
+  Inbox,
   MessageCircle,
   Pause,
   Play,
@@ -15,6 +16,7 @@ import { useCommentSheet } from '@/components/comment-sheet'
 import { MediaGallery } from '@/components/media-gallery'
 import { useExclusiveMediaPlayback, useMediaController } from '@/components/media-controller'
 import { UserAvatar } from '@/components/user-card'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { type ContentChannelKey, type ContentItem } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +26,29 @@ const fadeInScale = {
   animate: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 0, scale: 0.98 },
   transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] }
+}
+
+const channelEmptyCopy: Record<ContentChannelKey | '', { title: string; description: string }> = {
+  '': {
+    title: '这里还没有内容',
+    description: '发一条新的动态、图片或视频，内容区就会热起来。',
+  },
+  dialogue: {
+    title: '还没有对话内容',
+    description: '先发起一个话题，或者分享一段你想继续聊下去的想法。',
+  },
+  discussion: {
+    title: '还没有讨论内容',
+    description: '把观点抛出来，社区里的讨论会从这里开始。',
+  },
+  'co-create': {
+    title: '还没有共创内容',
+    description: '先贴出草稿、灵感或需求，邀请大家一起补全它。',
+  },
+  knowledge: {
+    title: '还没有知识内容',
+    description: '把经验、总结或方法记录下来，这里会慢慢积累起来。',
+  },
 }
 
 // --- 2. 动画粒子组件 ---
@@ -174,7 +199,17 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
 
     const loadLikeState = async () => {
       try {
-        const response = await fetch(`/api/feed/${item.id}/like`, { cache: 'no-store' })
+        const supabase = createSupabaseBrowserClient()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        const response = await fetch(`/api/feed/${item.id}/like`, {
+          cache: 'no-store',
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+        })
         if (!response.ok) return
 
         const data = (await response.json()) as { liked?: boolean; likes?: number }
@@ -201,8 +236,16 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
     setIsAnimating(true)
 
     try {
+      const supabase = createSupabaseBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
       const response = await fetch(`/api/feed/${item.id}/like`, {
         method: 'POST',
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined,
       })
 
       if (!response.ok) {
@@ -222,9 +265,14 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
   return (
     <motion.div layout {...fadeInScale}>
       <Surface className="overflow-hidden p-0 border-none shadow-sm ring-1 ring-slate-100 hover:ring-cyan-100 transition-all">
-        <div className="p-4 sm:p-5">
+        <div className="px-4 pt-4 pb-1 sm:px-5 sm:pb-1 sm:pt-4">
           <div className="flex gap-3 items-center">
-            <UserAvatar name={item.author} avatarUrl={item.authorAvatar} size="md" />
+            <UserAvatar
+              name={item.author}
+              avatarUrl={item.authorAvatar}
+              href={item.authorId ? `/user/${item.authorId}` : undefined}
+              size="md"
+            />
             <div className="flex-1 min-w-0">
               <Link href={`/user/${item.author}`} className="text-sm font-bold text-slate-900 hover:text-cyan-600 transition-colors">
                 {item.author}
@@ -232,6 +280,14 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
               <p className="text-[11px] text-slate-400 mt-0.5">{item.publishedAt || '刚刚'}</p>
             </div>
           </div>
+
+          {item.content ? (
+            <div className="mt-2">
+              <p className="text-[15px] leading-7 text-slate-600 whitespace-pre-wrap break-words font-weight-bold">
+                {item.content}
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <MediaPanel item={item} />
@@ -278,13 +334,12 @@ function MediaPanel({ item }: { item: ContentItem }) {
   const mediaId = `${item.mediaType}-${item.id}`
   switch (item.mediaType) {
     case 'video': return <VideoCard mediaId={mediaId} orientation={item.mediaOrientation} src={item.mediaSrc} />
-    case 'music': return <MusicCard title={item.title} detail={item.summary || ''} musicCover={item.musicCover} musicAudio={item.musicAudio} mediaId={mediaId} />
-    case 'image': return <MediaGallery images={item.mediaImages || [item.mediaSrc || '']} title={item.title} galleryId={mediaId} />
+    case 'music': return <MusicCard title={item.title || '音频内容'} detail={item.content || ''} musicCover={item.musicCover} musicAudio={item.musicAudio} mediaId={mediaId} />
+    case 'image': return <MediaGallery images={item.mediaImages || [item.mediaSrc || '']} title={item.title || '图片内容'} galleryId={mediaId} />
     default: return (
       <div className="px-5 pb-2">
         <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100">
-          <h4 className="font-bold text-slate-800">{item.title}</h4>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">{item.mediaDetail}</p>
+          <p className="text-sm text-slate-600 leading-relaxed">{item.mediaDetail || item.content}</p>
         </div>
       </div>
     )
@@ -381,45 +436,62 @@ export function ContentFeed({
     return () => observer.disconnect()
   }, [loadMore])
 
+  const emptyCopy = channelEmptyCopy[channel]
+  const isEmpty = !loadingMore && feedData.length === 0
+
   return (
     <div className="w-full space-y-6 pb-20 pt-2">
-      <AnimatePresence mode="popLayout">
-        {feedData.map((item) => (
-          <FeedItem 
-            key={item.id} 
-            item={item} 
-            onShare={setShareItem}
-            onOpenComments={(item: ContentItem) =>
-              openComments({
-                id: item.id,
-                title: item.title,
-                summary: item.summary,
-                author: item.author,
-                comments: item.comments,
-                channel: item.channel,
-                commentPreview: item.commentPreview,
-                onCommentCountChange: (count: number) => {
-                  setFeedData((current) =>
-                    current.map((currentItem) =>
-                      currentItem.id === item.id
-                        ? { ...currentItem, comments: count }
-                        : currentItem
+      {isEmpty ? (
+        <Surface className="border border-dashed border-slate-200 bg-white/92 px-6 py-14 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <Inbox className="h-7 w-7" />
+          </div>
+          <h3 className="mt-5 text-[20px] font-bold text-slate-900">{emptyCopy.title}</h3>
+          <p className="mx-auto mt-2 max-w-md text-[14px] leading-7 text-slate-500">
+            {emptyCopy.description}
+          </p>
+        </Surface>
+      ) : (
+        <AnimatePresence mode="popLayout">
+          {feedData.map((item) => (
+            <FeedItem 
+              key={item.id} 
+              item={item} 
+              onShare={setShareItem}
+              onOpenComments={(item: ContentItem) =>
+                openComments({
+                  id: item.id,
+                  title: item.title,
+                  content: item.content,
+                  author: item.author,
+                  comments: item.comments,
+                  channel: item.channel,
+                  commentPreview: item.commentPreview,
+                  onCommentCountChange: (count: number) => {
+                    setFeedData((current) =>
+                      current.map((currentItem) =>
+                        currentItem.id === item.id
+                          ? { ...currentItem, comments: count }
+                          : currentItem
+                      )
                     )
-                  )
-                },
-              })
-            } 
-          />
-        ))}
-      </AnimatePresence>
+                  },
+                })
+              } 
+            />
+          ))}
+        </AnimatePresence>
+      )}
 
       <div ref={loadMoreTriggerRef} className="flex justify-center py-8">
         {loadingMore ? (
           <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+        ) : isEmpty ? (
+          <div className="h-1" />
         ) : hasMore ? (
           <div className="h-1" />
         ) : (
-          <p className="text-xs font-medium uppercase tracking-widest text-slate-300">End of Feed</p>
+          <p className="text-sm text-slate-400">已经到底啦，去发布一条新的内容吧</p>
         )}
       </div>
 

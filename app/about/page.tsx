@@ -72,8 +72,8 @@ export default function AboutPage() {
     <main className="min-h-screen bg-[#fbf4e8] text-[#2e1a14]">
       <Navbar activeLabel="关于我们" showPublish userAvatarSrc="/logo.png" userName="毛球" />
 
-      <div className="mx-auto max-w-[1520px] px-4 pb-10 pt-[90px] sm:px-6 lg:px-10">
-        <section className="relative overflow-hidden rounded-[48px] bg-[linear-gradient(180deg,#fff9ef_0%,#fffdf9_100%)] px-5 pb-8 pt-14 shadow-[0_18px_45px_rgba(15,23,42,0.04)] sm:px-8 lg:px-12 lg:pb-10 lg:pt-16">
+      <div className="mx-auto max-w-[1520px] px-4 pb-10 pt-[122px] sm:px-6 xl:px-10">
+        <section className="relative overflow-hidden rounded-[48px] bg-[linear-gradient(180deg,#fff9ef_0%,#fffdf9_100%)] px-5 pb-8 pt-14 shadow-[0_18px_45px_rgba(15,23,42,0.04)] sm:px-8 xl:px-12 xl:pb-10 xl:pt-16">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute left-[-6%] top-[22%] h-40 w-40 rounded-full bg-[#fff1ce]/70 blur-3xl" />
             <div className="absolute right-[-5%] top-[10%] h-48 w-48 rounded-full bg-[#fff1ce]/60 blur-3xl" />
@@ -81,7 +81,7 @@ export default function AboutPage() {
             <div className="absolute right-[23%] top-[18%] h-4 w-4 rounded-full bg-[#f8c04e]/90 blur-[1px]" />
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="grid gap-8 xl:grid-cols-[0.9fr_1.1fr] xl:items-center">
             <div className="relative z-10 max-w-[620px]">
               <h1 className="text-[clamp(3rem,5.6vw,6.2rem)] font-black leading-[0.95] tracking-[-0.07em] text-[#2f1a12]">
                 关于毛球
@@ -97,8 +97,8 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <div className="relative z-10 flex min-h-[360px] items-end justify-center lg:min-h-[520px] lg:justify-end">
-              <div className="relative h-[420px] w-full max-w-[760px] sm:h-[500px] lg:h-[560px]">
+            <div className="relative z-10 flex min-h-[360px] items-end justify-center xl:min-h-[520px] xl:justify-end">
+              <div className="relative h-[420px] w-full max-w-[760px] sm:h-[500px] xl:h-[560px]">
                 <Image
                   src="https://xuxiweii.s3.bitiful.net/uploads/1777434188799-h1cj144us1k-UI.png"
                   alt="关于毛球主视觉"
@@ -109,15 +109,15 @@ export default function AboutPage() {
                   unoptimized
                 />
 
-                <div className="absolute left-[6%] top-[22%] hidden rounded-full border-[3px] border-[#2e1a14] bg-white p-3 shadow-[0_10px_20px_rgba(15,23,42,0.06)] lg:block">
+                <div className="absolute left-[6%] top-[22%] hidden rounded-full border-[3px] border-[#2e1a14] bg-white p-3 shadow-[0_10px_20px_rgba(15,23,42,0.06)] xl:block">
                   <MessageCircle className="h-8 w-8 text-[#2e1a14]" />
                 </div>
 
-                <div className="absolute left-[2%] top-[35%] hidden rotate-[-14deg] lg:block">
+                <div className="absolute left-[2%] top-[35%] hidden rotate-[-14deg] xl:block">
                   <PawPrint className="h-10 w-10 text-[#f2ba69]" />
                 </div>
 
-                <div className="absolute right-[6%] top-[18%] hidden w-[176px] rotate-[8deg] rounded-[26px] border-4 border-[#f5c233] bg-[#ffe889] px-4 py-4 text-center shadow-[0_16px_30px_rgba(245,194,51,0.16)] lg:block">
+                <div className="absolute right-[6%] top-[18%] hidden w-[176px] rotate-[8deg] rounded-[26px] border-4 border-[#f5c233] bg-[#ffe889] px-4 py-4 text-center shadow-[0_16px_30px_rgba(245,194,51,0.16)] xl:block">
                   <div className="mx-auto mb-2 h-5 w-12 rounded-t-[18px] border-4 border-b-0 border-[#f5c233]" />
                   <p className="text-[20px] font-black leading-[1.4] tracking-[-0.04em] text-[#2e1a14]">
                     在毛球
@@ -128,15 +128,15 @@ export default function AboutPage() {
                   </p>
                 </div>
 
-                <div className="absolute right-[36%] top-[10%] hidden rotate-12 text-[#2e1a14] lg:block">
+                <div className="absolute right-[36%] top-[10%] hidden rotate-12 text-[#2e1a14] xl:block">
                   <Sparkles className="h-8 w-8" />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-10 rounded-[30px] bg-white/92 px-5 py-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] sm:px-6 lg:px-8">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 rounded-[30px] bg-white/92 px-5 py-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] sm:px-6 xl:px-8">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
               {stats.map((item, index) => {
                 const Icon = item.icon
                 return (
@@ -144,7 +144,7 @@ export default function AboutPage() {
                     key={item.label}
                     className={[
                       'flex items-center gap-4',
-                      index > 0 ? 'lg:border-l lg:border-black/8 lg:pl-8' : '',
+                      index > 0 ? 'xl:border-l xl:border-black/8 xl:pl-8' : '',
                     ].join(' ')}
                   >
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#ffe7a8] text-[#2e1a14]">
@@ -161,7 +161,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="mt-10 grid gap-6 lg:grid-cols-[repeat(3,minmax(0,1fr))_320px]">
+        <section className="mt-10 grid gap-6 xl:grid-cols-[repeat(3,minmax(0,1fr))_320px]">
           {pillars.map((pillar) => {
             const Icon = pillar.icon
             return (
@@ -232,7 +232,7 @@ export default function AboutPage() {
           </Surface>
         </section>
 
-        <footer className="mt-10 flex flex-col gap-4 border-t border-black/5 py-6 text-[14px] text-[#8f8379] lg:flex-row lg:items-center lg:justify-between">
+        <footer className="mt-10 flex flex-col gap-4 border-t border-black/5 py-6 text-[14px] text-[#8f8379] xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5c233]">
               <PawPrint className="h-5 w-5 text-[#2e1a14]" />

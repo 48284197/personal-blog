@@ -11,13 +11,13 @@ import {
 } from 'react'
 import Link from 'next/link'
 import type { Dispatch, SetStateAction } from 'react'
-import { Send, X } from 'lucide-react'
+import { Heart, Send, X } from 'lucide-react'
 import type { CommentItem, ContentItem } from '@/lib/site-data'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type CommentTarget = Pick<
   ContentItem,
-  'id' | 'title' | 'summary' | 'author' | 'comments' | 'channel'
+  'id' | 'title' | 'content' | 'author' | 'comments' | 'channel'
 > & {
   commentPreview?: CommentItem[]
   onCommentCountChange?: (count: number) => void
@@ -166,6 +166,7 @@ function CommentSheet({
   const [mentionSearch, setMentionSearch] = useState('')
   const [mentionIndex, setMentionIndex] = useState(0)
   const [cursorPosition, setCursorPosition] = useState(0)
+  const [likePendingMap, setLikePendingMap] = useState<Record<string, boolean>>({})
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const mentionsRef = useRef<HTMLDivElement | null>(null)
 
@@ -338,6 +339,51 @@ function CommentSheet({
     }
   }
 
+  const handleToggleCommentLike = async (commentId: string) => {
+    setLikePendingMap((current) => ({ ...current, [commentId]: true }))
+
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      const response = await fetch(`/api/feed/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined,
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          alert('请先登录')
+        }
+        return
+      }
+
+      const data = (await response.json()) as { liked?: boolean; likes?: number }
+
+      onUpdateComments((current) =>
+        current.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                liked: Boolean(data.liked),
+                likes: typeof data.likes === 'number' ? data.likes : comment.likes,
+              }
+            : comment
+        )
+      )
+    } finally {
+      setLikePendingMap((current) => {
+        const next = { ...current }
+        delete next[commentId]
+        return next
+      })
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[90]">
       <button
@@ -405,7 +451,19 @@ function CommentSheet({
                       >
                         回复
                       </button>
-                      <span>{comment.likes ?? 0} 赞</span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCommentLike(comment.id)}
+                        disabled={likePendingMap[comment.id]}
+                        className={[
+                          'inline-flex items-center gap-1.5 transition',
+                          comment.liked ? 'text-rose-500' : 'hover:text-slate-900',
+                          likePendingMap[comment.id] ? 'opacity-60' : '',
+                        ].join(' ')}
+                      >
+                        <Heart className={['h-3.5 w-3.5', comment.liked ? 'fill-rose-500 text-rose-500' : ''].join(' ')} />
+                        <span>{comment.likes ?? 0} 赞</span>
+                      </button>
                     </div>
                   </div>
                 </div>

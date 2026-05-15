@@ -20,6 +20,7 @@ import { ContentFeed } from '@/components/content-feed'
 import { Navbar } from '@/components/navbar'
 import { Surface } from '@/components/landing'
 import { useCommentSheet } from '@/components/comment-sheet'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem, ContentChannelKey } from '@/lib/site-data'
 
 type ContentPageClientProps = {
@@ -142,13 +143,18 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
 
   return (
     <main className="relative min-h-screen bg-[#f6f4f2]">
-      <Navbar />
+      <Navbar
+        activeLabel="社区"
+        showPublish
+        publishHref="/content"
+        onPublishClick={() => setIsComposerOpen(true)}
+      />
 
       {/* 提示：当详情页评论区打开时导航栏样式需保持 */}
-      <div className="relative mx-auto max-w-[1520px] px-4 pt-[84px] sm:px-6 lg:px-10">
+      <div className="relative mx-auto max-w-[1520px] px-4 pt-[138px] sm:px-6 sm:pt-[142px] xl:px-10 xl:pt-[96px]">
         <div className="flex items-start gap-8">
           {/* 左侧导航 */}
-          <aside className="sticky top-[84px] hidden w-[200px] shrink-0 lg:block">
+          <aside className="sticky top-[96px] hidden w-[200px] shrink-0 xl:block">
             <nav className="space-y-1">
               {CHANNEL_TABS.map((tab) => {
                 const Icon = tab.icon
@@ -173,53 +179,35 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                 )
               })}
             </nav>
-
-            <div className="mt-8 border-t border-black/5 pt-6">
-              <button
-                type="button"
-                onClick={() => setIsComposerOpen(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#f5c233] px-4 py-3 text-[15px] font-bold text-[#2e1a14] shadow-[0_8px_18px_rgba(245,194,51,0.2)] transition hover:bg-[#efba18]"
-              >
-                <Plus className="h-5 w-5" />
-                发布内容
-              </button>
-            </div>
           </aside>
 
           {/* 中间内容区 */}
           <section className="min-w-0 flex-1">
-            {/* 频道标签栏（移动端） */}
-            <div className="mb-4 flex gap-2 overflow-x-auto pb-2 lg:hidden">
-              {CHANNEL_TABS.map((tab) => {
-                const isActive = activeChannel === tab.key
-                return (
-                  <button
-                    key={tab.key || 'all'}
-                    type="button"
-                    onClick={() => handleChannelChange(tab.key)}
-                    className={[
-                      'shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition whitespace-nowrap',
-                      isActive
-                        ? 'bg-[#f5c233] text-[#2e1a14] font-bold'
-                        : 'bg-white/80 text-[#65584f] border border-black/5',
-                    ].join(' ')}
-                  >
-                    {tab.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* 发布快捷入口（移动端） */}
-            <div className="mb-4 flex items-center gap-3 lg:hidden">
-              <button
-                type="button"
-                onClick={() => setIsComposerOpen(true)}
-                className="flex flex-1 items-center gap-2 rounded-xl bg-[#f5c233] px-4 py-3 text-[14px] font-bold text-[#2e1a14] shadow-[0_8px_18px_rgba(245,194,51,0.2)] transition hover:bg-[#efba18]"
-              >
-                <Plus className="h-4 w-4" />
-                发布新内容
-              </button>
+            {/* 频道与发布工具栏（移动端 / iPad） */}
+            <div className="mb-4 flex items-center gap-3 xl:hidden">
+              <div className="min-w-0 flex-1 overflow-x-auto pb-2">
+                <div className="flex w-max gap-2 pr-1">
+                  {CHANNEL_TABS.map((tab) => {
+                    const isActive = activeChannel === tab.key
+                    return (
+                      <button
+                        key={tab.key || 'all'}
+                        type="button"
+                        onClick={() => handleChannelChange(tab.key)}
+                        className={[
+                          'shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition whitespace-nowrap',
+                          isActive
+                            ? 'bg-[#f5c233] text-[#2e1a14] font-bold'
+                            : 'border border-black/5 bg-white/80 text-[#65584f]',
+                        ].join(' ')}
+                      >
+                        {tab.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            
             </div>
 
             <ContentFeed
@@ -231,7 +219,7 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
           </section>
 
           {/* 右侧栏 */}
-          <aside className="sticky top-[84px] hidden w-[320px] shrink-0 xl:block space-y-6">
+          <aside className="sticky top-[96px] hidden w-[320px] shrink-0 xl:block space-y-6">
             {/* 热门话题 */}
             <Surface className="overflow-hidden border-white/80 bg-white/92 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
               <div className="flex items-center justify-between">
@@ -409,6 +397,8 @@ function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: Comp
   const [content, setContent] = useState('')
   const [images, setImages] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState('')
+  const [videoName, setVideoName] = useState('')
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [publishing, setPublishing] = useState(false)
@@ -416,14 +406,24 @@ function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: Comp
   const [error, setError] = useState('')
   const [authProfile, setAuthProfile] = useState<AuthProfile | null>(null)
   const [authLoaded, setAuthLoaded] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
 
     const loadAuth = async () => {
       try {
-        const res = await fetch('/api/auth/me')
+        const supabase = createSupabaseBrowserClient()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        const res = await fetch('/api/auth/me', {
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+        })
         if (res.ok) {
           const data = await res.json()
           setAuthProfile(data.user ?? null)
@@ -460,7 +460,31 @@ function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: Comp
       setError(err instanceof Error ? err.message : '上传失败')
     } finally {
       setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      if (imageInputRef.current) imageInputRef.current.value = ''
+    }
+  }
+
+  const handleVideoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+
+    const [file] = Array.from(files)
+    setUploading(true)
+    setError('')
+
+    try {
+      const [uploadedUrl] = await uploadFiles([file])
+      if (!uploadedUrl) {
+        throw new Error('视频上传失败')
+      }
+
+      setVideoUrl(uploadedUrl)
+      setVideoName(file.name)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '上传失败')
+    } finally {
+      setUploading(false)
+      if (videoInputRef.current) videoInputRef.current.value = ''
     }
   }
 
@@ -483,22 +507,27 @@ function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: Comp
     setError('')
 
     try {
+      const supabase = createSupabaseBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
       const mediaType = videoUrl ? 'video' : images.length > 0 ? 'image' : 'text'
       const payload = {
         channel: channel || 'discussion',
         mediaType,
         mediaSrc: videoUrl || images[0] || undefined,
         mediaImages: images.length ? images : undefined,
-        topic: trimmed.slice(0, 50),
-        title: trimmed.slice(0, 80),
-        summary: trimmed,
-        mediaDetail: trimmed,
+        content: trimmed,
         tags,
       }
 
       const res = await fetch('/api/feed', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify(payload),
       })
 
@@ -541,27 +570,69 @@ function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: Comp
 
           {/* 图片预览 */}
           {images.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {images.map((url, i) => (
-                <div key={i} className="relative h-20 w-20 overflow-hidden rounded-[12px] border border-slate-200">
-                  <Image src={url} alt="" fill className="object-cover" unoptimized />
-                  <button
-                    type="button"
-                    onClick={() => setImages(prev => prev.filter((_, j) => j !== i))}
-                    className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white text-[10px]"
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setPreviewImage(url)}
+                  className="group relative aspect-square overflow-hidden rounded-[16px] border border-slate-200 bg-slate-50"
+                >
+                  <Image src={url} alt="" fill className="object-cover transition duration-200 group-hover:scale-[1.03]" unoptimized />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-3 py-2 text-left text-[12px] text-white opacity-0 transition group-hover:opacity-100">
+                    点击查看大图
+                  </div>
+                  <span
+                    role="button"
+                    tabIndex={-1}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setImages(prev => prev.filter((_, j) => j !== i))
+                    }}
+                    className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white text-[11px]"
                   >
                     ×
-                  </button>
-                </div>
+                  </span>
+                </button>
               ))}
             </div>
           ) : null}
 
+          {videoUrl ? (
+            <div className="rounded-[16px] border border-slate-200 bg-slate-50 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-[14px] font-medium text-[#2e1a14]">
+                    <Video className="h-4 w-4 text-slate-500" />
+                    <span className="truncate">{videoName || '已上传视频'}</span>
+                  </div>
+                  <p className="mt-1 truncate text-[12px] text-slate-500">{videoUrl}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVideoUrl('')
+                    setVideoName('')
+                  }}
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:bg-slate-100"
+                  aria-label="移除视频"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <video
+                src={videoUrl}
+                controls
+                className="mt-3 max-h-56 w-full rounded-[12px] bg-black object-contain"
+              />
+            </div>
+          ) : null}
+
           {/* 上传按钮 */}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => imageInputRef.current?.click()}
               disabled={uploading}
               className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[14px] font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
             >
@@ -570,16 +641,14 @@ function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: Comp
             </button>
             <button
               type="button"
-              onClick={() => {
-                const url = prompt('输入视频链接')
-                if (url) setVideoUrl(url)
-              }}
+              onClick={() => videoInputRef.current?.click()}
               className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-4 py-2.5 text-[14px] font-medium text-slate-600 transition hover:bg-slate-50"
             >
               <Video className="h-4 w-4" />
-              添加视频
+              {uploading && !videoUrl ? '上传中...' : '上传视频'}
             </button>
-            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+            <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+            <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
           </div>
 
           {topicSuggestions.length > 0 ? (
@@ -677,6 +746,19 @@ function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: Comp
           </button>
         </div>
       </div>
+
+      {previewImage ? (
+        <button
+          type="button"
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+          aria-label="关闭图片预览"
+        >
+          <div className="relative h-[min(78vh,760px)] w-[min(92vw,760px)] overflow-hidden rounded-[20px] bg-black shadow-2xl">
+            <Image src={previewImage} alt="图片预览" fill className="object-contain" unoptimized />
+          </div>
+        </button>
+      ) : null}
     </div>
   )
 }

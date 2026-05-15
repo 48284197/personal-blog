@@ -6,9 +6,7 @@ import type { ContentChannelKey } from '@/lib/site-data'
 
 const createFeedSchema = z.object({
   channel: z.enum(['dialogue', 'discussion', 'co-create', 'knowledge']).optional(),
-  topic: z.string().optional(),
-  title: z.string().optional(),
-  summary: z.string().optional(),
+  content: z.string().optional(),
   authorName: z.string().optional(),
   authorAvatar: z.string().optional(),
   mediaType: z.enum(['text', 'image', 'video', 'music']),
@@ -52,12 +50,26 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const trimmedContent = parsed.data.content?.trim() ?? ''
+  const hasMedia =
+    Boolean(parsed.data.mediaSrc?.trim()) ||
+    Boolean(parsed.data.mediaAudio?.trim()) ||
+    Boolean(parsed.data.mediaImages?.length)
+
+  if (!trimmedContent && !hasMedia) {
+    return NextResponse.json(
+      { message: '请至少输入内容或上传媒体文件' },
+      { status: 400 }
+    )
+  }
+
   const channel = parsed.data.channel ?? 'dialogue'
   const platformUser = await syncCurrentPlatformUser()
 
   const item = await createFeedItem({
     ...parsed.data,
     channel,
+    content: trimmedContent,
     authorName: platformUser?.name ?? parsed.data.authorName ?? '平台编辑',
     authorAvatar: platformUser?.avatarUrl ?? parsed.data.authorAvatar,
     authorId: platformUser?.id,

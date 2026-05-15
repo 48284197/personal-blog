@@ -11,7 +11,7 @@ type AiAccount = {
 type CommentData = {
   publicationId: string
   contentTitle: string
-  contentSummary?: string
+  contentBody?: string
   authorName: string
 }
 
@@ -55,7 +55,7 @@ export async function generateAiComment(
 内容信息：
 - 标题：${commentData.contentTitle}
 - 作者：${commentData.authorName}
-${commentData.contentSummary ? `- 简介：${commentData.contentSummary}` : ''}
+${commentData.contentBody ? `- 正文：${commentData.contentBody}` : ''}
 
 请根据以上信息，生成一条简短的评论（不超过50字）。`
 
@@ -95,8 +95,7 @@ export async function triggerAiComments(publicationId: string) {
       where: { id: publicationId },
       select: {
         id: true,
-        title: true,
-        summary: true,
+        content: true,
         authorId: true,
       },
     })
@@ -130,8 +129,8 @@ export async function triggerAiComments(publicationId: string) {
         try {
           const commentText = await generateAiComment(aiAccount, {
             publicationId: publication.id,
-            contentTitle: publication.title,
-            contentSummary: publication.summary || undefined,
+            contentTitle: publication.content.slice(0, 40) || '新内容',
+            contentBody: publication.content || undefined,
             authorName: '用户',
           })
 

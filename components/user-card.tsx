@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { MapPin, Link2, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -208,11 +209,13 @@ export function UserCard({
 export function UserAvatar({
   name,
   avatarUrl,
+  href,
   size = 'md',
   className,
 }: {
   name: string
   avatarUrl?: string | null
+  href?: string
   size?: 'sm' | 'md' | 'lg'
   className?: string
 }) {
@@ -225,10 +228,11 @@ export function UserAvatar({
     lg: 'w-12 h-12 text-base',
   }
 
-  return (
+  const avatarNode = (
     <div
       className={cn(
         'relative shrink-0 overflow-hidden rounded-full bg-gradient-to-br shadow-sm',
+        href && 'transition-transform hover:scale-[1.03]',
         gradient,
         sizeClasses[size],
         className
@@ -248,5 +252,15 @@ export function UserAvatar({
         </div>
       )}
     </div>
+  )
+
+  if (!href) {
+    return avatarNode
+  }
+
+  return (
+    <Link href={href} aria-label={`查看 ${name} 的个人信息`} className="shrink-0">
+      {avatarNode}
+    </Link>
   )
 }

@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
+function deriveTitleFromContent(content?: string | null) {
+  const normalized = content?.replace(/\s+/g, ' ').trim() ?? ''
+  if (!normalized) return '未命名内容'
+  return normalized.slice(0, 40)
+}
+
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient()
@@ -50,8 +56,7 @@ export async function GET() {
       orderBy: { publishedAt: 'desc' },
       select: {
         id: true,
-        title: true,
-        summary: true,
+        content: true,
         mediaType: true,
         mediaImages: true,
         coverUrl: true,
@@ -77,8 +82,8 @@ export async function GET() {
       },
       contents: publications.map(item => ({
         id: item.id,
-        title: item.title,
-        summary: item.summary,
+        title: deriveTitleFromContent(item.content),
+        content: item.content,
         mediaType: item.mediaType,
         mediaImages: item.mediaImages as string[] | undefined,
         musicCover: item.coverUrl,
