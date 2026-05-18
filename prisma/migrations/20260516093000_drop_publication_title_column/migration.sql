@@ -1,0 +1,1 @@
+ALTER TABLE "Publication" DROP COLUMN IF EXISTS "title";

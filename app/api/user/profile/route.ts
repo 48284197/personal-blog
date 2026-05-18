@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getUserProfileSummary } from '@/lib/feed-service'
 
 function deriveTitleFromContent(content?: string | null) {
   const normalized = content?.replace(/\s+/g, ' ').trim() ?? ''
@@ -67,6 +68,8 @@ export async function GET() {
       },
     })
 
+    const summary = await getUserProfileSummary(user.id, user.id)
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -79,6 +82,9 @@ export async function GET() {
         headerColor: user.headerColor,
         headerImage: user.headerImage,
         createdAt: user.createdAt,
+        followersCount: summary?.followersCount ?? 0,
+        followingCount: summary?.followingCount ?? 0,
+        likesCount: summary?.likesCount ?? 0,
       },
       contents: publications.map(item => ({
         id: item.id,

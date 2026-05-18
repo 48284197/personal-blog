@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { getSidebarData } from '@/lib/feed-service'
+import { syncCurrentPlatformUser } from '@/lib/platform-user'
 
 export async function GET() {
   try {
-    const data = await getSidebarData()
+    const currentUser = await syncCurrentPlatformUser()
+    const data = await getSidebarData(currentUser?.id)
     return NextResponse.json(data)
   } catch (error) {
     console.error('Failed to get sidebar data:', error)

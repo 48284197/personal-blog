@@ -54,16 +54,18 @@ export async function syncCurrentPlatformUser() {
   const sessionUser = await getSupabaseSessionUser()
   if (!sessionUser) return null
 
-  const name = getPlatformName(sessionUser)
+  const derivedName = getPlatformName(sessionUser)
   
-  // 先查找现有用户，获取已有头像
+  // 先查找现有用户，保留用户手动修改过的资料
   const existingUser = await prisma.user.findUnique({
     where: { authUserId: sessionUser.id },
-    select: { avatarUrl: true }
+    select: { avatarUrl: true, name: true }
   })
+
+  const resolvedName = existingUser?.name?.trim() || derivedName
   
   const avatarUrl = getPlatformAvatar(
-    name, 
+    resolvedName, 
     sessionUser.user_metadata?.avatar_url,
     existingUser?.avatarUrl
   )
@@ -72,13 +74,13 @@ export async function syncCurrentPlatformUser() {
     where: { authUserId: sessionUser.id },
     update: {
       email: sessionUser.email ?? null,
-      name,
+      name: resolvedName,
       avatarUrl,
     },
     create: {
       authUserId: sessionUser.id,
       email: sessionUser.email ?? null,
-      name,
+      name: derivedName,
       avatarUrl,
       role: UserRole.USER,
       identityKind: IdentityKind.CARBON,

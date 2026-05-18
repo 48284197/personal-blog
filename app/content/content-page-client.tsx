@@ -20,6 +20,7 @@ import { ContentFeed } from '@/components/content-feed'
 import { Navbar } from '@/components/navbar'
 import { Surface } from '@/components/landing'
 import { useCommentSheet } from '@/components/comment-sheet'
+import { FollowButton } from '@/components/follow-button'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem, ContentChannelKey } from '@/lib/site-data'
 
@@ -36,7 +37,7 @@ type AuthProfile = {
 
 type SidebarState = {
   hotTopics: Array<{ title: string; count: number; hot: boolean; displayCount: string }>
-  suggestedUsers: Array<{ id: string; name: string; fans: string; avatarUrl: string }>
+  suggestedUsers: Array<{ id: string; name: string; fans: string; avatarUrl: string; bio: string; followersCount: number; isFollowing: boolean }>
   activities: Array<{ id: string; title: string; time: string; avatarUrl: string }>
 }
 
@@ -109,11 +110,14 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
             hot: t.hot,
             displayCount: formatTopicCount(t.count),
           })),
-          suggestedUsers: (data.suggestedUsers ?? []).map((u: { id: string; name: string; fans: number; avatarUrl: string }) => ({
+          suggestedUsers: (data.suggestedUsers ?? []).map((u: { id: string; name: string; fans: number; avatarUrl: string; bio?: string; followersCount?: number; isFollowing?: boolean }) => ({
             id: u.id,
             name: u.name,
             fans: formatFansCount(u.fans),
             avatarUrl: u.avatarUrl,
+            bio: u.bio ?? '',
+            followersCount: u.followersCount ?? 0,
+            isFollowing: Boolean(u.isFollowing),
           })),
           activities: (data.activities ?? []).slice(0, 10).map((a: { id: string; title: string; time: string; avatarUrl: string }) => ({
             id: a.id,
@@ -286,7 +290,7 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                   sidebar.suggestedUsers.map((user) => (
                     <div key={user.id} className="flex items-center justify-between gap-4">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#cdb79f]">
+                        <Link href={`/user/${user.id}`} className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#cdb79f]">
                           {user.avatarUrl ? (
                             <Image
                               src={user.avatarUrl}
@@ -301,18 +305,22 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                               {user.name.slice(0, 1)}
                             </div>
                           )}
-                        </div>
+                        </Link>
                         <div className="min-w-0">
-                          <p className="truncate text-[15px] font-medium text-[#2e1a14]">{user.name}</p>
-                          <p className="text-[13px] text-[#8f8379]">粉丝 {user.fans}</p>
+                          <Link href={`/user/${user.id}`} className="truncate text-[15px] font-medium text-[#2e1a14]">
+                            {user.name}
+                          </Link>
+                          <p className="line-clamp-1 text-[13px] text-[#8f8379]">{user.bio || '这个用户还没有填写简介'}</p>
+                          <p className="text-[13px] text-[#a39a90]">粉丝 {user.followersCount} · 贡献 {user.fans}</p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-[#f5c233] px-4 text-[14px] font-semibold text-[#f39a00]"
-                      >
-                        + 关注
-                      </button>
+                      <FollowButton
+                        userId={user.id}
+                        initialFollowing={user.isFollowing}
+                        initialFollowersCount={user.followersCount}
+                        size="sm"
+                        showCount={false}
+                      />
                     </div>
                   ))
                 ) : (

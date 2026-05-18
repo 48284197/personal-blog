@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { Surface, Badge } from '@/components/landing'
+import { FollowButton } from '@/components/follow-button'
 import { cn } from '@/lib/utils'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem } from '@/lib/site-data'
@@ -40,6 +41,10 @@ type UserProfile = {
   bio: string | null; location: string | null; website: string | null;
   headerColor: string | null; headerImage: string | null; joinedAt: string;
   postsCount: number;
+  followersCount: number;
+  followingCount: number;
+  likesCount: number;
+  isFollowing: boolean;
 }
 
 // --- 动画配置 ---
@@ -57,21 +62,46 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   const [publications, setPublications] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
+  const [followState, setFollowState] = useState<{ following: boolean; followersCount: number }>({
+    following: false,
+    followersCount: 0,
+  })
 
   const isOwnProfile = currentUser?.id === id
 
   useEffect(() => {
     const loadData = async () => {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (authUser) setCurrentUser({ id: authUser.id })
-
       try {
-        const [uRes, pRes] = await Promise.all([
+        const supabase = createSupabaseBrowserClient()
+        const { data: { session } } = await supabase.auth.getSession()
+
+        const [meRes, uRes, pRes] = await Promise.all([
+          session?.access_token
+            ? fetch('/api/auth/me', {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              })
+            : Promise.resolve(null),
           fetch(`/api/user/${id}`),
-          fetch(`/api/user/${id}/publications`)
+          fetch(`/api/user/${id}/publications`),
         ])
-        if (uRes.ok) setUser((await uRes.json()).user)
+
+        if (meRes?.ok) {
+          const meData = await meRes.json()
+          if (meData?.user?.id) {
+            setCurrentUser({ id: meData.user.id as string })
+          }
+        }
+
+        if (uRes.ok) {
+          const nextUser = (await uRes.json()).user as UserProfile
+          setUser(nextUser)
+          setFollowState({
+            following: nextUser.isFollowing,
+            followersCount: nextUser.followersCount,
+          })
+        }
         if (pRes.ok) setPublications((await pRes.json()).publications || [])
       } catch (e) {
         console.error(e)
@@ -98,7 +128,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   return (
     <main className="relative min-h-screen bg-[#f7fbff] pb-20">
       {/* 动态背景 */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.15),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(253,224,71,0.1),transparent_40%)]" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(255,213,128,0.24),transparent_34%),radial-gradient(circle_at_top_right,rgba(254,240,198,0.3),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(253,224,71,0.08),transparent_34%),linear-gradient(180deg,#fffdf8_0%,#fbf6ed_44%,#f8f2e6_100%)]" />
+      <div className="pointer-events-none fixed right-[8%] top-32 z-0 text-[#f5c233]/10">
+        <PawPrintDecor />
+      </div>
+      <div className="pointer-events-none fixed left-[10%] bottom-24 z-0 scale-75 text-[#f0c362]/10">
+        <PawPrintDecor />
+      </div>
 
       <Navbar />
 
@@ -139,6 +175,16 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                 <div className="mt-4 text-center sm:mt-24 sm:text-left">
                   <h1 className="text-3xl font-bold tracking-tight text-slate-900">{user.name}</h1>
                   <p className="text-slate-500 font-medium">@{user.email?.split('@')[0]}</p>
+                  {!isOwnProfile ? (
+                    <div className="mt-4">
+                      <FollowButton
+                        userId={user.id}
+                        initialFollowing={followState.following}
+                        initialFollowersCount={followState.followersCount}
+                        onChange={(next) => setFollowState(next)}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -158,15 +204,22 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center gap-8 rounded-2xl bg-slate-50/50 p-6 lg:col-span-4 justify-around">
+                <div className="grid grid-cols-2 gap-4 rounded-[28px] bg-white/75 p-6 shadow-[0_18px_40px_rgba(245,194,51,0.08)] lg:col-span-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-900">{publications.length}</div>
+                    <div className="text-2xl font-bold text-slate-900">{user.postsCount}</div>
                     <div className="text-xs font-bold uppercase tracking-wider text-slate-400">发布</div>
                   </div>
-                  <div className="h-8 w-px bg-slate-200" />
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-900">{publications.reduce((sum, item) => sum + item.likes, 0)}</div>
+                    <div className="text-2xl font-bold text-slate-900">{user.likesCount}</div>
                     <div className="text-xs font-bold uppercase tracking-wider text-slate-400">获赞</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-slate-900">{followState.followersCount}</div>
+                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400">粉丝</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-slate-900">{user.followingCount}</div>
+                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400">关注</div>
                   </div>
                 </div>
               </div>
@@ -276,11 +329,13 @@ function ContentCard({ item }: { item: ContentItem }) {
 function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose: () => void; onUpdate: () => void }) {
   const [activeTab, setActiveTab] = useState<'profile' | 'avatar' | 'header'>('profile')
   const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [formData, setFormData] = useState({
     name: user.name, bio: user.bio || '', location: user.location || '',
     website: user.website || '', avatarUrl: user.avatarUrl || '',
     headerColor: user.headerColor || '', headerImage: user.headerImage || '',
   })
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const tabs: { id: 'profile' | 'avatar' | 'header'; label: string; icon: typeof Edit3 }[] = [
     { id: 'profile', label: '基础', icon: Edit3 },
@@ -299,6 +354,40 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
       if (res.ok) { onUpdate(); onClose(); }
     } catch (e) { alert('保存失败'); }
     finally { setSaving(false); }
+  }
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingAvatar(true)
+    try {
+      const formDataPayload = new FormData()
+      formDataPayload.append('files', file)
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formDataPayload,
+      })
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { message?: string } | null
+        throw new Error(body?.message ?? '上传失败')
+      }
+
+      const data = (await response.json()) as { files?: Array<{ url: string }> }
+      const nextUrl = data.files?.[0]?.url
+      if (nextUrl) {
+        setFormData((current) => ({ ...current, avatarUrl: nextUrl }))
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '上传失败')
+    } finally {
+      setUploadingAvatar(false)
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = ''
+      }
+    }
   }
 
   return (
@@ -352,6 +441,24 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
               <div className="mx-auto h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-xl ring-2 ring-cyan-100">
                 <img src={formData.avatarUrl || user.avatarUrl || ''} alt="preview" className="h-full w-full object-cover" />
               </div>
+              <div className="flex justify-center">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#f5c233] px-5 py-2.5 text-sm font-bold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.2)] transition hover:bg-[#efba18] disabled:opacity-60"
+                >
+                  {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                  {uploadingAvatar ? '上传中...' : '上传头像'}
+                </button>
+              </div>
               <div className="grid grid-cols-4 gap-3">
                 {DEFAULT_AVATARS.map((url, i) => (
                   <button key={i} onClick={() => setFormData({ ...formData, avatarUrl: url })} className={cn("aspect-square rounded-2xl border-4 transition-all overflow-hidden hover:scale-105", formData.avatarUrl === url ? "border-cyan-400" : "border-transparent")}>
@@ -365,10 +472,30 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
 
           {activeTab === 'header' && (
             <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-              <div className={cn('h-32 w-full rounded-[24px] border-4 border-white shadow-lg', formData.headerColor || 'from-cyan-400 via-emerald-400 to-orange-400')} style={formData.headerImage ? { backgroundImage: `url(${formData.headerImage})`, backgroundSize: 'cover' } : {}} />
+              <div
+                className={cn(
+                  'relative h-32 w-full rounded-[24px] border-4 border-white shadow-lg bg-gradient-to-br',
+                  formData.headerColor || 'from-cyan-400 via-emerald-400 to-orange-400'
+                )}
+                style={formData.headerImage ? { backgroundImage: `url(${formData.headerImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+              >
+                {!formData.headerImage ? (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-[20px] bg-black/5 text-sm font-semibold text-white/90">
+                    主页装扮预览
+                  </div>
+                ) : null}
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 {PRESET_HEADER_GRADIENTS.map((g) => (
-                  <button key={g.class} onClick={() => setFormData({ ...formData, headerColor: g.class, headerImage: '' })} className={cn('h-14 rounded-xl transition-all hover:scale-[1.02]', g.class, formData.headerColor === g.class && 'ring-4 ring-cyan-100 border-2 border-white')} />
+                  <button
+                    key={g.class}
+                    onClick={() => setFormData({ ...formData, headerColor: g.class, headerImage: '' })}
+                    className={cn(
+                      'h-14 rounded-xl bg-gradient-to-br transition-all hover:scale-[1.02]',
+                      g.class,
+                      formData.headerColor === g.class && 'ring-4 ring-cyan-100 border-2 border-white'
+                    )}
+                  />
                 ))}
               </div>
               <input type="text" value={formData.headerImage} onChange={(e) => setFormData({ ...formData, headerImage: e.target.value, headerColor: '' })} placeholder="输入封面图链接..." className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-5 py-3 text-sm outline-none focus:border-cyan-400" />
@@ -390,4 +517,16 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
 function getGradientFromName(name: string): string {
   const index = name.charCodeAt(0) % PRESET_HEADER_GRADIENTS.length
   return PRESET_HEADER_GRADIENTS[index].class
+}
+
+function PawPrintDecor() {
+  return (
+    <div className="relative h-24 w-24">
+      <span className="absolute left-8 top-0 h-6 w-6 rounded-full bg-current" />
+      <span className="absolute left-0 top-10 h-5 w-5 rounded-full bg-current" />
+      <span className="absolute right-0 top-10 h-5 w-5 rounded-full bg-current" />
+      <span className="absolute left-10 top-8 h-5 w-5 rounded-full bg-current" />
+      <span className="absolute left-4 top-12 h-14 w-16 rounded-[45%_45%_55%_55%] bg-current" />
+    </div>
+  )
 }

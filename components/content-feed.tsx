@@ -285,6 +285,17 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
             <div className="mt-2">
               <p className="text-[15px] leading-7 text-slate-600 whitespace-pre-wrap break-words font-weight-bold">
                 {item.content}
+                {item.tags.length ? (
+                  <>
+                    {' '}
+                    {item.tags.map((tag, index) => (
+                      <React.Fragment key={tag}>
+                        <span className="text-[#c98900]">#{tag}</span>
+                        {index < item.tags.length - 1 ? ' ' : ''}
+                      </React.Fragment>
+                    ))}
+                  </>
+                ) : null}
               </p>
             </div>
           ) : null}

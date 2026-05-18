@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getUserProfileSummary } from '@/lib/feed-service'
+import { syncCurrentPlatformUser } from '@/lib/platform-user'
 
 export async function GET(
   _: Request,
@@ -7,26 +8,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-
-    // 查找用户
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        avatarUrl: true,
-        bio: true,
-        location: true,
-        website: true,
-        headerColor: true,
-        createdAt: true,
-        _count: {
-          select: {
-            publications: true,
-          },
-        },
-      },
-    })
+    const currentUser = await syncCurrentPlatformUser()
+    const user = await getUserProfileSummary(id, currentUser?.id)
 
     if (!user) {
       return NextResponse.json(
@@ -44,8 +27,13 @@ export async function GET(
         location: user.location,
         website: user.website,
         headerColor: user.headerColor,
-        joinedAt: user.createdAt,
-        postsCount: user._count.publications,
+        headerImage: user.headerImage,
+        joinedAt: user.joinedAt,
+        postsCount: user.postsCount,
+        followersCount: user.followersCount,
+        followingCount: user.followingCount,
+        likesCount: user.likesCount,
+        isFollowing: user.isFollowing,
       },
     })
   } catch (error) {

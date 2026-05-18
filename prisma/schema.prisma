@@ -64,6 +64,7 @@ enum NotificationType {
   MENTION
   LIKE
   VOTE
+  FOLLOW
   SYSTEM
 }
 
@@ -105,6 +106,8 @@ model User {
   messages      Message[]
   likes         Like[]
   commentLikes  CommentLike[]
+  following     Follow[]        @relation("UserFollowing")
+  followers     Follow[]        @relation("UserFollowers")
 }
 
 model AiModel {
@@ -368,12 +371,21 @@ model KnowledgeItem {
   tags        String[] @default([])
   sourceType  String
   sourceId    String?
+  sourceUrl   String?
+  sourcePlatform String?
+  sourceAuthorName String?
+  sourceAuthorAvatar String?
+  sourceTitle String?
+  sourceCoverUrl String?
   isPublic    Boolean  @default(true)
   authorId    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   author      User?    @relation("KnowledgeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([sourcePlatform, createdAt])
+  @@index([authorId, createdAt])
 }
 
 model Like {
@@ -415,4 +427,18 @@ model Notification {
   createdAt   DateTime        @default(now())
 
   user        User            @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }

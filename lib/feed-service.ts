@@ -1,4 +1,4 @@
-import { ContentType, Prisma, PublicationType } from '@prisma/client'
+import { ContentType, NotificationType, Prisma, PublicationType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
   type ContentChannelKey,
@@ -35,6 +35,9 @@ export type SuggestedUserItem = {
   name: string
   fans: number
   avatarUrl: string
+  bio?: string
+  followersCount?: number
+  isFollowing?: boolean
 }
 
 export type ActivityItem = {
@@ -44,6 +47,44 @@ export type ActivityItem = {
   avatarUrl: string
   type: 'like' | 'publish' | 'follow' | 'comment'
   createdAt: Date
+}
+
+export type NotificationListItem = {
+  id: string
+  type: NotificationType
+  title: string
+  body: string
+  actionUrl?: string
+  read: boolean
+  time: string
+  createdAt: string
+}
+
+export type SearchTopicItem = {
+  id: string
+  title: string
+  description: string
+  views: number
+  discussions: number
+}
+
+export type SearchUserItem = {
+  id: string
+  name: string
+  avatarUrl: string
+  bio: string
+  postsCount: number
+  followersCount: number
+  isFollowing: boolean
+}
+
+export type SearchContentItem = ContentItem
+
+export type SearchResult = {
+  query: string
+  topics: SearchTopicItem[]
+  users: SearchUserItem[]
+  content: SearchContentItem[]
 }
 
 export type FeedCommentInput = {
@@ -58,6 +99,12 @@ function deriveTitleFromSummary(summary?: string) {
   const normalized = summary?.replace(/\s+/g, ' ').trim() ?? ''
   if (!normalized) return ''
   return normalized.slice(0, 40)
+}
+
+function formatCompactCount(n: number) {
+  if (n >= 10000) return `${(n / 10000).toFixed(1).replace(/\.0$/, '')}万`
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
+  return String(n)
 }
 
 function toContentItem(publication: {
@@ -553,7 +600,7 @@ export type SidebarData = {
   activities: ActivityItem[]
 }
 
-export async function getSidebarData(): Promise<SidebarData>  {
+export async function getSidebarData(currentUserId?: string | null): Promise<SidebarData>  {
   const [recentPublications, topUsers, latestComments] = await Promise.all([
     prisma.publication.findMany({
       orderBy: { publishedAt: 'desc' },
@@ -569,6 +616,7 @@ export async function getSidebarData(): Promise<SidebarData>  {
     }),
     prisma.user.findMany({
       take: 4,
+      where: currentUserId ? { id: { not: currentUserId } } : undefined,
       orderBy: {
         publications: {
           _count: 'desc',
@@ -578,11 +626,19 @@ export async function getSidebarData(): Promise<SidebarData>  {
         id: true,
         name: true,
         avatarUrl: true,
+        bio: true,
         _count: {
           select: {
             publications: true,
+            followers: true,
           },
         },
+        followers: currentUserId
+          ? {
+              where: { followerId: currentUserId },
+              select: { id: true },
+            }
+          : false,
       },
     }),
     prisma.publicationComment.findMany({
@@ -629,6 +685,9 @@ export async function getSidebarData(): Promise<SidebarData>  {
     name: user.name,
     fans: user._count.publications * 137,
     avatarUrl: user.avatarUrl ?? '',
+    bio: user.bio ?? '',
+    followersCount: user._count.followers,
+    isFollowing: Array.isArray(user.followers) ? user.followers.length > 0 : false,
   }))
 
   const activities: ActivityItem[] = [
@@ -677,5 +736,291 @@ export async function getSidebarData(): Promise<SidebarData>  {
             createdAt: new Date(),
           },
         ],
+  }
+}
+
+export async function toggleFollowUser({
+  followerId,
+  followingId,
+}: {
+  followerId: string
+  followingId: string
+}) {
+  if (followerId === followingId) {
+    throw new Error('不能关注自己')
+  }
+
+  const existing = await prisma.follow.findUnique({
+    where: {
+      followerId_followingId: {
+        followerId,
+        followingId,
+      },
+    },
+  })
+
+  if (existing) {
+    await prisma.follow.delete({ where: { id: existing.id } })
+
+    const [followersCount, followingCount] = await Promise.all([
+      prisma.follow.count({ where: { followingId } }),
+      prisma.follow.count({ where: { followerId } }),
+    ])
+
+    return {
+      following: false,
+      followersCount,
+      followingCount,
+    }
+  }
+
+  const [follower, following] = await Promise.all([
+    prisma.user.findUnique({ where: { id: followerId }, select: { id: true, name: true } }),
+    prisma.user.findUnique({ where: { id: followingId }, select: { id: true, name: true } }),
+  ])
+
+  if (!follower || !following) {
+    throw new Error('用户不存在')
+  }
+
+  await prisma.follow.create({
+    data: {
+      followerId,
+      followingId,
+    },
+  })
+
+  await prisma.notification.create({
+    data: {
+      userId: followingId,
+      type: NotificationType.FOLLOW,
+      title: `${follower.name} 关注了你`,
+      body: `去看看 ${follower.name} 的主页吧。`,
+      actionUrl: `/user/${follower.id}`,
+    },
+  })
+
+  const [followersCount, followingCount] = await Promise.all([
+    prisma.follow.count({ where: { followingId } }),
+    prisma.follow.count({ where: { followerId } }),
+  ])
+
+  return {
+    following: true,
+    followersCount,
+    followingCount,
+  }
+}
+
+export async function listNotifications(userId: string): Promise<NotificationListItem[]> {
+  const notifications = await prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+
+  return notifications.map((item) => ({
+    id: item.id,
+    type: item.type,
+    title: item.title,
+    body: item.body,
+    actionUrl: item.actionUrl ?? undefined,
+    read: Boolean(item.readAt),
+    time: formatRelativeTime(item.createdAt),
+    createdAt: item.createdAt.toISOString(),
+  }))
+}
+
+export async function markNotificationsRead(userId: string, notificationIds?: string[]) {
+  if (notificationIds?.length) {
+    await prisma.notification.updateMany({
+      where: {
+        userId,
+        id: { in: notificationIds },
+        readAt: null,
+      },
+      data: {
+        readAt: new Date(),
+      },
+    })
+    return
+  }
+
+  await prisma.notification.updateMany({
+    where: {
+      userId,
+      readAt: null,
+    },
+    data: {
+      readAt: new Date(),
+    },
+  })
+}
+
+export async function searchCommunity(query: string, currentUserId?: string | null): Promise<SearchResult> {
+  const trimmedQuery = query.trim()
+  if (!trimmedQuery) {
+    return {
+      query: '',
+      topics: [],
+      users: [],
+      content: [],
+    }
+  }
+
+  const [publications, users] = await Promise.all([
+    prisma.publication.findMany({
+      where: {
+        OR: [
+          { content: { contains: trimmedQuery, mode: 'insensitive' } },
+          { tags: { has: trimmedQuery } },
+          { authorName: { contains: trimmedQuery, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: [{ publishedAt: 'desc' }],
+      take: 24,
+      include: {
+        commentsList: {
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+        },
+      },
+    }),
+    prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: trimmedQuery, mode: 'insensitive' } },
+          { bio: { contains: trimmedQuery, mode: 'insensitive' } },
+        ],
+      },
+      take: 12,
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
+        bio: true,
+        _count: {
+          select: {
+            publications: true,
+            followers: true,
+          },
+        },
+        followers: currentUserId
+          ? {
+              where: { followerId: currentUserId },
+              select: { id: true },
+            }
+          : false,
+      },
+    }),
+  ])
+
+  const matchedTags = new Map<string, { views: number; discussions: number }>()
+  publications.forEach((publication) => {
+    publication.tags.forEach((tag) => {
+      if (!tag.toLowerCase().includes(trimmedQuery.toLowerCase())) return
+      const key = tag.replace(/^#/, '')
+      const current = matchedTags.get(key) ?? { views: 0, discussions: 0 }
+      current.views += Math.max(36, publication.likes * 24 + publication.comments * 12)
+      current.discussions += Math.max(1, publication.comments)
+      matchedTags.set(key, current)
+    })
+  })
+
+  const topics = Array.from(matchedTags.entries())
+    .slice(0, 12)
+    .map(([title, stats]) => ({
+      id: title,
+      title: `# ${title}`,
+      description: `围绕 ${title} 的宠物社区讨论`,
+      views: stats.views,
+      discussions: stats.discussions,
+    }))
+
+  return {
+    query: trimmedQuery,
+    topics,
+    users: users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      avatarUrl: user.avatarUrl ?? '',
+      bio: user.bio ?? '这个用户还没有填写简介。',
+      postsCount: user._count.publications,
+      followersCount: user._count.followers,
+      isFollowing: Array.isArray(user.followers) ? user.followers.length > 0 : false,
+    })),
+    content: publications.slice(0, 12).map((publication) =>
+      toContentItem({
+        ...publication,
+        saves: 0,
+        mediaType: publication.mediaType,
+        mediaKind: publication.mediaKind,
+        mediaOrientation: publication.mediaOrientation,
+        mediaLabel: publication.mediaLabel,
+        mediaDetail: publication.mediaDetail,
+        mediaDuration: publication.mediaDuration,
+        mediaAudio: publication.mediaAudio,
+        coverUrl: publication.coverUrl,
+        mediaSrc: publication.mediaSrc,
+        mediaImages: publication.mediaImages as Prisma.JsonValue | null,
+        authorId: publication.authorId,
+      })
+    ),
+  }
+}
+
+export async function getUserProfileSummary(targetUserId: string, currentUserId?: string | null) {
+  const user = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      avatarUrl: true,
+      bio: true,
+      location: true,
+      website: true,
+      headerColor: true,
+      headerImage: true,
+      createdAt: true,
+      _count: {
+        select: {
+          publications: true,
+          followers: true,
+          following: true,
+        },
+      },
+      followers: currentUserId
+        ? {
+            where: { followerId: currentUserId },
+            select: { id: true },
+          }
+        : false,
+    },
+  })
+
+  if (!user) return null
+
+  const likesAggregate = await prisma.publication.aggregate({
+    where: { authorId: targetUserId },
+    _sum: { likes: true },
+  })
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+    bio: user.bio,
+    location: user.location,
+    website: user.website,
+    headerColor: user.headerColor,
+    headerImage: user.headerImage,
+    joinedAt: user.createdAt,
+    postsCount: user._count.publications,
+    followersCount: user._count.followers,
+    followingCount: user._count.following,
+    likesCount: likesAggregate._sum.likes ?? 0,
+    isFollowing: Array.isArray(user.followers) ? user.followers.length > 0 : false,
   }
 }
