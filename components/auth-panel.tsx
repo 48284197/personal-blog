@@ -1,18 +1,14 @@
 'use client'
 
 import { useMemo, useState, type FormEvent } from 'react'
-import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  UserRound,
-} from 'lucide-react'
+import { Loader2, Mail, UserRound } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Badge, Surface } from '@/components/landing'
 import { cn } from '@/lib/utils'
 
 type AuthMode = 'login' | 'register'
+
+type AuthStep = 'form' | 'code'
 
 type AuthPanelProps = {
   redirectTo?: string
@@ -26,18 +22,20 @@ function getDisplayName(email: string, fallback?: string) {
 
 export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode ?? 'login')
+  const [step, setStep] = useState<AuthStep>('form')
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [codeSent, setCodeSent] = useState(false)
 
   const submitLabel = useMemo(() => {
-    if (loading) return mode === 'login' ? '登录中...' : '注册中...'
-    return mode === 'login' ? '登录' : '注册并进入'
-  }, [loading, mode])
+    if (loading) return step === 'code' ? '验证中...' : '发送中...'
+    if (step === 'code') return '验证并登录'
+    return '发送验证码'
+  }, [loading, step])
 
   const persistSession = (name: string, userId?: string, userEmail?: string | null) => {
     window.localStorage.setItem('carbon-user-name', name)
@@ -50,10 +48,11 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     window.location.assign(redirectTo)
   }
 
-  const syncPlatformAccount = async () => {
+  const syncPlatformAccount = async (name?: string | null) => {
     const response = await fetch('/api/auth/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
     })
 
     if (!response.ok) {
@@ -67,75 +66,100 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     return data.user ?? null
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const resetCodeState = () => {
+    setStep('form')
+    setCode('')
+    setCodeSent(false)
+  }
+
+  const sendOtpCode = async () => {
+    if (!email.trim()) {
+      setError('请先填写邮箱。')
+      return
+    }
+
+    if (mode === 'register' && !displayName.trim()) {
+      setError('请先填写昵称。')
+      return
+    }
+
     setLoading(true)
     setError('')
     setSuccess('')
 
     try {
       const client = createSupabaseBrowserClient()
-
-      if (mode === 'register' && !displayName.trim()) {
-        setError('请先填写昵称。')
-        return
-      }
-
-      if (mode === 'login') {
-        const { data, error: signInError } = await client.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        })
-
-        if (signInError) {
-          setError(signInError.message || '登录失败，请检查邮箱和密码。')
-          return
-        }
-
-        const user = data.user ?? (await client.auth.getUser()).data.user
-        const synced = await syncPlatformAccount()
-        const profileName =
-          synced?.name ??
-          getDisplayName(email, user?.user_metadata?.full_name || user?.user_metadata?.name)
-        finishLogin(profileName, synced?.id ?? user?.id, synced?.email ?? user?.email)
-        return
-      }
-
-      const { data, error: signUpError } = await client.auth.signUp({
+      const { error: signInError } = await client.auth.signInWithOtp({
         email: email.trim(),
-        password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login?mode=login`,
-          data: {
-            full_name: displayName.trim(),
-            name: displayName.trim(),
-          },
+          shouldCreateUser: true,
+          data: mode === 'register' ? { full_name: displayName.trim(), name: displayName.trim() } : undefined,
         },
       })
 
-      if (signUpError) {
-        setError(signUpError.message || '注册失败，请稍后重试。')
+      if (signInError) {
+        setError(signInError.message || '验证码发送失败，请稍后重试。')
         return
       }
 
-      const user = data.user
-      const session = data.session
-      const synced = session ? await syncPlatformAccount() : null
-      const profileName = synced?.name ?? getDisplayName(email, displayName)
-
-      if (session) {
-        finishLogin(profileName, synced?.id ?? user?.id, synced?.email ?? user?.email)
-        return
-      }
-
-      setSuccess('注册已提交，请先去邮箱完成确认，然后返回登录。')
-      setMode('login')
-    } catch (error) {
-      const message = error instanceof Error ? error.message : '登录过程发生异常。'
-      setError(message)
+      setCodeSent(true)
+      setStep('code')
+      setSuccess('验证码已发送，请查看邮箱并输入 6 位验证码。')
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : '验证码发送失败，请稍后重试。')
     } finally {
       setLoading(false)
     }
+  }
+
+  const verifyOtpCode = async () => {
+    if (!email.trim()) {
+      setError('请先填写邮箱。')
+      return
+    }
+
+    if (!code.trim()) {
+      setError('请先输入验证码。')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const client = createSupabaseBrowserClient()
+      const { data, error: verifyError } = await client.auth.verifyOtp({
+        email: email.trim(),
+        token: code.trim(),
+        type: 'email',
+      })
+
+      if (verifyError) {
+        setError(verifyError.message || '验证码验证失败，请检查后重试。')
+        return
+      }
+
+      const user = data.user ?? (await client.auth.getUser()).data.user
+      const synced = await syncPlatformAccount(mode === 'register' ? displayName.trim() : null)
+      const profileName =
+        synced?.name ??
+        getDisplayName(email, mode === 'register' ? displayName : user?.user_metadata?.full_name || user?.user_metadata?.name)
+      finishLogin(profileName, synced?.id ?? user?.id, synced?.email ?? user?.email)
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : '验证码验证失败，请稍后重试。')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (step === 'code') {
+      await verifyOtpCode()
+      return
+    }
+    await sendOtpCode()
   }
 
   return (
@@ -151,6 +175,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
                 setMode('login')
                 setError('')
                 setSuccess('')
+                resetCodeState()
               }}
               className={cn(
                 'min-w-0 flex-1 whitespace-nowrap rounded-full px-5 py-2 text-[14px] font-semibold transition sm:min-w-[92px] sm:flex-none',
@@ -165,6 +190,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
                 setMode('register')
                 setError('')
                 setSuccess('')
+                resetCodeState()
               }}
               className={cn(
                 'min-w-0 flex-1 whitespace-nowrap rounded-full px-5 py-2 text-[14px] font-semibold transition sm:min-w-[92px] sm:flex-none',
@@ -186,9 +212,11 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
             <span className="ml-2">{mode === 'login' ? '👋' : '✨'}</span>
           </h2>
           <p className="mt-3 text-[15px] leading-7 text-[#8c837a]">
-            {mode === 'login'
-              ? '登录毛球账号，继续你的萌宠之旅'
-              : '创建账号，开启你的萌宠社区'}
+            {step === 'code'
+              ? '验证码已发送到邮箱，请输入 6 位数字完成验证。'
+              : mode === 'login'
+                ? '使用邮箱验证码登录，继续你的萌宠之旅'
+                : '创建账号，开启你的萌宠社区'}
           </p>
         </div>
 
@@ -220,7 +248,10 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
               <Mail className="h-4 w-4 shrink-0 text-[#8f8379]" />
               <input
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  setError('')
+                }}
                 type="email"
                 placeholder="请输入邮箱"
                 required
@@ -229,48 +260,25 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
             </div>
           </label>
 
-          <label className="block">
-            <span className="mb-2 flex items-center gap-2 text-[14px] font-medium text-[#6f645a]">
-              <Lock className="h-4 w-4 text-[#b28a2d]" />
-              密码
-            </span>
-            <div className="flex items-center gap-3 rounded-[18px] border border-black/10 bg-white px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-              <Lock className="h-4 w-4 shrink-0 text-[#8f8379]" />
-              <input
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                type={showPassword ? 'text' : 'password'}
-                placeholder="请输入密码"
-                required
-                minLength={6}
-                className="w-full bg-transparent text-[15px] text-[#1f140f] outline-none placeholder:text-[#b0a8a0]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#8f8379] transition hover:bg-[#f7f5f2]"
-                aria-label={showPassword ? '隐藏密码' : '显示密码'}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </label>
-
-          <div className="flex items-center justify-between gap-4 text-[14px]">
-            <label className="flex items-center gap-2 text-[#6f645a]">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-black/15 text-[#f5c233] focus:ring-[#f5c233]"
-              />
-              记住我
+          {step === 'code' ? (
+            <label className="block">
+              <span className="mb-2 flex items-center gap-2 text-[14px] font-medium text-[#6f645a]">
+                <Loader2 className="h-4 w-4 text-[#b28a2d]" />
+                验证码
+              </span>
+              <div className="flex items-center gap-3 rounded-[18px] border border-black/10 bg-white px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                <input
+                  value={code}
+                  onChange={(event) => setCode(event.target.value)}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="请输入 6 位验证码"
+                  required
+                  className="w-full bg-transparent text-[15px] text-[#1f140f] outline-none placeholder:text-[#b0a8a0]"
+                />
+              </div>
             </label>
-            <button
-              type="button"
-              className="font-medium text-[#f39a00] transition hover:text-[#d58900]"
-            >
-              忘记密码？
-            </button>
-          </div>
+          ) : null}
 
           {error ? (
             <div className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] text-rose-700">
@@ -289,7 +297,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
             disabled={loading}
             className="inline-flex h-14 w-full items-center justify-center rounded-full bg-[#f5c233] text-[17px] font-bold text-[#2e1a14] shadow-[0_14px_30px_rgba(245,194,51,0.26)] transition hover:bg-[#efba18] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {submitLabel}
+            {loading ? (step === 'code' ? '验证中...' : '发送中...') : submitLabel}
           </button>
         </form>
 
@@ -300,12 +308,27 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
         </div>
 
         <button
-          type="button"
-          className="mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white text-[15px] font-medium text-[#1f140f] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition hover:bg-[#faf8f4]"
-        >
-          <Mail className="h-4 w-4 text-[#8f8379]" />
-          使用邮箱验证码登录
-        </button>
+            type="button"
+            onClick={step === 'code' ? sendOtpCode : sendOtpCode}
+            disabled={loading || !email.trim()}
+            className="mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white text-[15px] font-medium text-[#1f140f] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition hover:bg-[#faf8f4] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <Mail className="h-4 w-4 text-[#8f8379]" />
+            {codeSent ? '重新发送验证码' : '发送邮箱验证码'}
+          </button>
+
+        {step === 'code' ? (
+          <button
+            type="button"
+            onClick={() => {
+              resetCodeState()
+              setSuccess('')
+            }}
+            className="mt-3 w-full text-[14px] font-medium text-[#7d7269] transition hover:text-[#f39a00]"
+          >
+            返回修改邮箱
+          </button>
+        ) : null}
 
         <div className="mt-7 text-center text-[15px] text-[#7d7269]">
           还没有账号？
@@ -315,6 +338,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
               setMode('register')
               setError('')
               setSuccess('')
+              resetCodeState()
             }}
             className="ml-2 font-semibold text-[#f39a00] transition hover:text-[#d58900]"
           >

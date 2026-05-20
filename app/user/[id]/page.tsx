@@ -13,6 +13,7 @@ import {
 import { Navbar } from '@/components/navbar'
 import { Surface, Badge } from '@/components/landing'
 import { FollowButton } from '@/components/follow-button'
+import { LogoutButton } from '@/components/logout-button'
 import { cn } from '@/lib/utils'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem } from '@/lib/site-data'
@@ -157,10 +158,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
               <div className="absolute inset-0 bg-black/10" />
               
               {isOwnProfile && (
-                <button onClick={() => setShowSettings(true)} className="absolute right-4 top-4 flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-md border border-white/30 transition hover:bg-white hover:text-slate-900">
-                  <Settings className="h-4 w-4" />
-                  编辑资料
-                </button>
+                <div className="absolute right-4 top-4 flex flex-wrap justify-end gap-2">
+                  <button onClick={() => setShowSettings(true)} className="flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-md border border-white/30 transition hover:bg-white hover:text-slate-900">
+                    <Settings className="h-4 w-4" />
+                    编辑资料
+                  </button>
+                  <LogoutButton className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition hover:bg-white hover:text-rose-600" />
+                </div>
               )}
             </div>
 

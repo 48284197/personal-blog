@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { syncCurrentPlatformUser } from '@/lib/platform-user'
 
-export async function POST() {
-  const user = await syncCurrentPlatformUser()
+export async function POST(request: NextRequest) {
+  const body = (await request.json().catch(() => ({}))) as { name?: string }
+  const user = await syncCurrentPlatformUser(body.name)
 
   if (!user) {
     return NextResponse.json({ user: null }, { status: 401 })

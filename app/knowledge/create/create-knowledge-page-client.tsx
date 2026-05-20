@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, FileText, Link2, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, FileText, Link2, Loader2, Sparkles } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type AuthProfile = {
@@ -43,6 +43,10 @@ type CreateKnowledgeMeta = {
   platforms: PlatformOption[]
 }
 
+type ParsedKnowledgeLink = Partial<FormState> & {
+  tags?: string[]
+}
+
 const inputClassName =
   'w-full rounded-[18px] border border-[#e8dcc9] bg-[#fffdf9] px-4 py-3 text-[14px] text-[#2e1a14] outline-none transition placeholder:text-[#b2a397] focus:border-[#f2c36c] focus:bg-white focus:ring-4 focus:ring-[#ffe9bb]/80'
 
@@ -71,6 +75,8 @@ export function CreateKnowledgePageClient() {
   const [authProfile, setAuthProfile] = useState<AuthProfile | null>(null)
   const [authLoaded, setAuthLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [parsing, setParsing] = useState(false)
+  const [parseMessage, setParseMessage] = useState('')
   const [error, setError] = useState('')
   const [successTitle, setSuccessTitle] = useState('')
 
@@ -186,9 +192,50 @@ export function CreateKnowledgePageClient() {
     form.content.replace(/\s+/g, ' ').trim().slice(0, 88) ||
     '填写摘要或正文后，这里会显示知识简介。'
   const submitDisabled = loading || !form.sourceUrl.trim()
+  const parseDisabled = parsing || !form.sourceUrl.trim()
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }))
+  }
+
+  const handleParseLink = async () => {
+    if (parseDisabled) return
+
+    setParsing(true)
+    setError('')
+    setParseMessage('')
+
+    try {
+      const response = await fetch('/api/knowledge/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: form.sourceUrl.trim() }),
+      })
+
+      const data = (await response.json().catch(() => null)) as (ParsedKnowledgeLink & { message?: string }) | null
+      if (!response.ok) {
+        throw new Error(data?.message ?? '解析链接失败，请检查链接是否可以公开访问。')
+      }
+
+      setForm((current) => ({
+        ...current,
+        title: data?.title?.trim() || current.title,
+        summary: data?.summary?.trim() || current.summary,
+        content: data?.content?.trim() || current.content,
+        sourceUrl: data?.sourceUrl?.trim() || current.sourceUrl,
+        sourcePlatform: data?.sourcePlatform?.trim() || current.sourcePlatform,
+        sourceTitle: data?.sourceTitle?.trim() || current.sourceTitle,
+        sourceAuthorName: data?.sourceAuthorName?.trim() || current.sourceAuthorName,
+        sourceAuthorAvatar: data?.sourceAuthorAvatar?.trim() || current.sourceAuthorAvatar,
+        sourceCoverUrl: data?.sourceCoverUrl?.trim() || current.sourceCoverUrl,
+        tags: data?.tags?.length ? data.tags.join(', ') : current.tags,
+      }))
+      setParseMessage('解析成功，已自动填充标题、摘要、标签和来源信息。')
+    } catch (parseError) {
+      setError(parseError instanceof Error ? parseError.message : '解析链接失败，请稍后重试。')
+    } finally {
+      setParsing(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -393,16 +440,31 @@ export function CreateKnowledgePageClient() {
               </div>
 
               <Field>
-                <FieldLabel title="原文链接" desc="必填，创建知识时会保留跳转到原平台的入口" required />
-                <div className="relative">
-                  <Link2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a8998d]" />
-                  <input
-                    value={form.sourceUrl}
-                    onChange={(event) => updateField('sourceUrl', event.target.value)}
-                    placeholder="https://"
-                    className={`${inputClassName} pl-11`}
-                  />
+                <FieldLabel title="原文链接" desc="必填，粘贴小红书链接后可快速解析网页 meta 内容" required />
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <div className="relative min-w-0 flex-1">
+                    <Link2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a8998d]" />
+                    <input
+                      value={form.sourceUrl}
+                      onChange={(event) => {
+                        updateField('sourceUrl', event.target.value)
+                        setParseMessage('')
+                      }}
+                      placeholder="https://www.xiaohongshu.com/explore/..."
+                      className={`${inputClassName} pl-11`}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleParseLink}
+                    disabled={parseDisabled}
+                    className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-[18px] bg-[#ff2442] px-5 text-[14px] font-bold text-white shadow-[0_12px_26px_rgba(255,36,66,0.2)] transition hover:bg-[#e91d39] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {parsing ? '解析中...' : '快速解析'}
+                  </button>
                 </div>
+                {parseMessage ? <p className="mt-3 text-[12px] font-semibold text-[#2e9e46]">{parseMessage}</p> : null}
               </Field>
 
               <div>

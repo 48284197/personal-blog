@@ -50,22 +50,21 @@ export async function getSupabaseSessionUser() {
   return user ?? null
 }
 
-export async function syncCurrentPlatformUser() {
+export async function syncCurrentPlatformUser(displayName?: string | null) {
   const sessionUser = await getSupabaseSessionUser()
   if (!sessionUser) return null
 
-  const derivedName = getPlatformName(sessionUser)
-  
-  // 先查找现有用户，保留用户手动修改过的资料
+  const derivedName = displayName?.trim() || getPlatformName(sessionUser)
+
   const existingUser = await prisma.user.findUnique({
     where: { authUserId: sessionUser.id },
-    select: { avatarUrl: true, name: true }
+    select: { avatarUrl: true, name: true },
   })
 
   const resolvedName = existingUser?.name?.trim() || derivedName
-  
+
   const avatarUrl = getPlatformAvatar(
-    resolvedName, 
+    resolvedName,
     sessionUser.user_metadata?.avatar_url,
     existingUser?.avatarUrl
   )
