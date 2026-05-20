@@ -23,6 +23,7 @@ export async function GET(
         id: user.id,
         name: user.name,
         avatarUrl: user.avatarUrl,
+        isKnowledgeCreator: user.isKnowledgeCreator,
         bio: user.bio,
         location: user.location,
         website: user.website,

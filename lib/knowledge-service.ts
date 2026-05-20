@@ -17,25 +17,24 @@ export type KnowledgeArticle = {
   summary: string
   content: string
   tags: string[]
-  imageUrl: string
+  imageUrl?: string | null
   author: {
     id?: string
     name: string
-    avatarUrl: string
-    title: string
+    avatarUrl?: string | null
+    title?: string | null
     followers: number
     isFollowing?: boolean
   }
-  views: number
   readTime: string
   createdAt: string
   source: {
     platform: string
     url: string
     authorName: string
-    authorAvatar?: string
-    title?: string
-    coverUrl?: string
+    authorAvatar?: string | null
+    title?: string | null
+    coverUrl?: string | null
   }
 }
 
@@ -45,15 +44,34 @@ export type KnowledgeCategory = {
   color: string
 }
 
+export type KnowledgeTip = {
+  title: string
+  body: string
+  imageUrl?: string | null
+  sourceUrl: string
+}
+
+export type KnowledgeCreateCategoryOption = {
+  value: KnowledgeCategoryKey
+  label: KnowledgeCategoryKey
+}
+
+export type KnowledgeCreatePlatformOption = {
+  value: string
+  label: string
+  color: string
+}
+
+export type KnowledgeCreateMeta = {
+  categories: KnowledgeCreateCategoryOption[]
+  platforms: KnowledgeCreatePlatformOption[]
+}
+
 export type KnowledgeHomeData = {
   featured: KnowledgeArticle[]
   latest: KnowledgeArticle[]
   categories: KnowledgeCategory[]
-  tip: {
-    title: string
-    body: string
-    imageUrl: string
-  }
+  tip: KnowledgeTip | null
   authors: KnowledgeArticle['author'][]
 }
 
@@ -79,24 +97,6 @@ const categoryColors: Record<KnowledgeCategoryKey, string> = {
   急救知识: 'text-red-600 bg-red-50',
 }
 
-const imagePool = [
-  'https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=85',
-  'https://images.unsplash.com/photo-1514888286974-6c03e2ca1f?auto=format&fit=crop&w=900&q=85',
-  'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=900&q=85',
-  'https://images.unsplash.com/photo-1601758125946-6ec2ef64daf8?auto=format&fit=crop&w=900&q=85',
-  'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=85',
-  'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=900&q=85',
-  'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85',
-  'https://images.unsplash.com/photo-1601758175576-648226072e90?auto=format&fit=crop&w=900&q=85',
-]
-
-const avatarPool = [
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80',
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
-  'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=160&q=80',
-]
-
 export const sourcePlatforms = [
   { value: 'xiaohongshu', label: '小红书', color: 'bg-[#ff2442] text-white' },
   { value: 'douyin', label: '抖音', color: 'bg-[#111111] text-white' },
@@ -121,106 +121,19 @@ export function getSourcePlatformMeta(platform?: string | null) {
   }
 }
 
-const fallbackArticles: KnowledgeArticle[] = [
-  {
-    id: 'starter-walk',
-    title: '新手养狗必看！准备工作与注意事项',
-    category: '新手指南',
-    summary: '迎接狗狗回家前需要准备什么？从用品到心理准备，新手铲屎官的入门清单。',
-    content: '从安全围栏、食盆、牵引绳到疫苗计划，先把生活环境和日常节奏搭起来，狗狗会更快适应新家。',
-    tags: ['新手', '狗狗', '准备清单'],
-    imageUrl: imagePool[0],
-    author: { name: '宠物小课堂', avatarUrl: avatarPool[0], title: '资深猫狗护理师', followers: 12600 },
-    views: 12600,
-    readTime: '6 分钟',
-    createdAt: '今天',
-    source: { platform: '小红书', url: 'https://www.xiaohongshu.com', authorName: '宠物小课堂', coverUrl: imagePool[0] },
-  },
-  {
-    id: 'cat-cold',
-    title: '猫咪常见疾病及预防方法',
-    category: '健康护理',
-    summary: '了解猫咪常见疾病的症状与预防措施，帮助猫咪健康快乐成长。',
-    content: '观察精神、食欲、饮水和排泄变化，定期驱虫和疫苗，是大多数健康问题的第一道防线。',
-    tags: ['猫咪', '健康', '预防'],
-    imageUrl: imagePool[1],
-    author: { name: '喵星观察员', avatarUrl: avatarPool[1], title: '猫行为研究者', followers: 8900 },
-    views: 8900,
-    readTime: '8 分钟',
-    createdAt: '2 小时前',
-    source: { platform: '知乎', url: 'https://www.zhihu.com', authorName: '喵星观察员', coverUrl: imagePool[1] },
-  },
-  {
-    id: 'puppy-training',
-    title: '狗狗定点大小便训练技巧',
-    category: '行为训练',
-    summary: '简单有效的定点大小便训练方法，让你的狗狗更懂规矩、家里更清爽。',
-    content: '固定地点、固定口令、固定奖励，把正确行为和即时反馈绑定起来，训练会更稳定。',
-    tags: ['狗狗', '训练', '定点'],
-    imageUrl: imagePool[2],
-    author: { name: '训犬小达人', avatarUrl: avatarPool[2], title: '专业训犬师', followers: 7300 },
-    views: 7300,
-    readTime: '5 分钟',
-    createdAt: '5 小时前',
-    source: { platform: '抖音', url: 'https://www.douyin.com', authorName: '训犬小达人', coverUrl: imagePool[2] },
-  },
-  {
-    id: 'food-choice',
-    title: '如何为宠物选择合适的狗粮？',
-    category: '营养饮食',
-    summary: '从成分、营养、适口性等方面教你挑选适合宠物的主粮。',
-    content: '优先看蛋白来源、脂肪比例和适龄标识，再结合体重、运动量与肠胃反应逐步调整。',
-    tags: ['饮食', '主粮', '营养'],
-    imageUrl: imagePool[3],
-    author: { name: '营养师Petty', avatarUrl: avatarPool[3], title: '科学搭配宠物饮食', followers: 6100 },
-    views: 6100,
-    readTime: '7 分钟',
-    createdAt: '昨天',
-    source: { platform: 'B站', url: 'https://www.bilibili.com', authorName: '营养师Petty', coverUrl: imagePool[3] },
-  },
-  {
-    id: 'spring-care',
-    title: '春季宠物养护指南：这些问题要注意',
-    category: '健康护理',
-    summary: '春季是宠物疾病高发季节，注意预防皮肤病、过敏等问题，保持环境清洁很重要。',
-    content: '换季时要关注皮肤状态、寄生虫预防和饮食过渡，外出回来也要及时清洁脚垫和毛发。',
-    tags: ['春季', '护理', '过敏'],
-    imageUrl: imagePool[4],
-    author: { name: '宠物小课堂', avatarUrl: avatarPool[0], title: '资深猫狗护理师', followers: 12600 },
-    views: 1200,
-    readTime: '4 分钟',
-    createdAt: '2 小时前',
-    source: { platform: '公众号', url: 'https://mp.weixin.qq.com', authorName: '宠物小课堂', coverUrl: imagePool[4] },
-  },
-  {
-    id: 'cat-purr',
-    title: '猫咪为什么会呼噜？背后的含义你知道吗？',
-    category: '宠物心理',
-    summary: '解析猫咪踩奶行为的原因，这个可爱的动作隐藏着猫咪对你的信任和依赖。',
-    content: '呼噜不只代表舒服，也可能是自我安抚。结合身体姿态和环境变化一起判断更可靠。',
-    tags: ['猫咪', '心理', '行为'],
-    imageUrl: imagePool[5],
-    author: { name: '喵星观察员', avatarUrl: avatarPool[1], title: '猫行为研究者', followers: 8900 },
-    views: 987,
-    readTime: '5 分钟',
-    createdAt: '5 小时前',
-    source: { platform: '微博', url: 'https://weibo.com', authorName: '喵星观察员', coverUrl: imagePool[5] },
-  },
-  {
-    id: 'dog-destroy',
-    title: '狗狗拆家怎么办？3招教你有效改善',
-    category: '行为训练',
-    summary: '分析狗狗拆家的原因，并提供实用的解决方法，还你一个整洁的家。',
-    content: '拆家常来自精力过剩、分离焦虑或无聊。增加消耗、提供咬胶和稳定作息是第一步。',
-    tags: ['狗狗', '训练', '拆家'],
-    imageUrl: imagePool[6],
-    author: { name: '训犬小达人', avatarUrl: avatarPool[2], title: '专业训犬师', followers: 7300 },
-    views: 2100,
-    readTime: '5 分钟',
-    createdAt: '昨天',
-    source: { platform: '快手', url: 'https://www.kuaishou.com', authorName: '训犬小达人', coverUrl: imagePool[6] },
-  },
-]
+export function getKnowledgeCreateMeta(): KnowledgeCreateMeta {
+  return {
+    categories: categoryOrder.map((category) => ({
+      value: category,
+      label: category,
+    })),
+    platforms: sourcePlatforms.map((platform) => ({
+      value: platform.value,
+      label: platform.label,
+      color: platform.color,
+    })),
+  }
+}
 
 function inferPlatformFromUrl(url: string) {
   const normalized = url.toLowerCase()
@@ -259,11 +172,6 @@ function estimateReadTime(text: string) {
   return `${Math.max(3, Math.ceil(text.length / 420))} 分钟`
 }
 
-function pseudoViews(id: string, index: number) {
-  const seed = id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)
-  return 860 + ((seed + index * 673) % 11800)
-}
-
 export async function getKnowledgeHomeData(): Promise<KnowledgeHomeData> {
   const records = await prisma.knowledgeItem.findMany({
     where: { isPublic: true },
@@ -280,37 +188,34 @@ export async function getKnowledgeHomeData(): Promise<KnowledgeHomeData> {
         },
       },
     },
-  }).catch(() => [])
+  })
 
-  const articles = records.length
-    ? records.map((item, index): KnowledgeArticle => ({
-        id: item.id,
-        title: item.title,
-        category: normalizeCategory(item.category),
-        summary: item.summary,
-        content: item.content,
-        tags: item.tags,
-        imageUrl: item.sourceCoverUrl ?? imagePool[index % imagePool.length],
-        author: {
-          id: item.author?.id,
-          name: item.author?.name ?? '宠物小课堂',
-          avatarUrl: item.author?.avatarUrl ?? avatarPool[index % avatarPool.length],
-          title: item.author?.bio ?? '宠物知识创作者',
-          followers: item.author?.followers.length ?? pseudoViews(item.id, index),
-        },
-        views: pseudoViews(item.id, index),
-        readTime: estimateReadTime(`${item.summary}${item.content}`),
-        createdAt: formatDate(item.createdAt),
-        source: {
-          platform: item.sourcePlatform || inferPlatformFromUrl(item.sourceUrl || ''),
-          url: item.sourceUrl || '#',
-          authorName: item.sourceAuthorName || '原平台作者',
-          authorAvatar: item.sourceAuthorAvatar ?? undefined,
-          title: item.sourceTitle ?? undefined,
-          coverUrl: item.sourceCoverUrl ?? undefined,
-        },
-      }))
-    : fallbackArticles
+  const articles = records.map((item): KnowledgeArticle => ({
+    id: item.id,
+    title: item.title,
+    category: normalizeCategory(item.category),
+    summary: item.summary,
+    content: item.content,
+    tags: item.tags,
+    imageUrl: item.sourceCoverUrl,
+    author: {
+      id: item.author?.id,
+      name: item.author?.name || item.sourceAuthorName || '',
+      avatarUrl: item.author?.avatarUrl,
+      title: item.author?.bio,
+      followers: item.author?.followers.length ?? 0,
+    },
+    readTime: estimateReadTime(`${item.summary}${item.content}`),
+    createdAt: formatDate(item.createdAt),
+    source: {
+      platform: item.sourcePlatform || inferPlatformFromUrl(item.sourceUrl || ''),
+      url: item.sourceUrl || '#',
+      authorName: item.sourceAuthorName || item.author?.name || '',
+      authorAvatar: item.sourceAuthorAvatar,
+      title: item.sourceTitle,
+      coverUrl: item.sourceCoverUrl,
+    },
+  }))
 
   const categoryCounts = new Map<KnowledgeCategoryKey, number>()
   categoryOrder.forEach((category) => categoryCounts.set(category, 0))
@@ -318,25 +223,36 @@ export async function getKnowledgeHomeData(): Promise<KnowledgeHomeData> {
     categoryCounts.set(article.category, (categoryCounts.get(article.category) ?? 0) + 1)
   })
 
-  const categories = categoryOrder.map((name, index) => ({
+  const categories = categoryOrder.map((name) => ({
     name,
-    count: Math.max(categoryCounts.get(name) ?? 0, [32, 58, 41, 47, 36, 23, 19, 15][index]),
+    count: categoryCounts.get(name) ?? 0,
     color: categoryColors[name],
   }))
 
   const authors = Array.from(
-    new Map(articles.map((article) => [article.author.name, article.author])).values()
+    new Map(
+      articles
+        .filter((article) => article.author.id || article.author.name)
+        .map((article) => [article.author.id || article.author.name, article.author])
+    ).values()
   ).slice(0, 4)
+
+  const latest = articles.slice(4, 10).length ? articles.slice(4, 10) : articles.slice(0, 6)
+  const latestTipSource = articles[0] ?? null
+  const tip = latestTipSource
+    ? {
+        title: latestTipSource.title,
+        body: latestTipSource.summary || latestTipSource.content.slice(0, 120),
+        imageUrl: latestTipSource.imageUrl,
+        sourceUrl: latestTipSource.source.url,
+      }
+    : null
 
   return {
     featured: articles.slice(0, 4),
-    latest: articles.slice(4, 7).length ? articles.slice(4, 7) : articles.slice(0, 3),
+    latest,
     categories,
-    tip: {
-      title: '每日小贴士',
-      body: '定期给宠物梳毛不仅能减少掉毛，还能促进血液循环，增进你和宠物之间的感情。',
-      imageUrl: imagePool[7],
-    },
+    tip,
     authors,
   }
 }

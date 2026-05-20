@@ -20,6 +20,7 @@ type NavbarProps = {
   showPublish?: boolean
   publishHref?: string
   onPublishClick?: () => void
+  requireKnowledgeCreatorForPublish?: boolean
   userAvatarSrc?: string
   userName?: string
 }
@@ -28,6 +29,7 @@ type NavbarAuthUser = {
   id?: string
   name: string
   avatarUrl?: string | null
+  isKnowledgeCreator?: boolean
 }
 
 type NotificationItem = {
@@ -44,6 +46,7 @@ export function Navbar({
   showPublish = false,
   publishHref = '/content',
   onPublishClick,
+  requireKnowledgeCreatorForPublish = false,
   userAvatarSrc = '/logo.png',
   userName = '毛球',
 }: NavbarProps) {
@@ -87,6 +90,7 @@ export function Navbar({
             id?: string
             name?: string
             avatarUrl?: string | null
+            isKnowledgeCreator?: boolean
           } | null
         }
 
@@ -95,6 +99,7 @@ export function Navbar({
             id: data.user.id,
             name: data.user.name,
             avatarUrl: data.user.avatarUrl,
+            isKnowledgeCreator: data.user.isKnowledgeCreator,
           })
         }
       } catch {
@@ -123,6 +128,9 @@ export function Navbar({
   const resolvedUserName = authUser?.name ?? userName
   const resolvedUserAvatar = authUser?.avatarUrl || userAvatarSrc
   const isAuthenticated = Boolean(authUser)
+  const canShowPublish = requireKnowledgeCreatorForPublish
+    ? Boolean(authUser?.isKnowledgeCreator)
+    : showPublish || isAuthenticated
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -229,7 +237,7 @@ export function Navbar({
             />
           </label>
 
-          {showPublish || isAuthenticated ? (
+          {canShowPublish ? (
             <>
               <div className="relative" ref={notificationRef}>
                 <button
@@ -322,14 +330,24 @@ export function Navbar({
                 </span>
                 <ChevronDown className="h-4 w-4 text-black/40" />
               </button>
-              <button
-                type="button"
-                onClick={onPublishClick}
-                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#f5c233] px-4 text-[14px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:px-5 sm:text-[15px] xl:px-7"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="whitespace-nowrap">发布</span>
-              </button>
+              {onPublishClick ? (
+                <button
+                  type="button"
+                  onClick={onPublishClick}
+                  className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#f5c233] px-4 text-[14px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:px-5 sm:text-[15px] xl:px-7"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="whitespace-nowrap">发布</span>
+                </button>
+              ) : (
+                <Link
+                  href={publishHref}
+                  className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#f5c233] px-4 text-[14px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:px-5 sm:text-[15px] xl:px-7"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="whitespace-nowrap">发布</span>
+                </Link>
+              )}
             </>
           ) : (
             <>

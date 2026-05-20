@@ -8,7 +8,6 @@ import {
   BriefcaseMedical,
   ChevronRight,
   Clock3,
-  Eye,
   Heart,
   PawPrint,
   ShieldPlus,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { FollowButton } from '@/components/follow-button'
+import { syncCurrentPlatformUser } from '@/lib/platform-user'
 import { getKnowledgeHomeData, getSourcePlatformMeta, type KnowledgeArticle, type KnowledgeCategoryKey } from '@/lib/knowledge-service'
 
 const quickCategories: Array<{
@@ -40,18 +40,23 @@ const categoryIcons: Record<KnowledgeCategoryKey, typeof BookOpen> = {
   急救知识: Bandage,
 }
 
-function formatViews(views: number) {
-  if (views >= 10000) return `${(views / 10000).toFixed(1).replace(/\.0$/, '')}w`
-  if (views >= 1000) return `${(views / 1000).toFixed(1).replace(/\.0$/, '')}k`
-  return String(views)
-}
-
 export default async function KnowledgePage() {
-  const data = await getKnowledgeHomeData()
+  const [data, currentUser] = await Promise.all([
+    getKnowledgeHomeData(),
+    syncCurrentPlatformUser(),
+  ])
+  const canCreateKnowledge = Boolean(
+    (currentUser as (typeof currentUser & { isKnowledgeCreator?: boolean }) | null)?.isKnowledgeCreator
+  )
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-[#2e1a14]">
-      <Navbar activeLabel="知识" />
+      <Navbar
+        activeLabel="知识"
+        showPublish
+        publishHref="/knowledge/create"
+        requireKnowledgeCreatorForPublish
+      />
 
       <section className="relative overflow-hidden border-b border-black/5 bg-[linear-gradient(110deg,#fffdfa_0%,#fff7e9_48%,#fffdf8_100%)] pt-[122px] sm:pt-[126px] xl:pt-[74px]">
         <div className="pointer-events-none absolute left-[42%] top-24 hidden text-[#ffbe46]/30 xl:block">
@@ -71,13 +76,24 @@ export default async function KnowledgePage() {
             <p className="mt-6 max-w-[460px] text-[16px] leading-8 text-[#7f7167]">
               科学养宠，快乐陪伴，让每一个毛孩子都健康成长
             </p>
-            <Link
-              href="#latest"
-              className="mt-7 inline-flex h-12 items-center gap-2 rounded-full bg-[#ffa90c] px-7 text-[15px] font-bold text-white shadow-[0_12px_28px_rgba(255,169,12,0.26)] transition hover:bg-[#f39c00]"
-            >
-              <BookOpen className="h-4 w-4" />
-              探索知识
-            </Link>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link
+                href="#latest"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-[#ffa90c] px-7 text-[15px] font-bold text-white shadow-[0_12px_28px_rgba(255,169,12,0.26)] transition hover:bg-[#f39c00]"
+              >
+                <BookOpen className="h-4 w-4" />
+                探索知识
+              </Link>
+              {canCreateKnowledge ? (
+                <Link
+                  href="/knowledge/create"
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-[#f3ddba] bg-white px-7 text-[15px] font-bold text-[#6a5b4f] shadow-sm transition hover:bg-[#fff8eb]"
+                >
+                  <Sparkles className="h-4 w-4 text-[#f39c00]" />
+                  发布知识
+                </Link>
+              ) : null}
+            </div>
 
             <div className="mt-8 grid max-w-[520px] grid-cols-2 gap-4 sm:grid-cols-4">
               {quickCategories.map((item) => {
@@ -102,10 +118,10 @@ export default async function KnowledgePage() {
               从知识开始
             </div>
             <div className="relative mx-auto flex h-full max-w-[620px] items-end justify-center">
-              <img
-                src="https://images.unsplash.com/photo-1601758125946-6ec2ef64daf8?auto=format&fit=crop&w=1100&q=90"
-                alt="狗狗和猫咪"
-                className="relative z-10 max-h-[430px] w-full rounded-[36px] object-cover object-center shadow-[0_24px_70px_rgba(126,88,44,0.16)]"
+              <div
+                aria-label="狗狗和猫咪"
+                className="relative z-10 min-h-[320px] w-full rounded-[36px] bg-cover bg-center shadow-[0_24px_70px_rgba(126,88,44,0.16)]"
+                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1601758125946-6ec2ef64daf8?auto=format&fit=crop&w=1100&q=90")' }}
               />
             </div>
           </div>
@@ -116,29 +132,39 @@ export default async function KnowledgePage() {
         <div className="min-w-0 space-y-10">
           <section>
             <SectionHeader title="热门知识" action="查看更多" />
-            <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {data.featured.map((article) => (
-                <FeaturedCard key={article.id} article={article} />
-              ))}
-            </div>
+            {data.featured.length ? (
+              <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                {data.featured.map((article) => (
+                  <FeaturedCard key={article.id} article={article} />
+                ))}
+              </div>
+            ) : (
+              <EmptyPanel className="mt-5" title="暂无热门知识" description="数据库里还没有公开知识，先去创建第一篇内容吧。" />
+            )}
           </section>
 
           <section id="latest">
             <SectionHeader title="最新知识" />
-            <div className="mt-5 space-y-4">
-              {data.latest.map((article) => (
-                <LatestCard key={article.id} article={article} />
-              ))}
-            </div>
-            <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                className="inline-flex h-11 items-center gap-2 rounded-full border border-[#eadfce] bg-white px-8 text-[14px] font-bold text-[#6d5e52] shadow-sm transition hover:bg-[#fff8eb]"
-              >
-                查看更多文章
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+            {data.latest.length ? (
+              <>
+                <div className="mt-5 space-y-4">
+                  {data.latest.map((article) => (
+                    <LatestCard key={article.id} article={article} />
+                  ))}
+                </div>
+                <div className="mt-8 flex justify-center">
+                  <button
+                    type="button"
+                    className="inline-flex h-11 items-center gap-2 rounded-full border border-[#eadfce] bg-white px-8 text-[14px] font-bold text-[#6d5e52] shadow-sm transition hover:bg-[#fff8eb]"
+                  >
+                    查看更多文章
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <EmptyPanel className="mt-5" title="暂无最新知识" description="当前数据库没有可展示的知识记录，发布后这里会自动更新。" />
+            )}
           </section>
         </div>
 
@@ -170,42 +196,48 @@ export default async function KnowledgePage() {
               <div className="flex items-center justify-between">
                 <h3 className="flex items-center gap-2 text-[18px] font-black text-[#2e1a14]">
                   <Sparkles className="h-5 w-5 text-[#ffa90c]" />
-                  {data.tip.title}
+                  {data.tip?.title || '知识导读'}
                 </h3>
                 <PawPrint className="h-5 w-5 text-[#e6b65d]" />
               </div>
-              <p className="mt-3 text-[14px] leading-7 text-[#68584b]">{data.tip.body}</p>
+              <p className="mt-3 text-[14px] leading-7 text-[#68584b]">
+                {data.tip?.body || '数据库中还没有知识内容，创建后这里会展示最新一篇知识的摘要导读。'}
+              </p>
             </div>
-            <img
-              src={data.tip.imageUrl}
-              alt={data.tip.title}
-              className="h-32 w-full object-cover"
-            />
+            {data.tip?.imageUrl ? (
+              <div
+                aria-label={data.tip.title}
+                className="h-32 w-full bg-cover bg-center"
+                style={{ backgroundImage: `url("${data.tip.imageUrl}")` }}
+              />
+            ) : (
+              <div className="flex h-32 w-full items-center justify-center bg-[linear-gradient(135deg,#fff0c8_0%,#fff7e5_100%)] text-[14px] font-semibold text-[#bc8a2f]">
+                等待知识内容入库
+              </div>
+            )}
           </div>
 
           <SidePanel title="专家作者" action="查看更多">
-            <div className="space-y-4">
-              {data.authors.map((author) => (
-                <div key={author.name} className="flex items-center gap-3">
-                  <img
-                    src={author.avatarUrl}
-                    alt={author.name}
-                    className="h-11 w-11 rounded-full object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-bold text-[#2e1a14]">{author.name}</p>
-                    <p className="truncate text-[12px] text-[#8f8379]">{author.title}</p>
+            {data.authors.length ? (
+              <div className="space-y-4">
+                {data.authors.map((author) => (
+                  <div key={author.id || author.name} className="flex items-center gap-3">
+                    <AuthorAvatar name={author.name} avatarUrl={author.avatarUrl} className="h-11 w-11 text-sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-bold text-[#2e1a14]">{author.name || '未署名作者'}</p>
+                      <p className="truncate text-[12px] text-[#8f8379]">{author.title || '知识作者'}</p>
+                    </div>
+                    {author.id ? (
+                      <FollowButton userId={author.id} size="sm" showCount={false} />
+                    ) : (
+                      <span className="rounded-full bg-[#f7f2eb] px-3 py-1 text-[12px] font-semibold text-[#9e8e83]">来源作者</span>
+                    )}
                   </div>
-                  {author.id ? (
-                    <FollowButton userId={author.id} size="sm" showCount={false} />
-                  ) : (
-                    <button className="h-8 rounded-full bg-[#ffa90c] px-4 text-[12px] font-bold text-white" type="button">
-                      关注
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyPanel title="暂无作者" description="数据库中还没有可展示的知识作者。" compact />
+            )}
           </SidePanel>
         </aside>
       </section>
@@ -235,7 +267,7 @@ function FeaturedCard({ article }: { article: KnowledgeArticle }) {
     <article className="overflow-hidden rounded-[16px] border border-[#ede4d8] bg-white shadow-[0_12px_34px_rgba(91,71,45,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(91,71,45,0.09)]">
       <a href={article.source.url} target="_blank" rel="noreferrer" className="block">
         <div className="relative aspect-[1.35] overflow-hidden">
-          <img src={article.imageUrl} alt={article.title} className="absolute inset-0 h-full w-full object-cover transition duration-300 hover:scale-105" />
+          <ArticleCover title={article.title} imageUrl={article.imageUrl} />
           <PlatformBadge platform={article.source.platform} />
         </div>
         <div className="p-4">
@@ -253,7 +285,7 @@ function LatestCard({ article }: { article: KnowledgeArticle }) {
   return (
     <article className="rounded-[16px] border border-[#ede4d8] bg-white p-3 shadow-[0_10px_28px_rgba(91,71,45,0.04)] transition hover:border-[#f1d8a9] hover:bg-[#fffdf8] sm:flex sm:items-center sm:gap-5">
       <a href={article.source.url} target="_blank" rel="noreferrer" className="relative block aspect-[1.7] overflow-hidden rounded-[12px] sm:h-[118px] sm:w-[220px] sm:shrink-0">
-        <img src={article.imageUrl} alt={article.title} className="absolute inset-0 h-full w-full object-cover" />
+        <ArticleCover title={article.title} imageUrl={article.imageUrl} compact />
         <PlatformBadge platform={article.source.platform} compact />
       </a>
       <div className="min-w-0 flex-1 pt-4 sm:pt-0">
@@ -262,23 +294,25 @@ function LatestCard({ article }: { article: KnowledgeArticle }) {
         <ArticleMeta article={article} />
       </div>
       <div className="mt-3 flex items-center gap-1 text-[13px] text-[#a2968d] sm:mt-0">
-        <Eye className="h-4 w-4" />
-        {formatViews(article.views)}
+        <Clock3 className="h-4 w-4" />
+        {article.readTime}
       </div>
     </article>
   )
 }
 
 function ArticleMeta({ article, compact = false }: { article: KnowledgeArticle; compact?: boolean }) {
+  const authorName = article.author.name || '未署名作者'
+
   return (
     <div className={`flex items-center gap-3 text-[12px] text-[#9b9087] ${compact ? 'mt-4' : 'mt-3'}`}>
-      <img src={article.author.avatarUrl} alt={article.author.name} className="h-5 w-5 rounded-full object-cover" />
-      <span className="truncate font-semibold text-[#6b5d53]">{article.author.name}</span>
+      <AuthorAvatar name={authorName} avatarUrl={article.author.avatarUrl} className="h-5 w-5 text-[10px]" />
+      <span className="truncate font-semibold text-[#6b5d53]">{authorName}</span>
       <span className="rounded-full bg-[#fff3d8] px-2 py-0.5 font-semibold text-[#c47a00]">{article.source.platform}</span>
       {!compact ? <span className="rounded-full bg-[#f7f2eb] px-2 py-0.5">{article.category}</span> : null}
       <span className="inline-flex items-center gap-1">
         <Clock3 className="h-3.5 w-3.5" />
-        {compact ? formatViews(article.views) : article.createdAt}
+        {compact ? article.readTime : article.createdAt}
       </span>
     </div>
   )
@@ -314,5 +348,74 @@ function SidePanel({ title, action, children }: { title: string; action?: string
       </div>
       {children}
     </section>
+  )
+}
+
+function ArticleCover({ title, imageUrl, compact = false }: { title: string; imageUrl?: string | null; compact?: boolean }) {
+  if (imageUrl) {
+    return (
+      <div
+        aria-label={title}
+        className="absolute inset-0 bg-cover bg-center transition duration-300 hover:scale-105"
+        style={{ backgroundImage: `url("${imageUrl}")` }}
+      />
+    )
+  }
+
+  return (
+    <div
+      className={[
+        'absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,#fff0cb_0%,#fff9ed_45%,#f8efe4_100%)] text-center text-[#be8b2e]',
+        compact ? 'px-4' : 'px-6',
+      ].join(' ')}
+    >
+      <div>
+        <BookOpen className="mx-auto h-7 w-7" />
+        <p className="mt-2 line-clamp-2 text-[13px] font-semibold">{title}</p>
+      </div>
+    </div>
+  )
+}
+
+function AuthorAvatar({ name, avatarUrl, className }: { name: string; avatarUrl?: string | null; className: string }) {
+  if (avatarUrl) {
+    return (
+      <div
+        aria-label={name}
+        className={`${className} rounded-full bg-cover bg-center`}
+        style={{ backgroundImage: `url("${avatarUrl}")` }}
+      />
+    )
+  }
+
+  return (
+    <div className={`${className} flex items-center justify-center rounded-full bg-[#fff3d8] font-bold text-[#c47a00]`}>
+      {name.slice(0, 1)}
+    </div>
+  )
+}
+
+function EmptyPanel({
+  title,
+  description,
+  compact = false,
+  className = '',
+}: {
+  title: string
+  description: string
+  compact?: boolean
+  className?: string
+}) {
+  return (
+    <div
+      className={[
+        'rounded-[18px] border border-dashed border-[#ecdcc7] bg-white/80 text-center text-[#8d7f73]',
+        compact ? 'px-4 py-6' : 'px-6 py-10',
+        className,
+      ].join(' ')}
+    >
+      <p className="text-[15px] font-bold text-[#4e4035]">{title}</p>
+      <p className="mt-2 text-[13px] leading-6">{description}</p>
+    </div>
   )
 }

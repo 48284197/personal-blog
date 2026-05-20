@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ user: null }, { status: 401 })
   }
+  const userWithKnowledgeFlag = user as typeof user & { isKnowledgeCreator?: boolean }
 
   return NextResponse.json({
     user: {
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,
+      isKnowledgeCreator: userWithKnowledgeFlag.isKnowledgeCreator ?? false,
       role: user.role,
       identityKind: user.identityKind,
     },

@@ -972,17 +972,7 @@ export async function searchCommunity(query: string, currentUserId?: string | nu
 export async function getUserProfileSummary(targetUserId: string, currentUserId?: string | null) {
   const user = await prisma.user.findUnique({
     where: { id: targetUserId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      avatarUrl: true,
-      bio: true,
-      location: true,
-      website: true,
-      headerColor: true,
-      headerImage: true,
-      createdAt: true,
+    include: {
       _count: {
         select: {
           publications: true,
@@ -1000,6 +990,7 @@ export async function getUserProfileSummary(targetUserId: string, currentUserId?
   })
 
   if (!user) return null
+  const userWithKnowledgeFlag = user as typeof user & { isKnowledgeCreator?: boolean }
 
   const likesAggregate = await prisma.publication.aggregate({
     where: { authorId: targetUserId },
@@ -1011,6 +1002,7 @@ export async function getUserProfileSummary(targetUserId: string, currentUserId?
     name: user.name,
     email: user.email,
     avatarUrl: user.avatarUrl,
+    isKnowledgeCreator: userWithKnowledgeFlag.isKnowledgeCreator ?? false,
     bio: user.bio,
     location: user.location,
     website: user.website,

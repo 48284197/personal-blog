@@ -38,6 +38,7 @@ const DEFAULT_AVATARS = [
 
 type UserProfile = {
   id: string; name: string; email: string | null; avatarUrl: string | null;
+  isKnowledgeCreator: boolean;
   bio: string | null; location: string | null; website: string | null;
   headerColor: string | null; headerImage: string | null; joinedAt: string;
   postsCount: number;
@@ -175,6 +176,18 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                 <div className="mt-4 text-center sm:mt-24 sm:text-left">
                   <h1 className="text-3xl font-bold tracking-tight text-slate-900">{user.name}</h1>
                   <p className="text-slate-500 font-medium">@{user.email?.split('@')[0]}</p>
+                  <div className="mt-3 flex justify-center sm:justify-start">
+                    <span
+                      className={[
+                        'inline-flex items-center rounded-full px-3 py-1 text-xs font-bold',
+                        user.isKnowledgeCreator
+                          ? 'bg-[#fff3d8] text-[#b87400]'
+                          : 'bg-slate-100 text-slate-500',
+                      ].join(' ')}
+                    >
+                      {user.isKnowledgeCreator ? '知识创作者' : '非知识创作者'}
+                    </span>
+                  </div>
                   {!isOwnProfile ? (
                     <div className="mt-4">
                       <FollowButton

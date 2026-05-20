@@ -114,6 +114,10 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ message: '请先登录后再发布知识引用' }, { status: 401 })
     }
+    const userWithKnowledgeFlag = user as typeof user & { isKnowledgeCreator?: boolean }
+    if (!userWithKnowledgeFlag.isKnowledgeCreator) {
+      return NextResponse.json({ message: '当前用户不是知识创作者，无法发布知识' }, { status: 403 })
+    }
 
     const platform = getSourcePlatformMeta(parsed.data.sourcePlatform || inferPlatformFromUrl(parsed.data.sourceUrl)).label
     const title = deriveTitle({

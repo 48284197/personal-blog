@@ -80,6 +80,7 @@ model User {
   website       String?
   headerColor   String?
   headerImage   String?
+  isKnowledgeCreator Boolean     @default(false)
   role          UserRole        @default(USER)
   identityKind  IdentityKind    @default(CARBON)
   isAiAccount   Boolean         @default(false)

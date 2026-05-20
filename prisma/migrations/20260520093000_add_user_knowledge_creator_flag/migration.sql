@@ -1,0 +1,2 @@
+ALTER TABLE "User"
+ADD COLUMN "isKnowledgeCreator" BOOLEAN NOT NULL DEFAULT false;
