@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, type FormEvent } from 'react'
-import { Loader2, Mail, UserRound } from 'lucide-react'
+import { Loader2, LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Badge, Surface } from '@/components/landing'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 type AuthMode = 'login' | 'register'
 
 type AuthStep = 'form' | 'code'
+
+type AuthMethod = 'password' | 'otp'
 
 type AuthPanelProps = {
   redirectTo?: string
@@ -22,9 +24,11 @@ function getDisplayName(email: string, fallback?: string) {
 
 export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode ?? 'login')
+  const [method, setMethod] = useState<AuthMethod>('password')
   const [step, setStep] = useState<AuthStep>('form')
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -32,10 +36,15 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
   const [codeSent, setCodeSent] = useState(false)
 
   const submitLabel = useMemo(() => {
+    if (method === 'password') {
+      if (loading) return mode === 'login' ? '登录中...' : '注册中...'
+      return mode === 'login' ? '邮箱密码登录' : '注册并登录'
+    }
+
     if (loading) return step === 'code' ? '验证中...' : '发送中...'
     if (step === 'code') return '验证并登录'
     return '发送验证码'
-  }, [loading, step])
+  }, [loading, method, mode, step])
 
   const persistSession = (name: string, userId?: string, userEmail?: string | null) => {
     window.localStorage.setItem('carbon-user-name', name)
@@ -72,6 +81,11 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     setCodeSent(false)
   }
 
+  const resetStatus = () => {
+    setError('')
+    setSuccess('')
+  }
+
   const sendOtpCode = async () => {
     if (!email.trim()) {
       setError('请先填写邮箱。')
@@ -92,7 +106,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
       const { error: signInError } = await client.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          shouldCreateUser: true,
+          shouldCreateUser: mode === 'register',
           data: mode === 'register' ? { full_name: displayName.trim(), name: displayName.trim() } : undefined,
         },
       })
@@ -153,8 +167,68 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     }
   }
 
+  const handlePasswordAuth = async () => {
+    if (!email.trim()) {
+      setError('请先填写邮箱。')
+      return
+    }
+
+    if (!password.trim()) {
+      setError('请先填写密码。')
+      return
+    }
+
+    if (mode === 'register' && !displayName.trim()) {
+      setError('请先填写昵称。')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const client = createSupabaseBrowserClient()
+      const normalizedEmail = email.trim()
+      const normalizedPassword = password.trim()
+      const { data, error: authError } = mode === 'login'
+        ? await client.auth.signInWithPassword({
+            email: normalizedEmail,
+            password: normalizedPassword,
+          })
+        : await client.auth.signUp({
+            email: normalizedEmail,
+            password: normalizedPassword,
+            options: {
+              data: { full_name: displayName.trim(), name: displayName.trim() },
+            },
+          })
+
+      if (authError) {
+        setError(authError.message || (mode === 'login' ? '登录失败，请检查邮箱和密码。' : '注册失败，请稍后重试。'))
+        return
+      }
+
+      const user = data.user ?? (await client.auth.getUser()).data.user
+      const synced = await syncPlatformAccount(mode === 'register' ? displayName.trim() : null)
+      const profileName =
+        synced?.name ??
+        getDisplayName(normalizedEmail, mode === 'register' ? displayName : user?.user_metadata?.full_name || user?.user_metadata?.name)
+      finishLogin(profileName, synced?.id ?? user?.id, synced?.email ?? user?.email)
+    } catch (authError) {
+      setError(authError instanceof Error ? authError.message : mode === 'login' ? '登录失败，请稍后重试。' : '注册失败，请稍后重试。')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (method === 'password') {
+      await handlePasswordAuth()
+      return
+    }
+
     if (step === 'code') {
       await verifyOtpCode()
       return
@@ -173,8 +247,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
               type="button"
               onClick={() => {
                 setMode('login')
-                setError('')
-                setSuccess('')
+                resetStatus()
                 resetCodeState()
               }}
               className={cn(
@@ -188,8 +261,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
               type="button"
               onClick={() => {
                 setMode('register')
-                setError('')
-                setSuccess('')
+                resetStatus()
                 resetCodeState()
               }}
               className={cn(
@@ -214,10 +286,47 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
           <p className="mt-3 text-[15px] leading-7 text-[#8c837a]">
             {step === 'code'
               ? '验证码已发送到邮箱，请输入 6 位数字完成验证。'
-              : mode === 'login'
-                ? '使用邮箱验证码登录，继续你的萌宠之旅'
-                : '创建账号，开启你的萌宠社区'}
+              : method === 'password'
+                ? mode === 'login'
+                  ? '使用邮箱和密码登录，继续你的萌宠之旅'
+                  : '创建账号并设置密码，开启你的萌宠社区'
+                : mode === 'login'
+                  ? '使用邮箱验证码登录，无需输入密码'
+                  : '使用邮箱验证码创建账号，开启你的萌宠社区'}
           </p>
+        </div>
+
+        <div className="mt-7 grid grid-cols-2 gap-2 rounded-[18px] border border-black/5 bg-[#f7f5f2] p-1">
+          <button
+            type="button"
+            onClick={() => {
+              setMethod('password')
+              resetStatus()
+              resetCodeState()
+            }}
+            className={cn(
+              'inline-flex h-11 items-center justify-center gap-2 rounded-[14px] text-[14px] font-semibold transition',
+              method === 'password' ? 'bg-white text-[#1f140f] shadow-sm' : 'text-[#8c837a] hover:text-[#1f140f]'
+            )}
+          >
+            <LockKeyhole className="h-4 w-4" />
+            邮箱密码
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMethod('otp')
+              resetStatus()
+              resetCodeState()
+            }}
+            className={cn(
+              'inline-flex h-11 items-center justify-center gap-2 rounded-[14px] text-[14px] font-semibold transition',
+              method === 'otp' ? 'bg-white text-[#1f140f] shadow-sm' : 'text-[#8c837a] hover:text-[#1f140f]'
+            )}
+          >
+            <Mail className="h-4 w-4" />
+            邮箱验证码
+          </button>
         </div>
 
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
@@ -260,7 +369,32 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
             </div>
           </label>
 
-          {step === 'code' ? (
+          {method === 'password' ? (
+            <label className="block">
+              <span className="mb-2 flex items-center gap-2 text-[14px] font-medium text-[#6f645a]">
+                <LockKeyhole className="h-4 w-4 text-[#b28a2d]" />
+                密码
+              </span>
+              <div className="flex items-center gap-3 rounded-[18px] border border-black/10 bg-white px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                <LockKeyhole className="h-4 w-4 shrink-0 text-[#8f8379]" />
+                <input
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.target.value)
+                    setError('')
+                  }}
+                  type="password"
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  placeholder={mode === 'login' ? '请输入密码' : '请设置密码'}
+                  required
+                  minLength={6}
+                  className="w-full bg-transparent text-[15px] text-[#1f140f] outline-none placeholder:text-[#b0a8a0]"
+                />
+              </div>
+            </label>
+          ) : null}
+
+          {method === 'otp' && step === 'code' ? (
             <label className="block">
               <span className="mb-2 flex items-center gap-2 text-[14px] font-medium text-[#6f645a]">
                 <Loader2 className="h-4 w-4 text-[#b28a2d]" />
@@ -297,27 +431,31 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
             disabled={loading}
             className="inline-flex h-14 w-full items-center justify-center rounded-full bg-[#f5c233] text-[17px] font-bold text-[#2e1a14] shadow-[0_14px_30px_rgba(245,194,51,0.26)] transition hover:bg-[#efba18] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {loading ? (step === 'code' ? '验证中...' : '发送中...') : submitLabel}
+            {submitLabel}
           </button>
         </form>
 
-        <div className="mt-7 flex items-center gap-4 text-[#b9b1a7]">
-          <span className="h-px flex-1 bg-[#ebe4d9]" />
-          <span className="text-[14px]">或</span>
-          <span className="h-px flex-1 bg-[#ebe4d9]" />
-        </div>
+        {method === 'otp' ? (
+          <>
+            <div className="mt-7 flex items-center gap-4 text-[#b9b1a7]">
+              <span className="h-px flex-1 bg-[#ebe4d9]" />
+              <span className="text-[14px]">或</span>
+              <span className="h-px flex-1 bg-[#ebe4d9]" />
+            </div>
 
-        <button
-            type="button"
-            onClick={step === 'code' ? sendOtpCode : sendOtpCode}
-            disabled={loading || !email.trim()}
-            className="mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white text-[15px] font-medium text-[#1f140f] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition hover:bg-[#faf8f4] disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <Mail className="h-4 w-4 text-[#8f8379]" />
-            {codeSent ? '重新发送验证码' : '发送邮箱验证码'}
-          </button>
+            <button
+              type="button"
+              onClick={sendOtpCode}
+              disabled={loading || !email.trim()}
+              className="mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white text-[15px] font-medium text-[#1f140f] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition hover:bg-[#faf8f4] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <Mail className="h-4 w-4 text-[#8f8379]" />
+              {codeSent ? '重新发送验证码' : '发送邮箱验证码'}
+            </button>
+          </>
+        ) : null}
 
-        {step === 'code' ? (
+        {method === 'otp' && step === 'code' ? (
           <button
             type="button"
             onClick={() => {
@@ -331,18 +469,17 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
         ) : null}
 
         <div className="mt-7 text-center text-[15px] text-[#7d7269]">
-          还没有账号？
+          {mode === 'login' ? '还没有账号？' : '已经有账号？'}
           <button
             type="button"
             onClick={() => {
-              setMode('register')
-              setError('')
-              setSuccess('')
+              setMode(mode === 'login' ? 'register' : 'login')
+              resetStatus()
               resetCodeState()
             }}
             className="ml-2 font-semibold text-[#f39a00] transition hover:text-[#d58900]"
           >
-            立即注册 →
+            {mode === 'login' ? '立即注册 →' : '返回登录 →'}
           </button>
         </div>
       </div>

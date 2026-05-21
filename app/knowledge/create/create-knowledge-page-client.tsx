@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, FileText, Link2, Loader2, Sparkles } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
+const KNOWLEDGE_PATH = '/knowledge'
+
 type AuthProfile = {
   id?: string
   name: string
@@ -277,6 +279,8 @@ export function CreateKnowledgePageClient() {
       }
 
       const data = (await response.json()) as { item?: { title?: string } }
+      router.prefetch(KNOWLEDGE_PATH)
+      router.refresh()
       setSuccessTitle(data.item?.title?.trim() || previewTitle)
       setForm(createInitialForm(defaultCategory))
     } catch (submitError) {

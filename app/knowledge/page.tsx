@@ -18,6 +18,10 @@ import { FollowButton } from '@/components/follow-button'
 import { syncCurrentPlatformUser } from '@/lib/platform-user'
 import { getKnowledgeHomeData, getSourcePlatformMeta, type KnowledgeArticle, type KnowledgeCategoryKey } from '@/lib/knowledge-service'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 const quickCategories: Array<{
   label: KnowledgeCategoryKey
   icon: typeof BookOpen
