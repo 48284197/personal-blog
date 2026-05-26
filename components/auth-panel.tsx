@@ -17,6 +17,8 @@ type AuthPanelProps = {
   initialMode?: AuthMode
 }
 
+const OTP_UNAVAILABLE_MESSAGE = '邮箱验证码方式暂未开放，请使用邮箱密码登录或注册。'
+
 function getDisplayName(email: string, fallback?: string) {
   const prefix = email.split('@')[0]?.trim()
   return fallback?.trim() || prefix || '碳基用户'
@@ -33,7 +35,6 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [codeSent, setCodeSent] = useState(false)
 
   const submitLabel = useMemo(() => {
     if (method === 'password') {
@@ -78,7 +79,6 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
   const resetCodeState = () => {
     setStep('form')
     setCode('')
-    setCodeSent(false)
   }
 
   const resetStatus = () => {
@@ -86,85 +86,11 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     setSuccess('')
   }
 
-  const sendOtpCode = async () => {
-    if (!email.trim()) {
-      setError('请先填写邮箱。')
-      return
-    }
-
-    if (mode === 'register' && !displayName.trim()) {
-      setError('请先填写昵称。')
-      return
-    }
-
-    setLoading(true)
-    setError('')
+  const showOtpUnavailable = () => {
+    setError(OTP_UNAVAILABLE_MESSAGE)
     setSuccess('')
-
-    try {
-      const client = createSupabaseBrowserClient()
-      const { error: signInError } = await client.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          shouldCreateUser: mode === 'register',
-          data: mode === 'register' ? { full_name: displayName.trim(), name: displayName.trim() } : undefined,
-        },
-      })
-
-      if (signInError) {
-        setError(signInError.message || '验证码发送失败，请稍后重试。')
-        return
-      }
-
-      setCodeSent(true)
-      setStep('code')
-      setSuccess('验证码已发送，请查看邮箱并输入 6 位验证码。')
-    } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : '验证码发送失败，请稍后重试。')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const verifyOtpCode = async () => {
-    if (!email.trim()) {
-      setError('请先填写邮箱。')
-      return
-    }
-
-    if (!code.trim()) {
-      setError('请先输入验证码。')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-    setSuccess('')
-
-    try {
-      const client = createSupabaseBrowserClient()
-      const { data, error: verifyError } = await client.auth.verifyOtp({
-        email: email.trim(),
-        token: code.trim(),
-        type: 'email',
-      })
-
-      if (verifyError) {
-        setError(verifyError.message || '验证码验证失败，请检查后重试。')
-        return
-      }
-
-      const user = data.user ?? (await client.auth.getUser()).data.user
-      const synced = await syncPlatformAccount(mode === 'register' ? displayName.trim() : null)
-      const profileName =
-        synced?.name ??
-        getDisplayName(email, mode === 'register' ? displayName : user?.user_metadata?.full_name || user?.user_metadata?.name)
-      finishLogin(profileName, synced?.id ?? user?.id, synced?.email ?? user?.email)
-    } catch (verifyError) {
-      setError(verifyError instanceof Error ? verifyError.message : '验证码验证失败，请稍后重试。')
-    } finally {
-      setLoading(false)
-    }
+    resetCodeState()
+    setMethod('password')
   }
 
   const handlePasswordAuth = async () => {
@@ -230,10 +156,10 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     }
 
     if (step === 'code') {
-      await verifyOtpCode()
+      showOtpUnavailable()
       return
     }
-    await sendOtpCode()
+    showOtpUnavailable()
   }
 
   return (
@@ -285,14 +211,12 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
           </h2>
           <p className="mt-3 text-[15px] leading-7 text-[#8c837a]">
             {step === 'code'
-              ? '验证码已发送到邮箱，请输入 6 位数字完成验证。'
+              ? OTP_UNAVAILABLE_MESSAGE
               : method === 'password'
                 ? mode === 'login'
                   ? '使用邮箱和密码登录，继续你的萌宠之旅'
                   : '创建账号并设置密码，开启你的萌宠社区'
-                : mode === 'login'
-                  ? '使用邮箱验证码登录，无需输入密码'
-                  : '使用邮箱验证码创建账号，开启你的萌宠社区'}
+                : OTP_UNAVAILABLE_MESSAGE}
           </p>
         </div>
 
@@ -315,17 +239,19 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
           <button
             type="button"
             onClick={() => {
-              setMethod('otp')
-              resetStatus()
+              setError(OTP_UNAVAILABLE_MESSAGE)
+              setSuccess('')
               resetCodeState()
             }}
             className={cn(
               'inline-flex h-11 items-center justify-center gap-2 rounded-[14px] text-[14px] font-semibold transition',
-              method === 'otp' ? 'bg-white text-[#1f140f] shadow-sm' : 'text-[#8c837a] hover:text-[#1f140f]'
+              method === 'otp' ? 'bg-white text-[#1f140f] shadow-sm' : 'text-[#b0a8a0] hover:text-[#8c837a]'
             )}
+            aria-label="邮箱验证码方式暂未开放"
           >
             <Mail className="h-4 w-4" />
-            邮箱验证码
+            <span>邮箱验证码</span>
+            <span className="rounded-full bg-[#eee7dc] px-2 py-0.5 text-[11px] font-bold text-[#8c837a]">暂未开放</span>
           </button>
         </div>
 
@@ -445,12 +371,12 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
 
             <button
               type="button"
-              onClick={sendOtpCode}
-              disabled={loading || !email.trim()}
+              onClick={showOtpUnavailable}
+              disabled={loading}
               className="mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black/10 bg-white text-[15px] font-medium text-[#1f140f] shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition hover:bg-[#faf8f4] disabled:cursor-not-allowed disabled:opacity-70"
             >
               <Mail className="h-4 w-4 text-[#8f8379]" />
-              {codeSent ? '重新发送验证码' : '发送邮箱验证码'}
+              邮箱验证码暂未开放
             </button>
           </>
         ) : null}

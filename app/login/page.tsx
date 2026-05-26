@@ -3,7 +3,6 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Heart, Sparkles, Users } from 'lucide-react'
 import { AuthPanel } from '@/components/auth-panel'
-import { brand } from '@/lib/site-data'
 
 export const metadata: Metadata = {
   title: '登录',
@@ -30,10 +29,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="relative mx-auto flex min-h-screen max-w-[1520px] flex-col px-4 pb-6 pt-5 sm:px-6 lg:pb-8 xl:px-10">
         <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
           <Link href="/" className="flex shrink-0 items-center gap-3 whitespace-nowrap">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f5c233] shadow-[0_10px_20px_rgba(245,194,51,0.26)]">
-              <Image src="/logo.png" alt={`${brand.name} logo`} width={28} height={28} className="h-7 w-7 object-contain" priority />
-            </span>
-            <span className="text-[24px] font-black tracking-[-0.04em] text-[#2e1a14] sm:text-[28px]">{brand.name}</span>
+            <Image src="/logo.png" alt="毛球" width={50} height={50} className="flex scale-90 items-center justify-center rounded-full object-contain" priority />
+            <span className="text-[24px] font-black tracking-[-0.03em] text-[#2e1a14] sm:text-[28px]">毛球</span>
           </Link>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 text-[14px] text-[#5f5348] sm:gap-3 sm:text-[15px]">

@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import type { Dispatch, SetStateAction } from 'react'
 import { Heart, Send, X } from 'lucide-react'
 import type { CommentItem, ContentItem } from '@/lib/site-data'
@@ -421,11 +422,14 @@ function CommentSheet({
             {comments.map((comment) => (
               <article key={comment.id} className="border-b border-slate-100 pb-4 last:border-b-0">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-sm font-semibold text-slate-950">
+                  <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-sm font-semibold text-slate-950">
                     {comment.avatar?.startsWith('http') || comment.avatar?.startsWith('/') ? (
-                      <img
+                      <Image
                         src={comment.avatar}
                         alt={comment.author}
+                        fill
+                        sizes="40px"
+                        unoptimized
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -498,9 +502,9 @@ function CommentSheet({
                       index === mentionIndex ? 'bg-cyan-50' : 'hover:bg-slate-50',
                     ].join(' ')}
                   >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-xs font-semibold text-slate-950">
+                    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-xs font-semibold text-slate-950">
                       {user.avatar?.startsWith('http') || user.avatar?.startsWith('/') ? (
-                        <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                        <Image src={user.avatar} alt={user.name} fill sizes="32px" unoptimized className="h-full w-full object-cover" />
                       ) : (
                         user.avatar?.slice(0, 2) || user.name.slice(0, 2)
                       )}

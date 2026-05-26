@@ -57,7 +57,7 @@ const pillars = [
 const contacts = [
   { label: 'support@maoqiu.com', icon: Mail },
   { label: '400-123-4567', icon: Phone },
-  { label: '上海市浦东新区毛球大厦 12 楼', icon: MapPin },
+  { label: '成都', icon: MapPin },
 ]
 
 const socials = [
@@ -234,11 +234,9 @@ export default function AboutPage() {
 
         <footer className="mt-10 flex flex-col gap-4 border-t border-black/5 py-6 text-[14px] text-[#8f8379] xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5c233]">
-              <PawPrint className="h-5 w-5 text-[#2e1a14]" />
-            </span>
+            <Image src="/logo.png" alt="毛球" width={50} height={50} className="flex scale-90 items-center justify-center rounded-full object-contain" />
             <div>
-              <div className="text-[18px] font-black text-[#2e1a14]">毛球</div>
+              <div className="whitespace-nowrap text-[24px] font-black tracking-[-0.03em] text-[#2e1a14] sm:text-[28px]">毛球</div>
               <div>温暖有爱的宠物社区</div>
             </div>
           </div>

@@ -127,7 +127,7 @@ export function getKnowledgeCreateMeta(): KnowledgeCreateMeta {
       value: category,
       label: category,
     })),
-    platforms: sourcePlatforms.map((platform) => ({
+    platforms: sourcePlatforms.filter((platform) => platform.value === 'xiaohongshu').map((platform) => ({
       value: platform.value,
       label: platform.label,
       color: platform.color,

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
+import Image from 'next/image'
 import {
   ChevronRight,
   Image as ImageIcon,
@@ -267,11 +268,14 @@ export default function ImageServicePage() {
                           key={`${result.request_id}-${index}`}
                           className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
                         >
-                          <div className="aspect-square bg-slate-100">
+                          <div className="relative aspect-square bg-slate-100">
                             {src ? (
-                              <img
+                              <Image
                                 src={src}
                                 alt={`result ${index + 1}`}
+                                fill
+                                sizes="(min-width: 640px) 50vw, 100vw"
+                                unoptimized
                                 className="h-full w-full object-cover"
                               />
                             ) : (

@@ -6,7 +6,7 @@ import { syncCurrentPlatformUser } from '@/lib/platform-user'
 import { getRequestUser } from '@/lib/auth'
 
 const createKnowledgeSchema = z.object({
-  sourceUrl: z.string().url(),
+  sourceUrl: z.string().trim().url(),
   sourcePlatform: z.string().optional(),
   sourceAuthorName: z.string().optional(),
   sourceAuthorAvatar: z.string().url().optional(),
@@ -19,20 +19,13 @@ const createKnowledgeSchema = z.object({
   tags: z.array(z.string()).optional(),
 })
 
-function inferPlatformFromUrl(url: string) {
-  const normalized = url.toLowerCase()
-  if (normalized.includes('xiaohongshu.com') || normalized.includes('xhslink.com')) return '小红书'
-  if (normalized.includes('douyin.com')) return '抖音'
-  if (normalized.includes('zhihu.com')) return '知乎'
-  if (normalized.includes('bilibili.com') || normalized.includes('b23.tv')) return 'B站'
-  if (normalized.includes('weixin.qq.com')) return '公众号'
-  if (normalized.includes('weibo.com')) return '微博'
-  if (normalized.includes('kuaishou.com')) return '快手'
-  if (normalized.includes('toutiao.com')) return '头条'
-  if (normalized.includes('baijiahao.baidu.com')) return '百家号'
-  if (normalized.includes('youtube.com') || normalized.includes('youtu.be')) return 'YouTube'
-  if (normalized.includes('tiktok.com')) return 'TikTok'
-  return '外部平台'
+function isXiaohongshuUrl(url: string) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase()
+    return hostname === 'xhslink.com' || hostname.endsWith('.xhslink.com') || hostname === 'xiaohongshu.com' || hostname.endsWith('.xiaohongshu.com')
+  } catch {
+    return false
+  }
 }
 
 function deriveTitle(input: { title?: string; sourceTitle?: string; sourcePlatform: string }) {
@@ -109,6 +102,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    if (!isXiaohongshuUrl(parsed.data.sourceUrl)) {
+      return NextResponse.json({ message: '目前仅支持小红书链接解析录入' }, { status: 400 })
+    }
+    if (parsed.data.sourcePlatform && parsed.data.sourcePlatform !== 'xiaohongshu' && parsed.data.sourcePlatform !== '小红书') {
+      return NextResponse.json({ message: '目前仅支持小红书平台' }, { status: 400 })
+    }
 
     const user = await getKnowledgePublisher(request)
     if (!user) {
@@ -119,7 +118,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '当前用户不是知识创作者，无法发布知识' }, { status: 403 })
     }
 
-    const platform = getSourcePlatformMeta(parsed.data.sourcePlatform || inferPlatformFromUrl(parsed.data.sourceUrl)).label
+    const platform = getSourcePlatformMeta('xiaohongshu').label
     const title = deriveTitle({
       title: parsed.data.title,
       sourceTitle: parsed.data.sourceTitle,

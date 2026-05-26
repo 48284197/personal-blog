@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { X, Copy, Check, QrCode } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -49,11 +50,12 @@ export function ShareModal({ isOpen, onClose, title, url }: ShareModalProps) {
 
         <div className="flex flex-col items-center px-6 pb-6">
           <div className="rounded-xl bg-white p-3 shadow-inner">
-            <img
+            <Image
               src={qrCodeUrl}
               alt="QR Code"
               width={180}
               height={180}
+              unoptimized
               className="h-[180px] w-[180px]"
             />
           </div>

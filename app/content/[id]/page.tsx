@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, use } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, Share2, ArrowLeft, Send, Play, Pause } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
@@ -254,7 +255,7 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
             <div className="px-4 pb-2 sm:px-5">
               <div className="flex items-center gap-3 rounded-[20px] border border-slate-100 bg-gradient-to-r from-cyan-50 to-orange-50 p-4">
                 {content.musicCover && (
-                  <img src={content.musicCover} alt={content.title || '音乐封面'} className="h-16 w-16 rounded-lg object-cover" />
+                  <Image src={content.musicCover} alt={content.title || '音乐封面'} width={64} height={64} unoptimized className="h-16 w-16 rounded-lg object-cover" />
                 )}
                 <div className="flex-1">
                   <p className="font-medium text-slate-900">{content.title || '音乐内容'}</p>
@@ -334,9 +335,9 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
                 {comments.map((comment) => (
                   <article key={comment.id} className="border-b border-slate-100 pb-4 last:border-b-0">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-sm font-semibold text-slate-950">
+                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-cyan-300 to-orange-300 text-sm font-semibold text-slate-950">
                         {comment.avatar?.startsWith('http') || comment.avatar?.startsWith('/') ? (
-                          <img src={comment.avatar} alt={comment.author} className="h-full w-full object-cover" />
+                          <Image src={comment.avatar} alt={comment.author} fill sizes="40px" unoptimized className="h-full w-full object-cover" />
                         ) : (
                           comment.avatar
                         )}
@@ -601,7 +602,7 @@ function ShareModal({
 
           <div className="mt-6 flex flex-col items-center">
             <div className="overflow-hidden rounded-[24px] border border-slate-100 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
-              <img src={qrCodeUrl} alt="详情页二维码" className="h-[200px] w-[200px]" />
+              <Image src={qrCodeUrl} alt="详情页二维码" width={200} height={200} unoptimized className="h-[200px] w-[200px]" />
             </div>
             <p className="mt-3 text-sm font-medium text-slate-500">扫码查看详情</p>
           </div>

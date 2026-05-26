@@ -60,11 +60,20 @@ function createInitialForm(defaultCategory = ''): FormState {
     category: defaultCategory,
     tags: '',
     sourceUrl: '',
-    sourcePlatform: '',
+    sourcePlatform: 'xiaohongshu',
     sourceTitle: '',
     sourceAuthorName: '',
     sourceAuthorAvatar: '',
     sourceCoverUrl: '',
+  }
+}
+
+function isXiaohongshuUrl(value: string) {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase()
+    return hostname === 'xhslink.com' || hostname.endsWith('.xhslink.com') || hostname === 'xiaohongshu.com' || hostname.endsWith('.xiaohongshu.com')
+  } catch {
+    return false
   }
 }
 
@@ -78,6 +87,7 @@ export function CreateKnowledgePageClient() {
   const [authLoaded, setAuthLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
   const [parsing, setParsing] = useState(false)
+  const [parsedSourceUrl, setParsedSourceUrl] = useState('')
   const [parseMessage, setParseMessage] = useState('')
   const [error, setError] = useState('')
   const [successTitle, setSuccessTitle] = useState('')
@@ -193,7 +203,10 @@ export function CreateKnowledgePageClient() {
     form.summary.trim() ||
     form.content.replace(/\s+/g, ' ').trim().slice(0, 88) ||
     '填写摘要或正文后，这里会显示知识简介。'
-  const submitDisabled = loading || !form.sourceUrl.trim()
+  const trimmedSourceUrl = form.sourceUrl.trim()
+  const sourceUrlIsXiaohongshu = isXiaohongshuUrl(trimmedSourceUrl)
+  const hasParsedCurrentSource = sourceUrlIsXiaohongshu && parsedSourceUrl === trimmedSourceUrl
+  const submitDisabled = loading || !hasParsedCurrentSource
   const parseDisabled = parsing || !form.sourceUrl.trim()
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -208,10 +221,15 @@ export function CreateKnowledgePageClient() {
     setParseMessage('')
 
     try {
+      const sourceUrl = form.sourceUrl.trim()
+      if (!isXiaohongshuUrl(sourceUrl)) {
+        throw new Error('目前仅支持小红书链接解析录入，请粘贴 xiaohongshu.com 或 xhslink.com 链接。')
+      }
+
       const response = await fetch('/api/knowledge/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: form.sourceUrl.trim() }),
+        body: JSON.stringify({ url: sourceUrl }),
       })
 
       const data = (await response.json().catch(() => null)) as (ParsedKnowledgeLink & { message?: string }) | null
@@ -219,20 +237,22 @@ export function CreateKnowledgePageClient() {
         throw new Error(data?.message ?? '解析链接失败，请检查链接是否可以公开访问。')
       }
 
+      const parsedUrl = data?.sourceUrl?.trim() || sourceUrl
       setForm((current) => ({
         ...current,
         title: data?.title?.trim() || current.title,
         summary: data?.summary?.trim() || current.summary,
         content: data?.content?.trim() || current.content,
-        sourceUrl: data?.sourceUrl?.trim() || current.sourceUrl,
-        sourcePlatform: data?.sourcePlatform?.trim() || current.sourcePlatform,
+        sourceUrl: parsedUrl,
+        sourcePlatform: 'xiaohongshu',
         sourceTitle: data?.sourceTitle?.trim() || current.sourceTitle,
         sourceAuthorName: data?.sourceAuthorName?.trim() || current.sourceAuthorName,
         sourceAuthorAvatar: data?.sourceAuthorAvatar?.trim() || current.sourceAuthorAvatar,
         sourceCoverUrl: data?.sourceCoverUrl?.trim() || current.sourceCoverUrl,
         tags: data?.tags?.length ? data.tags.join(', ') : current.tags,
       }))
-      setParseMessage('解析成功，已自动填充标题、摘要、标签和来源信息。')
+      setParsedSourceUrl(parsedUrl)
+      setParseMessage('解析成功，已自动填充标题、摘要、标签和来源信息，源链接会按粘贴内容保存。')
     } catch (parseError) {
       setError(parseError instanceof Error ? parseError.message : '解析链接失败，请稍后重试。')
     } finally {
@@ -247,6 +267,13 @@ export function CreateKnowledgePageClient() {
     setError('')
 
     try {
+      if (!sourceUrlIsXiaohongshu) {
+        throw new Error('目前仅支持小红书链接解析录入。')
+      }
+      if (!hasParsedCurrentSource) {
+        throw new Error('请先解析当前小红书链接，再创建知识。')
+      }
+
       const supabase = createSupabaseBrowserClient()
       const {
         data: { session },
@@ -264,8 +291,8 @@ export function CreateKnowledgePageClient() {
           content: form.content.trim() || undefined,
           category: form.category,
           tags: parsedTags,
-          sourceUrl: form.sourceUrl.trim(),
-          sourcePlatform: form.sourcePlatform || undefined,
+          sourceUrl: trimmedSourceUrl,
+          sourcePlatform: 'xiaohongshu',
           sourceTitle: form.sourceTitle.trim() || undefined,
           sourceAuthorName: form.sourceAuthorName.trim() || undefined,
           sourceAuthorAvatar: form.sourceAuthorAvatar.trim() || undefined,
@@ -283,6 +310,7 @@ export function CreateKnowledgePageClient() {
       router.refresh()
       setSuccessTitle(data.item?.title?.trim() || previewTitle)
       setForm(createInitialForm(defaultCategory))
+      setParsedSourceUrl('')
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '创建知识失败，请稍后重试。')
     } finally {
@@ -347,12 +375,12 @@ export function CreateKnowledgePageClient() {
                   添加一篇新的宠物知识
                 </h1>
                 <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[#7b6c61]">
-                  支持录入原平台链接、补充摘要和正文整理，将分散内容沉淀成结构化知识，方便用户统一浏览与搜索。
+                  目前仅支持小红书链接解析录入，解析后可补充摘要和正文整理，将分散内容沉淀成结构化知识。
                 </p>
               </div>
               <div className="rounded-[22px] border border-[#f3e6d2] bg-white/85 px-4 py-3 text-[13px] leading-6 text-[#7d6e62]">
                 <div className="font-bold text-[#2e1a14]">建议填写</div>
-                <div>原文链接、标题、分类、摘要、标签</div>
+                <div>小红书链接、标题、分类、摘要、标签</div>
               </div>
             </div>
           </div>
@@ -440,11 +468,11 @@ export function CreateKnowledgePageClient() {
             <section className="space-y-5">
               <div>
                 <h2 className="text-[22px] font-black text-[#241913]">来源信息</h2>
-                <p className="mt-1 text-[14px] text-[#8a7c71]">原文链接为必填，其他信息可用于丰富展示效果。</p>
+                <p className="mt-1 text-[14px] text-[#8a7c71]">原文链接为必填，来源信息会通过解析自动填充。</p>
               </div>
 
               <Field>
-                <FieldLabel title="原文链接" desc="必填，粘贴小红书链接后可快速解析网页 meta 内容" required />
+                <FieldLabel title="原文链接" desc="必填，仅支持小红书链接；提交前必须先快速解析" required />
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <div className="relative min-w-0 flex-1">
                     <Link2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a8998d]" />
@@ -453,6 +481,7 @@ export function CreateKnowledgePageClient() {
                       onChange={(event) => {
                         updateField('sourceUrl', event.target.value)
                         setParseMessage('')
+                        setParsedSourceUrl('')
                       }}
                       placeholder="https://www.xiaohongshu.com/explore/..."
                       className={`${inputClassName} pl-11`}
@@ -465,34 +494,27 @@ export function CreateKnowledgePageClient() {
                     className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-[18px] bg-[#ff2442] px-5 text-[14px] font-bold text-white shadow-[0_12px_26px_rgba(255,36,66,0.2)] transition hover:bg-[#e91d39] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    {parsing ? '解析中...' : '快速解析'}
+                    {parsing ? '解析中...' : '解析小红书'}
                   </button>
                 </div>
                 {parseMessage ? <p className="mt-3 text-[12px] font-semibold text-[#2e9e46]">{parseMessage}</p> : null}
+                {trimmedSourceUrl && !sourceUrlIsXiaohongshu ? (
+                  <p className="mt-3 text-[12px] font-semibold text-[#c36a5d]">当前只支持小红书链接。</p>
+                ) : null}
+                {trimmedSourceUrl && sourceUrlIsXiaohongshu && !hasParsedCurrentSource ? (
+                  <p className="mt-3 text-[12px] font-semibold text-[#b87400]">请先解析当前链接后再创建知识。</p>
+                ) : null}
               </Field>
 
               <div>
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <FieldLabel title="来源平台" desc="可选，不填时将根据链接自动识别" />
-                  <span className="text-[12px] text-[#a29387]">{metaLoaded ? '点击快速选择' : '平台加载中...'}</span>
+                  <FieldLabel title="来源平台" desc="当前知识录入仅开放小红书" />
+                  <span className="text-[12px] text-[#a29387]">固定平台</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {meta.platforms.map((platform) => {
-                    const active = form.sourcePlatform === platform.value
-                    return (
-                      <button
-                        key={platform.value}
-                        type="button"
-                        onClick={() => updateField('sourcePlatform', active ? '' : platform.value)}
-                        className={[
-                          'rounded-full px-4 py-2 text-[13px] font-bold transition',
-                          active ? `${platform.color} shadow-[0_10px_22px_rgba(15,23,42,0.14)]` : 'bg-[#f7f2eb] text-[#6f6155] hover:bg-[#efe7db]',
-                        ].join(' ')}
-                      >
-                        {platform.label}
-                      </button>
-                    )
-                  })}
+                  <span className="rounded-full bg-[#ff2442] px-4 py-2 text-[13px] font-bold text-white shadow-[0_10px_22px_rgba(255,36,66,0.16)]">
+                    小红书
+                  </span>
                 </div>
                 {metaError ? <p className="mt-3 text-[12px] text-[#c36a5d]">{metaError}</p> : null}
               </div>
@@ -502,9 +524,9 @@ export function CreateKnowledgePageClient() {
                   <FieldLabel title="原文标题" />
                   <input
                     value={form.sourceTitle}
-                    onChange={(event) => updateField('sourceTitle', event.target.value)}
+                    readOnly
                     placeholder="原平台展示的标题"
-                    className={inputClassName}
+                    className={`${inputClassName} cursor-default bg-[#f8f4ed]`}
                   />
                 </Field>
 
@@ -512,9 +534,9 @@ export function CreateKnowledgePageClient() {
                   <FieldLabel title="原作者名称" />
                   <input
                     value={form.sourceAuthorName}
-                    onChange={(event) => updateField('sourceAuthorName', event.target.value)}
+                    readOnly
                     placeholder="例如：宠物行为研究所"
-                    className={inputClassName}
+                    className={`${inputClassName} cursor-default bg-[#f8f4ed]`}
                   />
                 </Field>
 
@@ -522,9 +544,9 @@ export function CreateKnowledgePageClient() {
                   <FieldLabel title="原作者头像链接" />
                   <input
                     value={form.sourceAuthorAvatar}
-                    onChange={(event) => updateField('sourceAuthorAvatar', event.target.value)}
+                    readOnly
                     placeholder="https://example.com/avatar.jpg"
-                    className={inputClassName}
+                    className={`${inputClassName} cursor-default bg-[#f8f4ed]`}
                   />
                 </Field>
 
@@ -532,9 +554,9 @@ export function CreateKnowledgePageClient() {
                   <FieldLabel title="封面图链接" />
                   <input
                     value={form.sourceCoverUrl}
-                    onChange={(event) => updateField('sourceCoverUrl', event.target.value)}
+                    readOnly
                     placeholder="https://example.com/cover.jpg"
-                    className={inputClassName}
+                    className={`${inputClassName} cursor-default bg-[#f8f4ed]`}
                   />
                 </Field>
               </div>
@@ -579,7 +601,7 @@ export function CreateKnowledgePageClient() {
                   disabled={submitDisabled}
                   className="inline-flex h-12 items-center gap-2 rounded-full bg-[#ffa90c] px-6 text-[15px] font-bold text-white shadow-[0_12px_28px_rgba(255,169,12,0.24)] transition hover:bg-[#f39c00] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? '创建中...' : '创建知识'}
+                  {loading ? '创建中...' : hasParsedCurrentSource ? '创建知识' : '解析后可创建'}
                   {!loading ? <ArrowRight className="h-4 w-4" /> : null}
                 </button>
               </div>
@@ -613,7 +635,7 @@ export function CreateKnowledgePageClient() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#fff3d8] px-3 py-1 text-[12px] font-bold text-[#c27b00]">{form.category || '未选择分类'}</span>
                     <span className="rounded-full bg-[#f6f0e7] px-3 py-1 text-[12px] font-semibold text-[#7b6d62]">
-                      {meta.platforms.find((item) => item.value === form.sourcePlatform)?.label || '自动识别平台'}
+                      {meta.platforms.find((item) => item.value === form.sourcePlatform)?.label || '小红书'}
                     </span>
                   </div>
                   <h3 className="mt-3 text-[20px] font-black leading-7 text-[#241913]">{previewTitle}</h3>
@@ -635,10 +657,10 @@ export function CreateKnowledgePageClient() {
           <div className="rounded-[30px] border border-[#eadfce] bg-white p-6 shadow-[0_18px_50px_rgba(91,71,45,0.06)]">
             <h3 className="text-[22px] font-black text-[#241913]">创建提示</h3>
             <div className="mt-4 space-y-4 text-[14px] leading-7 text-[#7a6b60]">
-              <p>1. 原文链接必填，用来沉淀知识并保留出处。</p>
-              <p>2. 摘要决定列表卡片展示效果，尽量概括结论与亮点。</p>
-              <p>3. 正文可填写你的整理内容，不必逐字复制原文。</p>
-              <p>4. 标签越清晰，搜索和分类聚合效果越好。</p>
+              <p>1. 仅支持小红书链接，创建前需要先完成解析。</p>
+              <p>2. 解析后的源链接会按粘贴内容保存，包含链接参数。</p>
+              <p>3. 摘要决定列表卡片展示效果，尽量概括结论与亮点。</p>
+              <p>4. 正文可填写你的整理内容，不必逐字复制原文。</p>
             </div>
             <a
               href={form.sourceUrl.trim() || '#'}

@@ -231,9 +231,7 @@ export function StackCard({ title, summary, items }: StackCardProps) {
   return (
     <Surface className="p-6">
       <div className="flex items-center gap-3">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <Image src="/logo.png" alt="毛球 logo" width={36} height={36} className="h-9 w-9" />
-        </div>
+        <Image src="/logo.png" alt="毛球" width={50} height={50} className="flex scale-90 items-center justify-center rounded-full object-contain" />
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
           <p className="text-sm text-slate-600">{summary}</p>

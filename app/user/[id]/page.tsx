@@ -172,14 +172,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
             <div className="relative px-6 pb-10 sm:px-10">
               <div className="relative -mt-20 mb-6 flex flex-col items-center sm:items-start sm:flex-row sm:gap-6">
                 <motion.div whileHover={{ scale: 1.05 }} className="rounded-full bg-white p-1.5 shadow-2xl">
-                  <div className={cn('flex h-36 w-36 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br text-4xl font-bold text-white', gradient)}>
-                    {user.avatarUrl ? <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" /> : user.name.slice(0, 2)}
+                  <div className={cn('relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br text-4xl font-bold text-white', gradient)}>
+                    {user.avatarUrl ? <Image src={user.avatarUrl} alt={user.name} fill sizes="144px" unoptimized className="h-full w-full object-cover" /> : user.name.slice(0, 2)}
                   </div>
                 </motion.div>
                 
                 <div className="mt-4 text-center sm:mt-24 sm:text-left">
-                  <h1 className="text-3xl font-bold tracking-tight text-slate-900">{user.name}</h1>
-                  <p className="text-slate-500 font-medium">@{user.email?.split('@')[0]}</p>
+                  <h1 className="text-3xl font-bold tracking-tight text-slate-900">@{user.name}</h1>
+                  <p className="text-slate-500 font-medium">{user.email?.split('@')[0]}</p>
                   <div className="mt-3 flex justify-center sm:justify-start">
                     <span
                       className={[
@@ -455,8 +455,14 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
 
           {activeTab === 'avatar' && (
             <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 text-center">
-              <div className="mx-auto h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-xl ring-2 ring-cyan-100">
-                <img src={formData.avatarUrl || user.avatarUrl || ''} alt="preview" className="h-full w-full object-cover" />
+              <div className="relative mx-auto h-28 w-28 overflow-hidden rounded-full border-4 border-white shadow-xl ring-2 ring-cyan-100">
+                {formData.avatarUrl || user.avatarUrl ? (
+                  <Image src={formData.avatarUrl || user.avatarUrl || ''} alt="preview" fill sizes="112px" unoptimized className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-cyan-400 via-emerald-400 to-orange-400 text-2xl font-bold text-white">
+                    {user.name.slice(0, 2)}
+                  </div>
+                )}
               </div>
               <div className="flex justify-center">
                 <input
@@ -478,8 +484,8 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
               </div>
               <div className="grid grid-cols-4 gap-3">
                 {DEFAULT_AVATARS.map((url, i) => (
-                  <button key={i} onClick={() => setFormData({ ...formData, avatarUrl: url })} className={cn("aspect-square rounded-2xl border-4 transition-all overflow-hidden hover:scale-105", formData.avatarUrl === url ? "border-cyan-400" : "border-transparent")}>
-                    <img src={url} className="h-full w-full object-cover" />
+                  <button key={i} onClick={() => setFormData({ ...formData, avatarUrl: url })} className={cn("relative aspect-square overflow-hidden rounded-2xl border-4 transition-all hover:scale-105", formData.avatarUrl === url ? "border-cyan-400" : "border-transparent")}>
+                    <Image src={url} alt={`默认头像 ${i + 1}`} fill sizes="25vw" unoptimized className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>

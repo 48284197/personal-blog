@@ -13,6 +13,36 @@ import {
 } from '@/lib/site-data'
 import { listFeedItems, listFeedComments } from '@/lib/feed-service'
 
+const joinSection = {
+  title: '加入毛球大家庭',
+  emoji: '🐾',
+  description: ['记录、分享、交流', '让我们一起陪伴毛孩子成长'],
+  cta: {
+    label: '立即注册',
+    href: '/login?mode=register',
+  },
+  items: [
+    {
+      label: '分享萌宠日常',
+      href: '/login',
+      icon: 'message',
+      color: 'text-[#f5a300] bg-[#fff1cc]',
+    },
+    {
+      label: '结识同城宠友',
+      href: '/login',
+      icon: 'users',
+      color: 'text-[#f08c3f] bg-[#ffe5cf]',
+    },
+    {
+      label: '参与有趣活动',
+      href: '/login',
+      icon: 'calendar',
+      color: 'text-[#6a7cf3] bg-[#e8ecff]',
+    },
+  ],
+}
+
 export async function GET() {
   try {
     const [feedItems, models, knowledgeItems] = await Promise.all([
@@ -38,6 +68,7 @@ export async function GET() {
       siliconModels,
       backendLayers,
       roadmap,
+      joinSection,
       contentSummary: {
         items: feedItems.length,
         comments: totalComments,
@@ -54,6 +85,7 @@ export async function GET() {
       siliconModels,
       backendLayers,
       roadmap,
+      joinSection,
     })
   }
 }

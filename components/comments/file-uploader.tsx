@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Image from 'next/image'
 import { useDropzone } from 'react-dropzone'
 import { AlertCircle, FileUp, Image as ImageIcon, Loader2, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -218,8 +219,7 @@ export function FileUploader({
             >
               {previewMode === 'image' ? (
                 <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={file} alt="upload preview" className="h-full w-full object-cover" />
+                  <Image src={file} alt="upload preview" fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" unoptimized className="h-full w-full object-cover" />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/60 via-slate-900/0 to-transparent p-3">
                     <p className="truncate text-[11px] text-white/90">{file.split('/').pop()}</p>
                   </div>

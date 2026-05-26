@@ -4,7 +4,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Image as ImageIcon, User } from 'lucide-react'
 import { Surface } from '@/components/landing'
-import { brand } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
 
 type SiteNavProps = {
@@ -35,15 +34,14 @@ export function SiteNav({
           <Link href="/" className="flex min-w-0 items-center gap-3">
             <Image
               src="/logo.png"
-              alt={`${brand.name} logo`}
-              width={42}
-              height={42}
-              className="h-10 w-10 rounded-2xl"
+              alt="毛球"
+              width={50}
+              height={50}
+              className="flex scale-90 items-center justify-center rounded-full object-contain"
               priority
             />
             <div className="min-w-0">
-              <p className="truncate whitespace-nowrap text-sm font-semibold text-slate-900">{brand.name}</p>
-              <p className="hidden truncate whitespace-nowrap text-xs text-slate-500 sm:block">{brand.slogan}</p>
+              <p className="truncate whitespace-nowrap text-[24px] font-black tracking-[-0.03em] text-[#2e1a14] sm:text-[28px]">毛球</p>
             </div>
           </Link>
 

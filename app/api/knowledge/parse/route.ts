@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const parseKnowledgeSchema = z.object({
-  url: z.string().url(),
+  url: z.string().trim().url(),
 })
 
 type ParsedMeta = {
@@ -77,6 +77,15 @@ function inferPlatform(url: string, siteName?: string) {
   return 'other'
 }
 
+function isXiaohongshuUrl(url: string) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase()
+    return hostname === 'xhslink.com' || hostname.endsWith('.xhslink.com') || hostname === 'xiaohongshu.com' || hostname.endsWith('.xiaohongshu.com')
+  } catch {
+    return false
+  }
+}
+
 function buildContent(meta: ParsedMeta) {
   const stats = [
     meta.likeCount ? `点赞：${meta.likeCount}` : '',
@@ -96,8 +105,12 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ message: '请输入有效链接' }, { status: 400 })
     }
+    const sourceUrl = parsed.data.url
+    if (!isXiaohongshuUrl(sourceUrl)) {
+      return NextResponse.json({ message: '目前仅支持小红书链接解析录入' }, { status: 400 })
+    }
 
-    const response = await fetch(parsed.data.url, {
+    const response = await fetch(sourceUrl, {
       headers: {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
@@ -115,7 +128,7 @@ export async function POST(request: NextRequest) {
       title: extractMetaContent(html, 'og:title') || extractTitle(html),
       description: extractMetaContent(html, 'description') || extractMetaContent(html, 'og:description'),
       image: extractMetaContent(html, 'og:image'),
-      url: extractMetaContent(html, 'og:url') || response.url || parsed.data.url,
+      url: extractMetaContent(html, 'og:url') || response.url || sourceUrl,
       type: extractMetaContent(html, 'og:type'),
       siteName: extractMetaContent(html, 'og:site_name'),
       likeCount: extractMetaContent(html, 'og:xhs:note_like'),
@@ -125,11 +138,11 @@ export async function POST(request: NextRequest) {
 
     const normalizedTitle = meta.title ? normalizeXiaohongshuTitle(meta.title) : ''
     const tags = extractHashTags(meta.description ?? '')
-    const sourcePlatform = inferPlatform(meta.url || parsed.data.url, meta.siteName)
+    const sourcePlatform = inferPlatform(sourceUrl, meta.siteName)
     const summary = meta.description || normalizedTitle
 
     return NextResponse.json({
-      sourceUrl: meta.url || parsed.data.url,
+      sourceUrl,
       sourcePlatform,
       sourceTitle: normalizedTitle,
       sourceCoverUrl: meta.image ?? '',

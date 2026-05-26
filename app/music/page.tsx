@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import {
   CheckCircle2,
   Circle,
@@ -593,7 +594,7 @@ export default function MusicPage() {
                   {steps[1].data?.imageUrl && (
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
                       <p className="mb-2 text-sm font-semibold text-slate-500">封面预览</p>
-                      <img src={steps[1].data.imageUrl} alt="封面预览" className="h-auto w-full rounded-xl object-cover" />
+                      <Image src={steps[1].data.imageUrl} alt="封面预览" width={1024} height={1024} unoptimized className="h-auto w-full rounded-xl object-cover" />
                     </div>
                   )}
                   {steps[2].data?.audioUrl && (

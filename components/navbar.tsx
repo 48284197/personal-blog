@@ -200,9 +200,9 @@ export function Navbar({
     <header className="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex h-[74px] w-full max-w-[1520px] items-center gap-3 px-4 sm:gap-4 sm:px-6 xl:gap-6 xl:px-10">
         <Link href="/" className="flex shrink-0 items-center gap-3 whitespace-nowrap">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5c233] shadow-[0_8px_20px_rgba(245,194,51,0.3)]">
-            <Image src="/logo.png" alt="毛球" width={28} height={28} className="h-7 w-7 object-contain" />
-          </span>
+       
+            <Image src="/logo.png" alt="毛球" width={50} height={50} className=" object-contain flex items-center justify-center rounded-full scale-90" />
+        
           <span className="whitespace-nowrap text-[24px] font-black tracking-[-0.03em] text-[#2e1a14] sm:text-[28px]">毛球</span>
         </Link>
 

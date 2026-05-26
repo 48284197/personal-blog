@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { ImageIcon } from 'lucide-react'
 import { useImagePreview } from '@/components/image-preview'
 import { cn } from '@/lib/utils'
@@ -174,11 +175,12 @@ function PreviewableImage({
         )}
       />
 
-      {/* Native img preserves aspect ratio and the placeholder reserves the layout space. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={src}
         alt={alt}
+        width={960}
+        height={960}
+        unoptimized
         loading="lazy"
         onLoad={() => setLoaded(true)}
         className={cn(

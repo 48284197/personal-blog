@@ -538,7 +538,7 @@ function ShareModal({ content, onClose }: { content: ContentItem, onClose: () =>
       >
         <div className="p-8 text-center">
           <div className="inline-block rounded-3xl bg-slate-50 p-4 shadow-inner">
-            <img src={qrCodeUrl} alt="QR" className="h-40 w-40" />
+            <Image src={qrCodeUrl} alt="QR" width={160} height={160} unoptimized className="h-40 w-40" />
           </div>
           <h3 className="mt-6 text-xl font-bold text-slate-900">分享给好友</h3>
           <p className="mt-2 text-sm text-slate-500 leading-relaxed px-4">让更多人发现这篇精彩内容</p>

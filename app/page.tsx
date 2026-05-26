@@ -2,69 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
-  CalendarDays,
   ChevronRight,
   Heart,
-  MessageSquare,
   Play,
   PawPrint,
   Sparkles,
   Users,
-  UsersRound,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
+import { HomeDiscoverList } from "@/components/home-discover-list";
 
 const topics = ["推荐", "关注", "狗狗", "猫咪", "小宠", "日常", "知识", "活动"];
-
-const cards = [
-  {
-    title: "带柯基去公园玩耍的一天",
-    image:
-      "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=80",
-    author: "柯基小元气",
-    likes: "1.2万",
-    featured: true,
-  },
-  {
-    title: "猫咪的迷惑行为大赏",
-    image:
-      "https://images.unsplash.com/photo-1514888286974-6c03e2ca1f?auto=format&fit=crop&w=900&q=80",
-    author: "喵喵酱",
-    likes: "9823",
-  },
-  {
-    title: "春天与你和毛孩子更配哦",
-    image:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80",
-    author: "毛球妈妈",
-    likes: "1.1万",
-  },
-  {
-    title: "兔兔的可爱瞬间",
-    image:
-      "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=900&q=80",
-    author: "软糯兔宝",
-    likes: "6234",
-  },
-];
-
-const sidebarItems = [
-  {
-    label: "分享萌宠日常",
-    icon: MessageSquare,
-    color: "text-[#f5a300] bg-[#fff1cc]",
-  },
-  {
-    label: "结识同城宠友",
-    icon: UsersRound,
-    color: "text-[#f08c3f] bg-[#ffe5cf]",
-  },
-  {
-    label: "参与有趣活动",
-    icon: CalendarDays,
-    color: "text-[#6a7cf3] bg-[#e8ecff]",
-  },
-];
 
 function StatItem({
   value,
@@ -210,7 +158,7 @@ export default function HomePage() {
         <section id="discover" className="-mt-6 bg-white rounded-[44px] overflow-hidden z-[1000] relative">
           <div className="mx-auto w-full max-w-[1520px] px-4 pb-16 sm:px-6 xl:px-10">
             <div className="rounded-[44px]  px-4 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:px-6 xl:px-8 xl:py-10">
-              <div className="grid gap-8 xl:grid-cols-[1fr_310px]">
+              <div>
                 <div>
                   <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                     <div>
@@ -249,86 +197,8 @@ export default function HomePage() {
                     ))}
                   </div>
 
-                  <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {cards.map((card) => (
-                      <article
-                        key={card.title}
-                        className="overflow-hidden rounded-[22px] border border-black/5 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)]"
-                      >
-                        <div className="relative h-[230px]">
-                          <Image
-                            src={card.image}
-                            alt={card.title}
-                            fill
-                            sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-                            className="object-cover"
-                            unoptimized
-                          />
-                          {card.featured ? (
-                            <div className="absolute left-3 top-3 rounded-full bg-[#f5c233] px-3 py-1 text-[12px] font-bold text-[#2e1a14] shadow-[0_10px_18px_rgba(245,194,51,0.22)]">
-                              猫顶
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="px-4 pb-4 pt-4">
-                          <h3 className="min-h-[36px] text-[17px] font-semibold  text-[#241711]">
-                            {card.title}
-                          </h3>
-                          <div className="flex items-center justify-between text-[13px] text-[#8f8379]">
-                            <div className="flex items-center gap-2">
-                              <span className="h-6 w-6 rounded-full bg-[#cdb79f]" />
-                              <span>{card.author}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Heart className="h-4 w-4" />
-                              <span>{card.likes}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                  <HomeDiscoverList />
                 </div>
-
-                <aside className="rounded-[30px] border border-[#f3dfb7] bg-[linear-gradient(180deg,#fff9ea_0%,#fffdf8_100%)] px-6 py-8 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
-                  <div className="flex items-center gap-2 text-[#2e1a14]">
-                    <h3 className="text-[26px] font-black tracking-[-0.04em]">
-                      加入毛球大家庭
-                    </h3>
-                    <span className="text-[22px]">🐾</span>
-                  </div>
-
-                  <p className="mt-4 text-[15px] leading-7 text-[#887c71]">
-                    记录、分享、交流
-                    <br />
-                    让我们一起陪伴毛孩子成长
-                  </p>
-
-                  <Link
-                    href="/login?mode=register"
-                    className="mt-8 flex h-14 items-center justify-center rounded-full bg-[#f5c233] text-[17px] font-bold text-[#2e1a14] shadow-[0_12px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#efba18]"
-                  >
-                    立即注册
-                  </Link>
-
-                  <div className="mt-6 space-y-3">
-                    {sidebarItems.map(({ label, icon: Icon, color }) => (
-                      <Link
-                        key={label}
-                        href="/login"
-                        className="flex h-14 items-center rounded-full border border-black/5 bg-white px-4 text-[15px] font-medium text-[#2e1a14] shadow-[0_10px_22px_rgba(15,23,42,0.04)] transition hover:bg-[#faf8f4]"
-                      >
-                        <span
-                          className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full ${color}`}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        {label}
-                      </Link>
-                    ))}
-                  </div>
-                </aside>
               </div>
             </div>
           </div>

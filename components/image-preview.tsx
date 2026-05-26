@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from 'react'
+import Image from 'next/image'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 type PreviewState = {
@@ -107,13 +108,14 @@ export function ImagePreviewProvider({ children }: { children: ReactNode }) {
             role="presentation"
           >
             <div className="relative flex max-h-[90vh] w-full flex-col items-center justify-center">
-              <div className="relative flex min-h-0 flex-1 items-center justify-center">
+              <div className="relative flex min-h-[60vh] w-full flex-1 items-center justify-center">
                 {currentImage ? (
-                  // Native image is used to preserve original aspect ratio and avoid forced cropping.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={currentImage}
                     alt={preview.title}
+                    fill
+                    sizes="100vw"
+                    unoptimized
                     className="max-h-[90vh] w-auto max-w-full object-contain"
                   />
                 ) : null}

@@ -270,10 +270,12 @@ function FeaturedCard({ article }: { article: KnowledgeArticle }) {
   return (
     <article className="overflow-hidden rounded-[16px] border border-[#ede4d8] bg-white shadow-[0_12px_34px_rgba(91,71,45,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(91,71,45,0.09)]">
       <a href={article.source.url} target="_blank" rel="noreferrer" className="block">
+     
         <div className="relative aspect-[1.35] overflow-hidden">
           <ArticleCover title={article.title} imageUrl={article.imageUrl} />
           <PlatformBadge platform={article.source.platform} />
         </div>
+           <div>{article.source.url}</div>
         <div className="p-4">
           <p className="text-[12px] font-bold text-[#ff8a00]">{article.category}</p>
           <h3 className="mt-2 line-clamp-2 min-h-[44px] text-[16px] font-black leading-6 text-[#2e1a14]">{article.title}</h3>
