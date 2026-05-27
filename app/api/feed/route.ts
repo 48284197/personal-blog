@@ -4,8 +4,19 @@ import { createFeedItem, listFeedItemsPage } from '@/lib/feed-service'
 import { syncCurrentPlatformUser } from '@/lib/platform-user'
 import type { ContentChannelKey } from '@/lib/site-data'
 
+const VALID_CHANNELS: ContentChannelKey[] = [
+  'daily',
+  'knowledge',
+  'question',
+  'goods',
+  'story',
+  'dialogue',
+  'discussion',
+  'co-create',
+]
+
 const createFeedSchema = z.object({
-  channel: z.enum(['dialogue', 'discussion', 'co-create', 'knowledge']).optional(),
+  channel: z.enum(VALID_CHANNELS).optional(),
   content: z.string().optional(),
   authorName: z.string().optional(),
   authorAvatar: z.string().optional(),
@@ -20,20 +31,21 @@ const createFeedSchema = z.object({
   tags: z.array(z.string()).optional(),
 })
 
-const VALID_CHANNELS: ContentChannelKey[] = ['dialogue', 'discussion', 'co-create', 'knowledge']
-
 export async function GET(request: NextRequest) {
   const channelParam = request.nextUrl.searchParams.get('channel')
+  const followingOnly = request.nextUrl.searchParams.get('following') === '1'
   const limit = Number(request.nextUrl.searchParams.get('limit') ?? '10')
   const offset = Number(request.nextUrl.searchParams.get('offset') ?? '0')
   const channel = channelParam && VALID_CHANNELS.includes(channelParam as ContentChannelKey)
     ? (channelParam as ContentChannelKey)
     : undefined
+  const currentUser = followingOnly ? await syncCurrentPlatformUser() : null
 
   const { items, hasMore } = await listFeedItemsPage({
     limit: Number.isFinite(limit) && limit > 0 ? limit : 10,
     offset: Number.isFinite(offset) && offset >= 0 ? offset : 0,
     channel,
+    followingUserId: followingOnly ? currentUser?.id ?? null : undefined,
   })
 
   return NextResponse.json({ items, hasMore })
@@ -63,7 +75,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const channel = parsed.data.channel ?? 'dialogue'
+  const channel = parsed.data.channel ?? 'daily'
   const platformUser = await syncCurrentPlatformUser()
 
   const item = await createFeedItem({

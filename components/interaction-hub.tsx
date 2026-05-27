@@ -22,6 +22,10 @@ import {
 import { cn } from '@/lib/utils'
 
 const channelIcons: Record<ContentChannelKey, typeof MessageSquareText> = {
+  daily: PenLine,
+  question: BrainCircuit,
+  goods: CirclePlus,
+  story: Sparkles,
   dialogue: MessageSquareText,
   discussion: BrainCircuit,
   'co-create': WandSparkles,
@@ -39,6 +43,10 @@ export function InteractionHub() {
   const [draft, setDraft] = useState('我想把一个产品想法整理成适合发布和讨论的内容卡片。')
   const [activeModel, setActiveModel] = useState(modelChoices[0])
   const [itemsByChannel, setItemsByChannel] = useState<Record<ContentChannelKey, ContentItem[]>>({
+    daily: [],
+    question: [],
+    goods: [],
+    story: [],
     dialogue: [],
     discussion: [],
     'co-create': [],

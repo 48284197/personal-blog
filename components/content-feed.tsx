@@ -33,6 +33,22 @@ const channelEmptyCopy: Record<ContentChannelKey | '', { title: string; descript
     title: '这里还没有内容',
     description: '发一条新的动态、图片或视频，内容区就会热起来。',
   },
+  daily: {
+    title: '还没有日常内容',
+    description: '分享毛孩子今天的小瞬间，第一条日常就从这里开始。',
+  },
+  question: {
+    title: '还没有求助问答',
+    description: '遇到养宠问题可以发出来，等待有经验的伙伴一起讨论。',
+  },
+  goods: {
+    title: '还没有好物分享',
+    description: '把真实用过的用品、粮食、玩具和工具分享给更多人。',
+  },
+  story: {
+    title: '还没有萌宠故事',
+    description: '写下领养、陪伴和成长里的故事，让它被更多人看见。',
+  },
   dialogue: {
     title: '还没有对话内容',
     description: '先发起一个话题，或者分享一段你想继续聊下去的想法。',
@@ -363,11 +379,13 @@ export function ContentFeed({
   initialHasMore = true,
   refreshKey = 0,
   channel = '',
+  followingOnly = false,
 }: {
   initialItems?: ContentItem[]
   initialHasMore?: boolean
   refreshKey?: number
   channel?: ContentChannelKey | ''
+  followingOnly?: boolean
 }) {
   const [feedData, setFeedData] = useState<ContentItem[]>(initialItems)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -393,6 +411,9 @@ export function ContentFeed({
       if (channel) {
         params.set('channel', channel)
       }
+      if (followingOnly) {
+        params.set('following', '1')
+      }
 
       const response = await fetch(`/api/feed?${params}`, { cache: 'no-store' })
       if (!response.ok) {
@@ -405,7 +426,7 @@ export function ContentFeed({
     } finally {
       setLoadingMore(false)
     }
-  }, [channel])
+  }, [channel, followingOnly])
 
   useEffect(() => {
     if (!hasBootstrappedRef.current) {
@@ -414,7 +435,7 @@ export function ContentFeed({
     }
 
     void loadFirstPage()
-  }, [channel, refreshKey, loadFirstPage])
+  }, [channel, followingOnly, refreshKey, loadFirstPage])
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return
@@ -427,6 +448,9 @@ export function ContentFeed({
       if (channel) {
         params.set('channel', channel)
       }
+      if (followingOnly) {
+        params.set('following', '1')
+      }
 
       const res = await fetch(`/api/feed?${params}`)
       if (!res.ok) return
@@ -437,7 +461,7 @@ export function ContentFeed({
     } finally {
       setLoadingMore(false)
     }
-  }, [channel, feedData.length, hasMore, loadingMore])
+  }, [channel, feedData.length, followingOnly, hasMore, loadingMore])
 
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {

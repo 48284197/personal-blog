@@ -47,11 +47,12 @@ export function Navbar({
   publishHref = '/content',
   onPublishClick,
   requireKnowledgeCreatorForPublish = false,
-  userAvatarSrc = '/logo.png',
-  userName = '毛球',
+  userAvatarSrc,
+  userName,
 }: NavbarProps) {
   const router = useRouter()
   const [authUser, setAuthUser] = useState<NavbarAuthUser | null>(null)
+  const [authLoaded, setAuthLoaded] = useState(false)
   const [searchValue, setSearchValue] = useState('')
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
@@ -104,6 +105,8 @@ export function Navbar({
         }
       } catch {
         if (!cancelled) setAuthUser(null)
+      } finally {
+        if (!cancelled) setAuthLoaded(true)
       }
     }
 
@@ -125,13 +128,13 @@ export function Navbar({
     return () => document.removeEventListener('mousedown', onClick)
   }, [notificationOpen])
 
-  const resolvedUserName = authUser?.name ?? userName
+  const resolvedUserName = authUser?.name ?? userName ?? '用户'
   const resolvedUserAvatar = authUser?.avatarUrl || userAvatarSrc
   const isAuthenticated = Boolean(authUser)
-  const canShowAuthenticatedActions = showPublish || isAuthenticated
+  const canShowAuthenticatedActions = authLoaded && isAuthenticated
   const canShowPublish = requireKnowledgeCreatorForPublish
     ? Boolean(authUser?.isKnowledgeCreator)
-    : canShowAuthenticatedActions
+    : showPublish && canShowAuthenticatedActions
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -307,24 +310,25 @@ export function Navbar({
                     aria-label="查看个人信息"
                     className="shrink-0 rounded-full transition-transform hover:scale-[1.03]"
                   >
-                    <Image
-                      src={resolvedUserAvatar}
-                      alt={resolvedUserName}
-                      width={32}
-                      height={32}
-                      className="h-8 w-8 rounded-full object-cover"
-                      unoptimized={resolvedUserAvatar.startsWith('http')}
-                    />
+                    {resolvedUserAvatar ? (
+                      <Image
+                        src={resolvedUserAvatar}
+                        alt={resolvedUserName}
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-full object-cover"
+                        unoptimized={resolvedUserAvatar.startsWith('http')}
+                      />
+                    ) : (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f5c233] text-[13px] font-black text-[#2e1a14]">
+                        {resolvedUserName.slice(0, 1)}
+                      </span>
+                    )}
                   </Link>
                 ) : (
-                  <Image
-                    src={resolvedUserAvatar}
-                    alt={resolvedUserName}
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 rounded-full object-cover"
-                    unoptimized={resolvedUserAvatar.startsWith('http')}
-                  />
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f5c233] text-[13px] font-black text-[#2e1a14]">
+                    {resolvedUserName.slice(0, 1)}
+                  </span>
                 )}
                 <span className="hidden max-w-[88px] truncate whitespace-nowrap text-[14px] font-medium text-[#2e1a14] md:inline xl:hidden">
                   {resolvedUserName}

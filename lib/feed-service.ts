@@ -6,6 +6,13 @@ import {
 } from '@/lib/site-data'
 import { triggerAiComments } from '@/lib/ai-comment-service'
 
+const CHANNEL_FALLBACKS: Partial<Record<ContentChannelKey, ContentChannelKey[]>> = {
+  daily: ['dialogue'],
+  question: ['discussion'],
+  goods: ['co-create'],
+  story: ['story', 'dialogue'],
+}
+
 export type FeedItemInput = {
   channel: ContentChannelKey
   content?: string
@@ -199,11 +206,15 @@ function formatRelativeTime(date: Date) {
 function mapSeedToDBType(channel: ContentChannelKey) {
   switch (channel) {
     case 'discussion':
+    case 'question':
       return PublicationType.DISCUSSION
     case 'co-create':
+    case 'goods':
+    case 'story':
       return PublicationType.CO_CREATE
     case 'knowledge':
       return PublicationType.PK
+    case 'daily':
     case 'dialogue':
     default:
       return PublicationType.DIALOGUE
@@ -263,13 +274,29 @@ export async function listFeedItemsPage({
   limit = 10,
   offset = 0,
   channel,
+  followingUserId,
 }: {
   limit?: number
   offset?: number
   channel?: ContentChannelKey
+  followingUserId?: string | null
 } = {}): Promise<FeedPageResult> {
+  const channels = channel ? (CHANNEL_FALLBACKS[channel] ?? [channel]) : undefined
+  const where: Prisma.PublicationWhereInput = {
+    ...(channels ? { channel: { in: channels } } : {}),
+    ...(followingUserId
+      ? {
+          author: {
+            followers: {
+              some: { followerId: followingUserId },
+            },
+          },
+        }
+      : {}),
+  }
+
   const records = await prisma.publication.findMany({
-    where: channel ? { channel } : undefined,
+    where: Object.keys(where).length ? where : undefined,
     orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
     take: limit + 1,
     skip: offset,

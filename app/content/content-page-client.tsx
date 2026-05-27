@@ -5,15 +5,15 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ChevronRight,
-  CirclePlus,
+  BadgeHelp,
+  BookOpen,
+  Gift,
   Hash,
   Home,
   ImagePlus,
   Loader2,
-  Megaphone,
-  Plus,
+  ScrollText,
   Video,
-  MessageCircle,
   X,
 } from 'lucide-react'
 import { ContentFeed } from '@/components/content-feed'
@@ -41,12 +41,22 @@ type SidebarState = {
   activities: Array<{ id: string; title: string; time: string; avatarUrl: string }>
 }
 
-const CHANNEL_TABS: Array<{ key: ContentChannelKey | ''; label: string; icon: typeof Home }> = [
+type ChannelTab = {
+  key: ContentChannelKey | ''
+  label: string
+  icon: typeof Home
+  followingOnly?: boolean
+  publishTag?: string
+}
+
+const CHANNEL_TABS: ChannelTab[] = [
   { key: '', label: '推荐', icon: Home },
-  { key: 'dialogue', label: '对话', icon: MessageCircle },
-  { key: 'discussion', label: '讨论', icon: Megaphone },
-  { key: 'co-create', label: '共创', icon: CirclePlus },
-  { key: 'knowledge', label: '知识', icon: Hash },
+  { key: '', label: '关注', icon: Hash, followingOnly: true },
+  { key: 'daily', label: '日常', icon: ImagePlus, publishTag: '日常' },
+  { key: 'knowledge', label: '养宠知识', icon: BookOpen, publishTag: '养宠知识' },
+  { key: 'question', label: '求助问答', icon: BadgeHelp, publishTag: '求助问答' },
+  { key: 'goods', label: '好物分享', icon: Gift, publishTag: '好物分享' },
+  { key: 'story', label: '萌宠故事', icon: ScrollText, publishTag: '萌宠故事' },
 ]
 
 
@@ -84,6 +94,7 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
   const [feedVersion, setFeedVersion] = useState(0)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [activeChannel, setActiveChannel] = useState<ContentChannelKey | ''>('')
+  const [followingOnly, setFollowingOnly] = useState(false)
   const [sidebar, setSidebar] = useState<SidebarState | null>(null)
   const [sidebarLoading, setSidebarLoading] = useState(true)
   const { isOpen } = useCommentSheet()
@@ -137,8 +148,9 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
     return () => { cancelled = true }
   }, [])
 
-  const handleChannelChange = (channel: ContentChannelKey | '') => {
-    setActiveChannel(channel)
+  const handleChannelChange = (tab: ChannelTab) => {
+    setActiveChannel(tab.key)
+    setFollowingOnly(Boolean(tab.followingOnly))
   }
 
   const dynamicTopicSuggestions = useMemo(() => {
@@ -162,12 +174,12 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
             <nav className="space-y-1">
               {CHANNEL_TABS.map((tab) => {
                 const Icon = tab.icon
-                const isActive = activeChannel === tab.key
+                const isActive = activeChannel === tab.key && followingOnly === Boolean(tab.followingOnly)
                 return (
                   <button
                     key={tab.key || 'all'}
                     type="button"
-                    onClick={() => handleChannelChange(tab.key)}
+                    onClick={() => handleChannelChange(tab)}
                     className={[
                       'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition',
                       isActive
@@ -193,11 +205,12 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                 <div className="flex w-max gap-2 pr-1">
                   {CHANNEL_TABS.map((tab) => {
                     const isActive = activeChannel === tab.key
+                      && followingOnly === Boolean(tab.followingOnly)
                     return (
                       <button
                         key={tab.key || 'all'}
                         type="button"
-                        onClick={() => handleChannelChange(tab.key)}
+                        onClick={() => handleChannelChange(tab)}
                         className={[
                           'shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition whitespace-nowrap',
                           isActive
@@ -219,6 +232,7 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
               initialItems={initialItems}
               initialHasMore={initialHasMore}
               channel={activeChannel}
+              followingOnly={followingOnly}
             />
           </section>
 
@@ -376,6 +390,7 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
       {isComposerOpen ? (
         <ComposerModal
           channel={activeChannel}
+          followingOnly={followingOnly}
           topicSuggestions={dynamicTopicSuggestions}
           onClose={() => setIsComposerOpen(false)}
           onPublished={() => {
@@ -396,12 +411,13 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
 
 type ComposerModalProps = {
   channel: ContentChannelKey | ''
+  followingOnly: boolean
   topicSuggestions: string[]
   onClose: () => void
   onPublished: () => void
 }
 
-function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: ComposerModalProps) {
+function ComposerModal({ channel, followingOnly, topicSuggestions, onClose, onPublished }: ComposerModalProps) {
   const [content, setContent] = useState('')
   const [images, setImages] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState('')
@@ -521,13 +537,18 @@ function ComposerModal({ channel, topicSuggestions, onClose, onPublished }: Comp
       } = await supabase.auth.getSession()
 
       const mediaType = videoUrl ? 'video' : images.length > 0 ? 'image' : 'text'
+      const publishChannel = channel || (followingOnly ? 'daily' : 'daily')
+      const publishTab = CHANNEL_TABS.find((tab) => tab.key === publishChannel && !tab.followingOnly)
+      const normalizedTags = publishTab?.publishTag && !tags.includes(publishTab.publishTag)
+        ? [publishTab.publishTag, ...tags]
+        : tags
       const payload = {
-        channel: channel || 'discussion',
+        channel: publishChannel,
         mediaType,
         mediaSrc: videoUrl || images[0] || undefined,
         mediaImages: images.length ? images : undefined,
         content: trimmed,
-        tags,
+        tags: normalizedTags,
       }
 
       const res = await fetch('/api/feed', {

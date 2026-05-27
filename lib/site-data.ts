@@ -67,7 +67,15 @@ export type CommentItem = {
   pendingLike?: boolean
 }
 
-export type ContentChannelKey = 'dialogue' | 'discussion' | 'co-create' | 'knowledge'
+export type ContentChannelKey =
+  | 'daily'
+  | 'knowledge'
+  | 'question'
+  | 'goods'
+  | 'story'
+  | 'dialogue'
+  | 'discussion'
+  | 'co-create'
 export type ContentMediaType = 'text' | 'image' | 'video' | 'music'
 
 export type ContentItem = {
@@ -345,6 +353,10 @@ export const contentChannels: ContentChannel[] = [
 ]
 
 export const contentStreams: Record<ContentChannelKey, ContentItem[]> = {
+  daily: [],
+  question: [],
+  goods: [],
+  story: [],
   dialogue: [
     {
       id: 'd1',
