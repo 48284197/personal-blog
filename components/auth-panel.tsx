@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, type FormEvent } from 'react'
-import { Loader2, LockKeyhole, Mail, UserRound } from 'lucide-react'
+import { BookOpen, Heart, Loader2, LockKeyhole, Mail, PenLine, UserRound } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Badge, Surface } from '@/components/landing'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,12 @@ type AuthPanelProps = {
 }
 
 const OTP_UNAVAILABLE_MESSAGE = '邮箱验证码方式暂未开放，请使用邮箱密码登录或注册。'
+
+const registerBenefits = [
+  { label: '发布宠物日常', icon: PenLine },
+  { label: '收藏养宠知识', icon: BookOpen },
+  { label: '维护个人主页', icon: Heart },
+]
 
 function getDisplayName(email: string, fallback?: string) {
   const prefix = email.split('@')[0]?.trim()
@@ -214,10 +220,24 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
               ? OTP_UNAVAILABLE_MESSAGE
               : method === 'password'
                 ? mode === 'login'
-                  ? '使用邮箱和密码登录，继续你的萌宠之旅'
-                  : '创建账号并设置密码，开启你的萌宠社区'
+                  ? '使用邮箱和密码进入毛球，继续记录你的萌宠生活'
+                  : '创建账号后可以发布动态、收藏知识，并维护自己的宠物主页'
                 : OTP_UNAVAILABLE_MESSAGE}
           </p>
+
+          {mode === 'register' ? (
+            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+              {registerBenefits.map((item) => {
+                const Icon = item.icon
+                return (
+                  <div key={item.label} className="flex items-center justify-center gap-2 rounded-full border border-[#f0e2c8] bg-[#fffaf1] px-3 py-2 text-[12px] font-semibold text-[#7b6c61]">
+                    <Icon className="h-3.5 w-3.5 text-[#c68a00]" />
+                    {item.label}
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-7 grid grid-cols-2 gap-2 rounded-[18px] border border-black/5 bg-[#f7f5f2] p-1">
@@ -250,7 +270,8 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
             aria-label="邮箱验证码方式暂未开放"
           >
             <Mail className="h-4 w-4" />
-            <span>邮箱验证码</span>
+            <span className="hidden sm:inline">邮箱验证码</span>
+            <span className="sm:hidden">验证码</span>
             <span className="rounded-full bg-[#eee7dc] px-2 py-0.5 text-[11px] font-bold text-[#8c837a]">暂未开放</span>
           </button>
         </div>

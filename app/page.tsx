@@ -1,12 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import {
   ChevronRight,
-  Heart,
+  BookOpen,
   Play,
   PawPrint,
-  Sparkles,
+  PenLine,
   Users,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
@@ -14,29 +13,23 @@ import { HomeDiscoverList } from "@/components/home-discover-list";
 
 const topics = ["推荐", "关注", "狗狗", "猫咪", "小宠", "日常", "知识", "活动"];
 
-function StatItem({
-  value,
-  label,
-  icon,
-}: {
-  value: string;
-  label: string;
-  icon: ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff0c8] text-[#2e1a14] shadow-[0_8px_18px_rgba(245,194,51,0.14)]">
-        {icon}
-      </div>
-      <div>
-        <div className="text-[16px] font-extrabold leading-none text-[#2e1a14]">
-          {value}
-        </div>
-        <div className="mt-1 text-[13px] text-[#7f736b]">{label}</div>
-      </div>
-    </div>
-  );
-}
+const valueCards = [
+  {
+    title: "记录日常",
+    body: "晒图、视频、音乐和小片段，把毛孩子的变化留在自己的主页里。",
+    icon: PenLine,
+  },
+  {
+    title: "沉淀知识",
+    body: "把有用经验整理成可搜索的养宠知识，新手也能少走弯路。",
+    icon: BookOpen,
+  },
+  {
+    title: "找到同伴",
+    body: "围绕真实经历交流，遇见同样认真生活、认真养宠的人。",
+    icon: Users,
+  },
+];
 
 export default function HomePage() {
   return (
@@ -49,17 +42,17 @@ export default function HomePage() {
             <div className="flex flex-col justify-center pb-10 xl:pb-20">
               <p className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-[#f6d99b] bg-white/70 px-4 py-2 text-[14px] font-semibold text-[#c68a00] shadow-[0_10px_30px_rgba(245,194,51,0.12)]">
                 <PawPrint className="h-4 w-4" />
-                温暖有爱的宠物社区
+                宠物日常、养宠知识和同伴交流
               </p>
 
               <h1 className="max-w-[560px] text-[clamp(3rem,5.4vw,6.2rem)] font-black leading-[0.98] tracking-[-0.06em] text-[#2f1a12]">
-                和有趣的人
+                记录毛孩子的
                 <br />
-                分享萌宠生活
+                每一个今天
               </h1>
 
               <p className="mt-8 text-[18px] leading-8 text-[#65584f] sm:text-[20px]">
-                毛球，温暖有爱的宠物社区
+                在毛球，分享真实宠物日常，沉淀有用养宠经验，也找到懂它的人。
               </p>
 
               <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -67,35 +60,32 @@ export default function HomePage() {
                   href="/login?mode=register"
                   className="inline-flex h-14 items-center justify-center rounded-full bg-[#f5c233] px-10 text-[17px] font-bold text-[#2e1a14] shadow-[0_12px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#efba18]"
                 >
-                  立即加入
+                  加入毛球
                 </Link>
                 <Link
-                  href="#discover"
+                  href="/knowledge"
                   className="inline-flex h-14 items-center justify-center gap-3 rounded-full border border-black/10 bg-white px-10 text-[17px] font-bold text-[#2e1a14] shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:bg-[#faf8f4]"
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10">
                     <Play className="ml-0.5 h-4 w-4 fill-current" />
                   </span>
-                  了解毛球
+                  浏览养宠知识
                 </Link>
               </div>
 
-              <div className="mt-14 flex flex-wrap gap-8 xl:gap-10">
-                <StatItem
-                  value="50万+"
-                  label="宠物用户"
-                  icon={<Users className="h-4 w-4" />}
-                />
-                <StatItem
-                  value="200万+"
-                  label="萌宠分享"
-                  icon={<Heart className="h-4 w-4" />}
-                />
-                <StatItem
-                  value="1000万+"
-                  label="互动点赞"
-                  icon={<Sparkles className="h-4 w-4" />}
-                />
+              <div className="mt-12 grid gap-3 sm:grid-cols-3">
+                {valueCards.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.title} className="rounded-[22px] border border-[#f2e3c8] bg-white/75 px-4 py-4 shadow-[0_12px_30px_rgba(91,71,45,0.06)]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff0c8] text-[#2e1a14]">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="mt-3 text-[15px] font-black text-[#2e1a14]">{item.title}</div>
+                      <p className="mt-2 text-[13px] leading-6 text-[#7b6c61]">{item.body}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -130,14 +120,14 @@ export default function HomePage() {
                     </div>
                     <div className="min-w-0 text-[15px] text-[#4d4037]">
                       <p className="truncate">
-                        已有{" "}
+                        这里适合{" "}
                         <span className="font-extrabold text-[#f5a300]">
-                          500,000+
+                          认真记录
                         </span>{" "}
-                        毛孩子在这里
+                        每一次陪伴
                       </p>
                       <p className="mt-1 truncate text-[#6f6258]">
-                        找到属于他们的温暖家园
+                        也把有用经验留给后来的人
                       </p>
                     </div>
                   </div>
@@ -165,16 +155,16 @@ export default function HomePage() {
                       <div className="flex items-center gap-2">
                         <span className="text-[22px]">🐾</span>
                         <h2 className="text-[24px] font-black tracking-[-0.04em] text-[#1f140f] sm:text-[32px]">
-                          发现更多精彩
+                          社区新鲜事
                         </h2>
                       </div>
                       <p className="mt-3 text-[14px] text-[#8f8379] sm:text-[16px]">
-                        探索萌宠世界的无限乐趣
+                        来自真实用户的最新动态，内容会从社区接口实时更新。
                       </p>
                     </div>
 
                     <Link
-                      href="#"
+                      href="/content"
                       className="inline-flex items-center gap-1 text-[14px] font-medium text-[#8f8379] transition hover:text-[#2e1a14]"
                     >
                       查看全部

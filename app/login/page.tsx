@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { Heart, Sparkles, Users } from 'lucide-react'
+import { BookOpen, Heart, PenLine } from 'lucide-react'
 import { AuthPanel } from '@/components/auth-panel'
 
 export const metadata: Metadata = {
@@ -13,9 +13,9 @@ type LoginPageProps = {
 }
 
 const stats = [
-  { value: '50万+', label: '宠物用户', icon: Users },
-  { value: '200万+', label: '萌宠分享', icon: Heart },
-  { value: '1000万+', label: '互动点赞', icon: Sparkles },
+  { value: '记录', label: '保存每一次成长瞬间', icon: PenLine },
+  { value: '交流', label: '遇见同样认真养宠的人', icon: Heart },
+  { value: '知识', label: '把有用经验沉淀下来', icon: BookOpen },
 ]
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -48,13 +48,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <section className="relative isolate flex min-h-[280px] items-start overflow-hidden rounded-[32px] px-1 py-1 sm:min-h-[340px] sm:px-0 lg:min-h-[380px] xl:min-h-[760px]">
             <div className="relative z-10 mx-auto w-full max-w-[760px] xl:mx-0">
               <h1 className="max-w-[560px] text-[clamp(2.1rem,4.5vw,6.5rem)] font-black leading-[0.92] tracking-[-0.07em] text-[#2f1a12]">
-                和有趣的人
+                进入毛球，
                 <br />
-                分享萌宠生活
+                继续记录陪伴
               </h1>
 
               <p className="mt-3 max-w-[38rem] text-[14px] leading-6 text-[#6b5d53] sm:text-[15px] sm:leading-7">
-                在毛球里记录日常、发现灵感，也和同样喜欢毛孩子的人保持联结。
+                登录后可以发布动态、收藏知识、维护个人主页，也能继续和同样喜欢毛孩子的人保持联结。
               </p>
 
               <div className="relative mt-3 h-[140px] overflow-hidden rounded-[24px] sm:mt-5 sm:h-[180px] lg:h-[220px] xl:mt-6 xl:h-[560px] xl:rounded-none">
@@ -81,7 +81,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                             <div className="whitespace-nowrap text-[15px] font-extrabold leading-none text-[#2e1a14] sm:text-[16px]">
                               {item.value}
                             </div>
-                            <div className="mt-1 whitespace-nowrap text-[12px] text-[#7f736b] sm:text-[13px]">
+                            <div className="mt-1 truncate whitespace-nowrap text-[12px] text-[#7f736b] sm:text-[13px]">
                               {item.label}
                             </div>
                           </div>
