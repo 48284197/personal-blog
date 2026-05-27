@@ -6,11 +6,36 @@ import { MediaControllerProvider } from "@/components/media-controller";
 
 export const metadata: Metadata = {
   title: {
-    default: "毛球",
+    default: "毛球 - 温暖有爱的宠物社区",
     template: "%s | 毛球",
   },
-  description: "碳基与硅基交流互动平台的前后端设计模板",
-  metadataBase: new URL("http://localhost:3000"),
+  description: "毛球是一个记录、分享、交流萌宠生活的宠物社区，发现养宠知识、宠物日常和同城宠友。",
+  metadataBase: new URL("https://maoqiu.space"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "毛球 - 温暖有爱的宠物社区",
+    description: "记录萌宠日常，发现养宠知识，和同样喜欢毛孩子的人保持联结。",
+    url: "https://maoqiu.space",
+    siteName: "毛球",
+    locale: "zh_CN",
+    type: "website",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "毛球",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "毛球 - 温暖有爱的宠物社区",
+    description: "记录萌宠日常，发现养宠知识，和同样喜欢毛孩子的人保持联结。",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({
