@@ -1,5 +1,6 @@
 import { generateComicImage } from '@/lib/jimeng'
 import { generateImageWithGrsai } from '@/lib/grsai-image-service'
+import { generateImageWithTokenlab } from '@/lib/tokenlab-image-service'
 import { uploadImageToS3 } from '@/lib/upload-service'
 
 export async function GET() {
@@ -14,13 +15,16 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('图片生成请求体:', body)
 
-    const { prompt, width, height, num_images, provider, imageUrls } = body as {
+    const { prompt, width, height, num_images, provider, imageUrls, quality, output_format, output_compression } = body as {
       prompt?: string
       width?: number
       height?: number
       num_images?: number
       provider?: string
       imageUrls?: string[]
+      quality?: string
+      output_format?: string
+      output_compression?: number
     }
 
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
@@ -34,7 +38,23 @@ export async function POST(request: Request) {
     let requestId = `req-${Date.now()}`
     let generatedImages: Array<{ url: string; base64?: string }> = []
 
-    if (activeProvider === 'grsai') {
+    if (activeProvider === 'tokenlab') {
+      const result = await generateImageWithTokenlab({
+        prompt: prompt.trim(),
+        size: parseTokenlabSize(width, height),
+        n: num_images || 1,
+        quality,
+        outputFormat: output_format,
+        outputCompression: output_compression,
+        imageUrls: Array.isArray(imageUrls) ? imageUrls.filter(Boolean) : undefined,
+      })
+      requestId = result.request_id || requestId
+      generatedImages = result.images
+      console.log('Tokenlab 返回结果:', {
+        requestId,
+        imagesCount: generatedImages.length,
+      })
+    } else if (activeProvider === 'grsai') {
       const result = await generateImageWithGrsai({
         prompt: prompt.trim(),
         size: parseSize(width, height),
@@ -105,17 +125,35 @@ export async function POST(request: Request) {
   }
 }
 
-function resolveProvider(input?: string): 'volcengine' | 'grsai' {
-  const normalized = (input || process.env.IMAGE_GENERATION_PROVIDER || 'volcengine')
+function resolveProvider(input?: string): 'volcengine' | 'grsai' | 'tokenlab' {
+  const normalized = (input || process.env.IMAGE_GENERATION_PROVIDER || 'tokenlab')
     .trim()
     .toLowerCase()
-  return normalized === 'grsai' ? 'grsai' : 'volcengine'
+  if (normalized === 'grsai') return 'grsai'
+  if (normalized === 'volcengine') return 'volcengine'
+  return 'tokenlab'
 }
 
 function parseSize(width?: number, height?: number): string {
   if (!width || !height || width <= 0 || height <= 0) return '1:1'
   const d = gcd(width, height)
   return `${Math.round(width / d)}:${Math.round(height / d)}`
+}
+
+function parseTokenlabSize(width?: number, height?: number): string {
+  if (!width || !height || width <= 0 || height <= 0) return 'auto'
+  const size = `${Math.floor(width)}x${Math.floor(height)}`
+  const validSizes = new Set([
+    '1024x1024',
+    '1536x1024',
+    '1024x1536',
+    '2048x2048',
+    '2048x1152',
+    '1152x2048',
+    '3840x2160',
+    '2160x3840',
+  ])
+  return validSizes.has(size) ? size : '1024x1024'
 }
 
 function gcd(a: number, b: number): number {
