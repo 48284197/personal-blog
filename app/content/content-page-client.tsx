@@ -7,7 +7,6 @@ import {
   ChevronRight,
   BadgeHelp,
   BookOpen,
-  Gift,
   Hash,
   Home,
   ImagePlus,
@@ -55,7 +54,6 @@ const CHANNEL_TABS: ChannelTab[] = [
   { key: 'daily', label: '日常', icon: ImagePlus, publishTag: '日常' },
   { key: 'knowledge', label: '养宠知识', icon: BookOpen, publishTag: '养宠知识' },
   { key: 'question', label: '求助问答', icon: BadgeHelp, publishTag: '求助问答' },
-  { key: 'goods', label: '好物分享', icon: Gift, publishTag: '好物分享' },
   { key: 'story', label: '萌宠故事', icon: ScrollText, publishTag: '萌宠故事' },
 ]
 

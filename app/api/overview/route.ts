@@ -35,9 +35,9 @@ const joinSection = {
       color: 'text-[#f08c3f] bg-[#ffe5cf]',
     },
     {
-      label: '参与有趣活动',
-      href: '/login',
-      icon: 'calendar',
+      label: '发布到社区',
+      href: '/content',
+      icon: 'message',
       color: 'text-[#6a7cf3] bg-[#e8ecff]',
     },
   ],

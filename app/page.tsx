@@ -11,7 +11,7 @@ import {
 import { Navbar } from "@/components/navbar";
 import { HomeDiscoverList } from "@/components/home-discover-list";
 
-const topics = ["推荐", "关注", "日常", "养宠知识", "求助问答", "好物分享", "萌宠故事"];
+const topics = ["推荐", "关注", "日常", "养宠知识", "求助问答", "萌宠故事"];
 
 const valueCards = [
   {

@@ -10,7 +10,6 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 const navItems = [
   { label: '首页', href: '/' },
   { label: '社区', href: '/content' },
-  { label: '活动', href: '#' },
   { label: '知识', href: '/knowledge' },
   { label: '关于我们', href: '/about' },
 ]
