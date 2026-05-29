@@ -10,6 +10,7 @@ import { Navbar } from '@/components/navbar'
 import { Surface, Badge } from '@/components/landing'
 import { UserAvatar } from '@/components/user-card'
 import { cn } from '@/lib/utils'
+import { getResponseErrorMessage } from '@/lib/response-error'
 import type { ContentItem, CommentItem } from '@/lib/site-data'
 
 export default function ContentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -78,6 +79,8 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
       if (!response.ok) {
         if (response.status === 401) {
           alert('请先登录')
+        } else {
+          alert(await getResponseErrorMessage(response, '点赞失败'))
         }
         return
       }
@@ -115,6 +118,8 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
       if (!response.ok) {
         if (response.status === 401) {
           alert('请先登录')
+        } else {
+          alert(await getResponseErrorMessage(response, '评论发送失败'))
         }
         return
       }

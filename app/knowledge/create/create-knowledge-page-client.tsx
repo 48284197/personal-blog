@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, FileText, Link2, Loader2, Sparkles } from 'lucide-react'
+import { getResponseErrorMessage } from '@/lib/response-error'
 
 const KNOWLEDGE_PATH = '/knowledge'
 
@@ -100,7 +101,7 @@ export function CreateKnowledgePageClient() {
       try {
         const response = await fetch('/api/knowledge/meta', { cache: 'no-store' })
         if (!response.ok) {
-          throw new Error('加载知识配置失败')
+          throw new Error(await getResponseErrorMessage(response, '加载知识配置失败'))
         }
 
         const data = (await response.json()) as CreateKnowledgeMeta
@@ -213,11 +214,11 @@ export function CreateKnowledgePageClient() {
         body: JSON.stringify({ url: sourceUrl }),
       })
 
-      const data = (await response.json().catch(() => null)) as (ParsedKnowledgeLink & { message?: string }) | null
       if (!response.ok) {
-        throw new Error(data?.message ?? '解析链接失败，请检查链接是否可以公开访问。')
+        throw new Error(await getResponseErrorMessage(response, '解析链接失败'))
       }
 
+      const data = (await response.json().catch(() => null)) as ParsedKnowledgeLink | null
       const parsedUrl = data?.sourceUrl?.trim() || sourceUrl
       setForm((current) => ({
         ...current,
@@ -276,8 +277,7 @@ export function CreateKnowledgePageClient() {
       })
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { message?: string } | null
-        throw new Error(body?.message ?? '创建知识失败，请稍后重试。')
+        throw new Error(await getResponseErrorMessage(response, '创建知识失败'))
       }
 
       const data = (await response.json()) as { item?: { title?: string } }

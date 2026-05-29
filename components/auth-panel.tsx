@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { BookOpen, Heart, Loader2, LockKeyhole, Mail, PenLine, UserRound } from 'lucide-react'
 import { Badge, Surface } from '@/components/landing'
 import { cn } from '@/lib/utils'
+import { getErrorMessage, getResponseErrorMessage } from '@/lib/response-error'
 
 type AuthMode = 'login' | 'register'
 
@@ -114,19 +115,23 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
         }),
       })
 
-      const data = (await response.json().catch(() => ({}))) as {
-        message?: string
+      if (!response.ok) {
+        setError(await getResponseErrorMessage(response, mode === 'login' ? '登录失败' : '注册失败'))
+        return
+      }
+
+      const data = (await response.json()) as {
         user?: { id: string; email: string | null; name: string; avatarUrl?: string | null }
       }
 
-      if (!response.ok || !data.user) {
-        setError(data.message || (mode === 'login' ? '登录失败，请检查邮箱和密码。' : '注册失败，请稍后重试。'))
+      if (!data.user) {
+        setError(mode === 'login' ? '登录失败：接口未返回用户信息' : '注册失败：接口未返回用户信息')
         return
       }
 
       finishLogin(data.user.name ?? getDisplayName(normalizedEmail, displayName), data.user.id, data.user.email)
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : mode === 'login' ? '登录失败，请稍后重试。' : '注册失败，请稍后重试。')
+      setError(getErrorMessage(authError, mode === 'login' ? '登录失败，请稍后重试。' : '注册失败，请稍后重试。'))
     } finally {
       setLoading(false)
     }

@@ -3,6 +3,7 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import Image from 'next/image'
 import { ImagePlus, Loader2, Plus, WandSparkles } from 'lucide-react'
+import { getErrorMessage, getResponseErrorMessage } from '@/lib/response-error'
 
 type ImageGenerationResult = {
   request_id: string
@@ -49,8 +50,7 @@ export default function ImageServicePage() {
       })
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { message?: string } | null
-        throw new Error(body?.message ?? '上传失败')
+        throw new Error(await getResponseErrorMessage(response, '上传失败'))
       }
 
       const data = (await response.json()) as { files?: Array<{ url: string }> }
@@ -58,7 +58,7 @@ export default function ImageServicePage() {
       if (!url) throw new Error('上传成功但未返回图片地址')
       setReferenceImageUrls([url])
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : '上传失败')
+      setError(getErrorMessage(uploadError, '上传失败'))
     } finally {
       setIsUploadingReference(false)
     }
@@ -90,18 +90,19 @@ export default function ImageServicePage() {
         }),
       })
 
+      if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response, '图片生成失败'))
+      }
+
       const data = (await response.json()) as {
-        message?: string
         result?: ImageGenerationResult
       }
 
-      if (!response.ok || !data.result) {
-        throw new Error(data.message || '图片生成失败')
-      }
+      if (!data.result) throw new Error('图片生成失败：接口未返回图片结果')
 
       setResult(data.result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '图片生成失败')
+      setError(getErrorMessage(err, '图片生成失败'))
     } finally {
       setIsGenerating(false)
     }

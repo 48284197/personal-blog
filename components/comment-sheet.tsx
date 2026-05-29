@@ -13,6 +13,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { Dispatch, SetStateAction } from 'react'
 import { Heart, Send, X } from 'lucide-react'
+import { getResponseErrorMessage } from '@/lib/response-error'
 import type { CommentItem, ContentItem } from '@/lib/site-data'
 
 type CommentTarget = Pick<
@@ -305,6 +306,8 @@ function CommentSheet({
       if (!response.ok) {
         if (response.status === 401) {
           alert('请先登录')
+        } else {
+          alert(await getResponseErrorMessage(response, '评论发送失败'))
         }
         return
       }
@@ -337,6 +340,8 @@ function CommentSheet({
       if (!response.ok) {
         if (response.status === 401) {
           alert('请先登录')
+        } else {
+          alert(await getResponseErrorMessage(response, '评论点赞失败'))
         }
         return
       }

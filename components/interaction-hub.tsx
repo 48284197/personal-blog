@@ -20,6 +20,7 @@ import {
   type ContentItem,
 } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
+import { getResponseErrorMessage } from '@/lib/response-error'
 
 const channelIcons: Record<ContentChannelKey, typeof MessageSquareText> = {
   daily: PenLine,
@@ -174,7 +175,7 @@ export function InteractionHub() {
           }),
         })
 
-        if (!response.ok) throw new Error('create feed failed')
+        if (!response.ok) throw new Error(await getResponseErrorMessage(response, '发布失败'))
 
         const data = (await response.json()) as { item?: ContentItem }
         const savedItem = data.item ?? nextItem
@@ -184,7 +185,8 @@ export function InteractionHub() {
           [activeChannel]: [savedItem, ...current[activeChannel]],
         }))
         setDraft('')
-      } catch {
+      } catch (error) {
+        alert(error instanceof Error ? error.message : '发布失败')
         setItemsByChannel((current) => ({
           ...current,
           [activeChannel]: [nextItem, ...current[activeChannel]],

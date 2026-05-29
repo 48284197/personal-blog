@@ -7,6 +7,7 @@ import { Badge, Surface } from '@/components/landing'
 import { FileUploader } from '@/components/comments/file-uploader'
 import { type ContentItem, type ContentMediaType } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
+import { getErrorMessage, getResponseErrorMessage } from '@/lib/response-error'
 
 type ContentComposerProps = {
   open: boolean
@@ -182,8 +183,7 @@ export function ContentComposer({ open, onClose, onPublished }: ContentComposerP
       })
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { message?: string } | null
-        throw new Error(body?.message ?? '发布失败，请稍后重试。')
+        throw new Error(await getResponseErrorMessage(response, '发布失败'))
       }
 
       const data = (await response.json()) as { item?: ContentItem }
@@ -192,8 +192,7 @@ export function ContentComposer({ open, onClose, onPublished }: ContentComposerP
         onClose()
       }
     } catch (publishError) {
-      const message = publishError instanceof Error ? publishError.message : '发布失败，请稍后重试。'
-      setError(message)
+      setError(getErrorMessage(publishError, '发布失败，请稍后重试。'))
     } finally {
       setLoading(false)
     }

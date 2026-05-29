@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Surface } from '@/components/landing'
 import { Navbar } from '@/components/navbar'
+import { getResponseErrorMessage } from '@/lib/response-error'
 
 /* ====== 类型保持不变 ====== */
 type GenerateMusicResult = {
@@ -141,7 +142,7 @@ export default function MusicPage() {
       })
 
       if (!response.ok) {
-        throw new Error('生成歌词失败')
+        throw new Error(await getResponseErrorMessage(response, '生成歌词失败'))
       }
 
       const reader = response.body?.getReader()
@@ -312,7 +313,7 @@ export default function MusicPage() {
       })
 
       if (!response.ok) {
-        throw new Error('生成音乐失败')
+        throw new Error(await getResponseErrorMessage(response, '生成音乐失败'))
       }
 
       const reader = response.body?.getReader()

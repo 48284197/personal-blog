@@ -15,6 +15,7 @@ import { Surface, Badge } from '@/components/landing'
 import { FollowButton } from '@/components/follow-button'
 import { LogoutButton } from '@/components/logout-button'
 import { cn } from '@/lib/utils'
+import { getErrorMessage, getResponseErrorMessage } from '@/lib/response-error'
 import type { ContentItem } from '@/lib/site-data'
 
 // --- 预设常量 ---
@@ -358,8 +359,12 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
-      if (res.ok) { onUpdate(); onClose(); }
-    } catch (e) { alert('保存失败'); }
+      if (!res.ok) throw new Error(await getResponseErrorMessage(res, '保存资料失败'))
+      onUpdate()
+      onClose()
+    } catch (e) {
+      alert(getErrorMessage(e, '保存失败'))
+    }
     finally { setSaving(false); }
   }
 
@@ -378,8 +383,7 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
       })
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { message?: string } | null
-        throw new Error(body?.message ?? '上传失败')
+        throw new Error(await getResponseErrorMessage(response, '上传失败'))
       }
 
       const data = (await response.json()) as { files?: Array<{ url: string }> }
@@ -388,7 +392,7 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
         setFormData((current) => ({ ...current, avatarUrl: nextUrl }))
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : '上传失败')
+      alert(getErrorMessage(error, '上传失败'))
     } finally {
       setUploadingAvatar(false)
       if (avatarInputRef.current) {

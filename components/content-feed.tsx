@@ -18,6 +18,7 @@ import { useExclusiveMediaPlayback, useMediaController } from '@/components/medi
 import { UserAvatar } from '@/components/user-card'
 import { type ContentChannelKey, type ContentItem } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
+import { getResponseErrorMessage } from '@/lib/response-error'
 
 // --- 1. 基础动画配置 ---
 const fadeInScale = {
@@ -248,15 +249,16 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
       })
 
       if (!response.ok) {
-        throw new Error('like request failed')
+        throw new Error(await getResponseErrorMessage(response, '点赞失败'))
       }
 
       const data = (await response.json()) as { liked?: boolean; likes?: number }
       setIsLiked(Boolean(data.liked))
       setLikeCount(typeof data.likes === 'number' ? data.likes : likeCount)
-    } catch {
+    } catch (error) {
       setIsLiked(!nextState)
       setLikeCount(prev => !nextState ? prev + 1 : prev - 1)
+      alert(error instanceof Error ? error.message : '点赞失败')
     }
     setTimeout(() => setIsAnimating(false), 1000)
   }

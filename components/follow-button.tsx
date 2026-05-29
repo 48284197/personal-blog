@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Loader2, Plus, Check } from 'lucide-react'
+import { getErrorMessage, getResponseErrorMessage } from '@/lib/response-error'
 
 type FollowButtonProps = {
   userId: string
@@ -38,8 +39,7 @@ export function FollowButton({
           window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`
           return
         }
-        const body = (await response.json().catch(() => null)) as { message?: string } | null
-        throw new Error(body?.message ?? '操作失败')
+        throw new Error(await getResponseErrorMessage(response, '关注操作失败'))
       }
 
       const data = (await response.json()) as {
@@ -51,7 +51,7 @@ export function FollowButton({
       setFollowersCount(data.followersCount)
       onChange?.({ following: data.following, followersCount: data.followersCount })
     } catch (error) {
-      alert(error instanceof Error ? error.message : '关注失败')
+      alert(getErrorMessage(error, '关注失败'))
     } finally {
       setLoading(false)
     }
