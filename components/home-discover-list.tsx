@@ -226,12 +226,7 @@ export function HomeDiscoverList() {
               </article>
             ))}
           </div>
-        ) : (
-          <div className="mt-8 rounded-[24px] border border-dashed border-[#eadfce] bg-[#fffdf8] px-6 py-12 text-center">
-            <p className="text-[18px] font-bold text-[#2e1a14]">暂无精彩内容</p>
-            <p className="mt-2 text-[14px] text-[#8f8379]">发布内容后，这里会自动展示最新动态。</p>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {showJoinSection ? (

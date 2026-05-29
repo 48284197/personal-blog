@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  ChevronRight,
   BadgeHelp,
   BookOpen,
   Hash,
@@ -153,6 +152,9 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
   const dynamicTopicSuggestions = useMemo(() => {
     return sidebar?.hotTopics.map((topic) => topic.title) ?? []
   }, [sidebar])
+  const showHotTopics = sidebarLoading || Boolean(sidebar?.hotTopics.length)
+  const showSuggestedUsers = sidebarLoading || Boolean(sidebar?.suggestedUsers.length)
+  const showActivities = sidebarLoading || Boolean(sidebar?.activities.length)
 
   return (
     <main className="relative min-h-screen bg-[#f6f4f2]">
@@ -236,13 +238,10 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
           {/* 右侧栏 */}
           <aside className="sticky top-[96px] hidden w-[320px] shrink-0 xl:block space-y-6">
             {/* 热门话题 */}
+            {showHotTopics ? (
             <Surface className="overflow-hidden border-white/80 bg-white/92 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
               <div className="flex items-center justify-between">
                 <h3 className="text-[18px] font-black text-[#1f140f]">热门话题</h3>
-                <Link href="#" className="inline-flex items-center gap-1 text-[14px] text-[#8f8379]">
-                  查看更多
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
               </div>
 
               <div className="mt-5 space-y-4">
@@ -276,20 +275,16 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                       <span className="shrink-0 text-[14px] text-[#8f8379]">{topic.displayCount}</span>
                     </div>
                   ))
-                ) : (
-                  <p className="text-[14px] text-[#8f8379] py-2">暂无数据</p>
-                )}
+                ) : null}
               </div>
             </Surface>
+            ) : null}
 
             {/* 推荐用户 */}
+            {showSuggestedUsers ? (
             <Surface className="overflow-hidden border-white/80 bg-white/92 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
               <div className="flex items-center justify-between">
                 <h3 className="text-[18px] font-black text-[#1f140f]">推荐用户</h3>
-                <Link href="#" className="inline-flex items-center gap-1 text-[14px] text-[#8f8379]">
-                  查看更多
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
               </div>
 
               <div className="mt-5 space-y-4">
@@ -334,13 +329,13 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                       />
                     </div>
                   ))
-                ) : (
-                  <p className="text-[14px] text-[#8f8379] py-2">暂无数据</p>
-                )}
+                ) : null}
               </div>
             </Surface>
+            ) : null}
 
             {/* 热门动态 */}
+            {showActivities ? (
             <Surface className="overflow-hidden border-white/80 bg-white/92 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
               <h3 className="text-[18px] font-black text-[#1f140f]">热门动态</h3>
 
@@ -374,11 +369,10 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                       <span className="shrink-0 text-[13px] text-[#a39a90]">{item.time}</span>
                     </div>
                   ))
-                ) : (
-                  <p className="text-[14px] text-[#8f8379] py-2">暂无数据</p>
-                )}
+                ) : null}
               </div>
             </Surface>
+            ) : null}
           </aside>
         </div>
       </div>

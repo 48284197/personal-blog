@@ -739,30 +739,9 @@ export async function getSidebarData(currentUserId?: string | null): Promise<Sid
     .slice(0, 6)
 
   return {
-    hotTopics: hotTopics.length > 0
-      ? hotTopics
-      : [
-          { title: '欢迎来到内容广场', count: 12, hot: true },
-          { title: '分享今天的新发现', count: 8, hot: true },
-          { title: '一起完善社区内容区', count: 5, hot: false },
-        ],
-    suggestedUsers: suggestedUsers.length > 0
-      ? suggestedUsers
-      : [
-          { id: 'fallback-user', name: '平台编辑', fans: 999, avatarUrl: '' },
-        ],
-    activities: activities.length > 0
-      ? activities
-      : [
-          {
-            id: 'fallback-activity',
-            title: '内容区正在等待第一条动态',
-            time: '刚刚',
-            avatarUrl: '',
-            type: 'publish',
-            createdAt: new Date(),
-          },
-        ],
+    hotTopics,
+    suggestedUsers: suggestedUsers.filter((user) => user.fans > 0 || user.followersCount > 0),
+    activities,
   }
 }
 
