@@ -275,7 +275,7 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
               size="md"
             />
             <div className="flex-1 min-w-0">
-              <Link href={`/user/${item.author}`} className="text-sm font-bold text-slate-900 hover:text-cyan-600 transition-colors">
+              <Link href={item.authorId ? `/user/${item.authorId}` : `/user/${encodeURIComponent(item.author)}`} className="text-sm font-bold text-slate-900 hover:text-cyan-600 transition-colors">
                 {item.author}
               </Link>
               <p className="text-[11px] text-slate-400 mt-0.5">{item.publishedAt || '刚刚'}</p>

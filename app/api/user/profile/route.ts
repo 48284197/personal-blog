@@ -9,6 +9,76 @@ function deriveTitleFromContent(content?: string | null) {
   return normalized.slice(0, 40)
 }
 
+type PetInput = {
+  name?: unknown
+  type?: unknown
+  breed?: unknown
+  sex?: unknown
+  birthday?: unknown
+  age?: unknown
+  neutered?: unknown
+  weightKg?: unknown
+  photoUrl?: unknown
+  vaccineStatus?: unknown
+  allergyHistory?: unknown
+  notes?: unknown
+}
+
+function toOptionalString(value: unknown) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed || null
+}
+
+function normalizePets(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item): PetInput => (item && typeof item === 'object' ? item : {}))
+    .map((pet) => {
+      const name = toOptionalString(pet.name)
+      const type = toOptionalString(pet.type)
+      const sex = toOptionalString(pet.sex) ?? '未知'
+      const birthdayText = toOptionalString(pet.birthday)
+      const weightText =
+        typeof pet.weightKg === 'number'
+          ? String(pet.weightKg)
+          : toOptionalString(pet.weightKg)
+      const parsedWeight = weightText ? Number(weightText) : null
+
+      return {
+        name,
+        type,
+        breed: toOptionalString(pet.breed),
+        sex,
+        birthday: birthdayText ? new Date(birthdayText) : null,
+        age: toOptionalString(pet.age),
+        neutered: Boolean(pet.neutered),
+        weightKg: Number.isFinite(parsedWeight) ? parsedWeight : null,
+        photoUrl: toOptionalString(pet.photoUrl),
+        vaccineStatus: toOptionalString(pet.vaccineStatus),
+        allergyHistory: toOptionalString(pet.allergyHistory),
+        notes: toOptionalString(pet.notes),
+      }
+    })
+    .filter((pet) => pet.name && pet.type && (!pet.birthday || !Number.isNaN(pet.birthday.getTime())))
+    .slice(0, 12)
+    .map((pet) => ({
+      name: pet.name as string,
+      type: pet.type as string,
+      breed: pet.breed,
+      sex: pet.sex,
+      birthday: pet.birthday,
+      age: pet.age,
+      neutered: pet.neutered,
+      weightKg: pet.weightKg,
+      photoUrl: pet.photoUrl,
+      vaccineStatus: pet.vaccineStatus,
+      allergyHistory: pet.allergyHistory,
+      notes: pet.notes,
+    }))
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser(request)
@@ -50,6 +120,7 @@ export async function GET(request: NextRequest) {
         followersCount: summary?.followersCount ?? 0,
         followingCount: summary?.followingCount ?? 0,
         likesCount: summary?.likesCount ?? 0,
+        pets: summary?.pets ?? [],
       },
       contents: publications.map(item => ({
         id: item.id,
@@ -82,6 +153,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const { name, bio, location, website, avatarUrl, headerColor, headerImage } = body
+    const pets = normalizePets(body.pets)
 
     const user = await prisma.user.update({
       where: { id: currentUser.id },
@@ -95,6 +167,23 @@ export async function PUT(request: NextRequest) {
         headerImage,
       },
     })
+
+    await prisma.pet
+      .deleteMany({ where: { ownerId: currentUser.id } })
+      .then(async () => {
+        if (pets.length) {
+          await prisma.pet.createMany({
+            data: pets.map((pet) => ({
+              ...pet,
+              ownerId: currentUser.id,
+            })),
+          })
+        }
+      })
+      .catch((error: { code?: string }) => {
+        if (error.code === 'P2021') return
+        throw error
+      })
 
     return NextResponse.json({ user })
   } catch (error) {

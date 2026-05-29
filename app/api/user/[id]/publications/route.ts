@@ -15,8 +15,13 @@ export async function GET(
     const { id } = await params
 
     // 查找用户
-    const user = await prisma.user.findUnique({
-      where: { id },
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id },
+          { authUserId: id },
+        ],
+      },
       include: {
         publications: {
           orderBy: { publishedAt: 'desc' },

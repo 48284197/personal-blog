@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef, use } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { 
   ArrowLeft, Settings, MapPin, Link as LinkIcon, Calendar, 
   FileText, Heart, MessageCircle, Image as ImageIcon, 
-  Music, Video, Edit3, X, Camera, Palette, Loader2, Play, Pause 
+  Music, Video, Edit3, X, Camera, Palette, Loader2, PawPrint,
+  Plus, Trash2, Syringe
 } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
 import { Surface, Badge } from '@/components/landing'
@@ -37,6 +37,27 @@ const DEFAULT_AVATARS = [
   'https://xuxiweii.s3.bitiful.net/uploads/1776699542554-generated-1776699542189-0.jpeg',
 ]
 
+const PET_TYPES = ['猫', '狗', '兔子', '鸟', '仓鼠', '其他']
+const PET_SEXES = ['公', '母', '未知']
+const VACCINE_OPTIONS = ['未填写', '未接种', '部分接种', '已接种', '需补种']
+type SettingsTab = 'profile' | 'pet' | 'avatar' | 'header'
+
+type PetProfile = {
+  id?: string
+  name: string
+  type: string
+  breed: string | null
+  sex: string
+  birthday: string | null
+  age: string | null
+  neutered: boolean
+  weightKg: number | null
+  photoUrl: string | null
+  vaccineStatus: string | null
+  allergyHistory: string | null
+  notes: string | null
+}
+
 type UserProfile = {
   id: string; name: string; email: string | null; avatarUrl: string | null;
   isKnowledgeCreator: boolean;
@@ -47,6 +68,7 @@ type UserProfile = {
   followingCount: number;
   likesCount: number;
   isFollowing: boolean;
+  pets: PetProfile[];
 }
 
 // --- 动画配置 ---
@@ -56,14 +78,31 @@ const slideUp = {
   transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] }
 }
 
+function createEmptyPet(): PetProfile {
+  return {
+    name: '',
+    type: '猫',
+    breed: '',
+    sex: '未知',
+    birthday: '',
+    age: '',
+    neutered: false,
+    weightKg: null,
+    photoUrl: '',
+    vaccineStatus: '未填写',
+    allergyHistory: '',
+    notes: '',
+  }
+}
+
 export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const router = useRouter()
   const [user, setUser] = useState<UserProfile | null>(null)
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null)
   const [publications, setPublications] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('profile')
   const [followState, setFollowState] = useState<{ following: boolean; followersCount: number }>({
     following: false,
     followersCount: 0,
@@ -150,7 +189,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
               
               {isOwnProfile && (
                 <div className="absolute right-4 top-4 flex flex-wrap justify-end gap-2">
-                  <button onClick={() => setShowSettings(true)} className="flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-md border border-white/30 transition hover:bg-white hover:text-slate-900">
+                  <button onClick={() => { setSettingsTab('profile'); setShowSettings(true) }} className="flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-md border border-white/30 transition hover:bg-white hover:text-slate-900">
                     <Settings className="h-4 w-4" />
                     编辑资料
                   </button>
@@ -235,6 +274,34 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
           </Surface>
         </motion.div>
 
+        <motion.section {...slideUp} className="mt-8">
+          <div className="mb-5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PawPrint className="h-5 w-5 text-[#d69611]" />
+              <h2 className="text-xl font-bold text-slate-900">我的宠物</h2>
+            </div>
+            {isOwnProfile ? (
+              <button onClick={() => { setSettingsTab('pet'); setShowSettings(true) }} className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-white hover:text-[#b87400]">
+                <Plus className="h-4 w-4" />
+                添加宠物
+              </button>
+            ) : null}
+          </div>
+
+          {user.pets.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {user.pets.map((pet) => (
+                <PetCard key={pet.id || pet.name} pet={pet} />
+              ))}
+            </div>
+          ) : (
+            <Surface className="border-2 border-dashed border-[#ead59a] bg-white/55 px-6 py-10 text-center">
+              <PawPrint className="mx-auto mb-3 h-10 w-10 text-[#dfbb55]" />
+              <p className="font-semibold text-slate-500">{isOwnProfile ? '还没有添加宠物信息' : '暂未公开宠物信息'}</p>
+            </Surface>
+          )}
+        </motion.section>
+
         {/* 内容网格 */}
         <div className="mt-12">
           <div className="flex items-center justify-between mb-8">
@@ -268,6 +335,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
         {showSettings && user && (
           <SettingsModal 
             user={user} 
+            initialTab={settingsTab}
             onClose={() => setShowSettings(false)} 
             onUpdate={() => window.location.reload()} 
           />
@@ -277,9 +345,55 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   )
 }
 
+function PetCard({ pet }: { pet: PetProfile }) {
+  const birthdayText = pet.birthday ? new Date(pet.birthday).toLocaleDateString('zh-CN') : pet.age
+  const detailItems = [
+    pet.breed ? `${pet.breed}` : null,
+    pet.sex ? `${pet.sex}` : null,
+    birthdayText ? `${birthdayText}` : null,
+    pet.weightKg ? `${pet.weightKg} kg` : null,
+  ].filter(Boolean)
+
+  return (
+    <Surface className="overflow-hidden border-none bg-white/90 p-0 shadow-[0_14px_36px_rgba(245,194,51,0.08)]">
+      <div className="flex gap-4 p-5">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl bg-[#fff3d8]">
+          {pet.photoUrl ? (
+            <Image src={pet.photoUrl} alt={pet.name} fill sizes="96px" unoptimized className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[#d69611]">
+              <PawPrint className="h-10 w-10" />
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate text-lg font-bold text-slate-900">{pet.name}</h3>
+            <span className="rounded-full bg-[#fff3d8] px-2.5 py-1 text-xs font-bold text-[#b87400]">{pet.type}</span>
+            {pet.neutered ? <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">已绝育</span> : null}
+          </div>
+          {detailItems.length ? <p className="mt-2 text-sm font-medium text-slate-500">{detailItems.join(' / ')}</p> : null}
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+            {pet.vaccineStatus && pet.vaccineStatus !== '未填写' ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2.5 py-1 text-cyan-700">
+                <Syringe className="h-3.5 w-3.5" />
+                {pet.vaccineStatus}
+              </span>
+            ) : null}
+            {pet.allergyHistory ? (
+              <span className="rounded-full bg-rose-50 px-2.5 py-1 text-rose-600">过敏：{pet.allergyHistory}</span>
+            ) : null}
+          </div>
+          {pet.notes ? <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-slate-500">{pet.notes}</p> : null}
+        </div>
+      </div>
+    </Surface>
+  )
+}
+
 // --- 子组件：内容卡片 ---
 function ContentCard({ item }: { item: ContentItem }) {
-  const [isHovered, setIsHovered] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   const coverImage = item.mediaImages?.[0] || item.musicCover || item.mediaSrc
@@ -292,8 +406,6 @@ function ContentCard({ item }: { item: ContentItem }) {
         show: { opacity: 1, scale: 1 }
       }}
       whileHover={{ y: -8 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
       className="break-inside-avoid"
     >
       <Link href={`/content/${item.id}`}>
@@ -334,22 +446,44 @@ function ContentCard({ item }: { item: ContentItem }) {
 }
 
 // --- 子组件：设置弹窗 ---
-function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose: () => void; onUpdate: () => void }) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'avatar' | 'header'>('profile')
+function SettingsModal({ user, initialTab, onClose, onUpdate }: { user: UserProfile; initialTab: SettingsTab; onClose: () => void; onUpdate: () => void }) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab)
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [uploadingPetIndex, setUploadingPetIndex] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     name: user.name, bio: user.bio || '', location: user.location || '',
     website: user.website || '', avatarUrl: user.avatarUrl || '',
     headerColor: user.headerColor || '', headerImage: user.headerImage || '',
+    pets: user.pets?.length ? user.pets : [createEmptyPet()],
   })
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  const petPhotoInputRef = useRef<HTMLInputElement>(null)
 
-  const tabs: { id: 'profile' | 'avatar' | 'header'; label: string; icon: typeof Edit3 }[] = [
+  const tabs: { id: SettingsTab; label: string; icon: typeof Edit3 }[] = [
     { id: 'profile', label: '基础', icon: Edit3 },
+    { id: 'pet', label: '宠物', icon: PawPrint },
     { id: 'avatar', label: '头像', icon: Camera },
     { id: 'header', label: '装扮', icon: Palette },
   ]
+
+  const updatePet = (index: number, patch: Partial<PetProfile>) => {
+    setFormData((current) => ({
+      ...current,
+      pets: current.pets.map((pet, petIndex) => (petIndex === index ? { ...pet, ...patch } : pet)),
+    }))
+  }
+
+  const addPet = () => {
+    setFormData((current) => ({ ...current, pets: [...current.pets, createEmptyPet()] }))
+  }
+
+  const removePet = (index: number) => {
+    setFormData((current) => ({
+      ...current,
+      pets: current.pets.length > 1 ? current.pets.filter((_, petIndex) => petIndex !== index) : [createEmptyPet()],
+    }))
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -401,9 +535,42 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
     }
   }
 
+  const handlePetPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || uploadingPetIndex === null) return
+
+    const targetIndex = uploadingPetIndex
+    try {
+      const formDataPayload = new FormData()
+      formDataPayload.append('files', file)
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formDataPayload,
+      })
+
+      if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response, '上传失败'))
+      }
+
+      const data = (await response.json()) as { files?: Array<{ url: string }> }
+      const nextUrl = data.files?.[0]?.url
+      if (nextUrl) {
+        updatePet(targetIndex, { photoUrl: nextUrl })
+      }
+    } catch (error) {
+      alert(getErrorMessage(error, '上传失败'))
+    } finally {
+      setUploadingPetIndex(null)
+      if (petPhotoInputRef.current) {
+        petPhotoInputRef.current.value = ''
+      }
+    }
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative w-full max-w-lg overflow-hidden rounded-[32px] bg-white shadow-2xl">
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="relative w-full max-w-2xl overflow-hidden rounded-[32px] bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-50 px-8 py-6">
           <h2 className="text-xl font-bold text-slate-900">账户设置</h2>
           <button onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
@@ -444,6 +611,124 @@ function SettingsModal({ user, onClose, onUpdate }: { user: UserProfile; onClose
                   <input type="text" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-5 py-3 font-medium outline-none focus:border-cyan-400" />
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'pet' && (
+            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+              <input
+                ref={petPhotoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePetPhotoUpload}
+              />
+
+              {formData.pets.map((pet, index) => (
+                <div key={index} className="rounded-3xl border border-slate-100 bg-slate-50/70 p-5">
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-[#fff3d8]">
+                        {pet.photoUrl ? (
+                          <Image src={pet.photoUrl} alt={pet.name || '宠物照片'} fill sizes="64px" unoptimized className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[#d69611]">
+                            <PawPrint className="h-7 w-7" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">宠物 {index + 1}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUploadingPetIndex(index)
+                            petPhotoInputRef.current?.click()
+                          }}
+                          className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-cyan-600 hover:text-cyan-700"
+                        >
+                          {uploadingPetIndex === index ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                          {uploadingPetIndex === index ? '上传中...' : '上传照片'}
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removePet(index)}
+                      className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-rose-500"
+                      aria-label="删除宠物"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">宠物名称</label>
+                      <input value={pet.name} onChange={(e) => updatePet(index, { name: e.target.value })} className="w-full rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">宠物类型</label>
+                      <select value={pet.type} onChange={(e) => updatePet(index, { type: e.target.value })} className="w-full rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400">
+                        {PET_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">品种</label>
+                      <input value={pet.breed || ''} onChange={(e) => updatePet(index, { breed: e.target.value })} className="w-full rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">性别</label>
+                      <select value={pet.sex} onChange={(e) => updatePet(index, { sex: e.target.value })} className="w-full rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400">
+                        {PET_SEXES.map((sex) => <option key={sex} value={sex}>{sex}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">生日</label>
+                      <input type="date" value={pet.birthday?.slice(0, 10) || ''} onChange={(e) => updatePet(index, { birthday: e.target.value })} className="w-full rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">年龄</label>
+                      <input value={pet.age || ''} onChange={(e) => updatePet(index, { age: e.target.value })} placeholder="如 2 岁 3 个月" className="w-full rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">体重 KG</label>
+                      <input type="number" min="0" step="0.1" value={pet.weightKg ?? ''} onChange={(e) => updatePet(index, { weightKg: e.target.value ? Number(e.target.value) : null })} className="w-full rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">疫苗情况</label>
+                      <select value={pet.vaccineStatus || '未填写'} onChange={(e) => updatePet(index, { vaccineStatus: e.target.value })} className="w-full rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400">
+                        {VACCINE_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <label className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-600">
+                    <input type="checkbox" checked={pet.neutered} onChange={(e) => updatePet(index, { neutered: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-cyan-500" />
+                    已绝育
+                  </label>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">过敏史</label>
+                      <textarea value={pet.allergyHistory || ''} onChange={(e) => updatePet(index, { allergyHistory: e.target.value })} rows={3} className="w-full resize-none rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">备注</label>
+                      <textarea value={pet.notes || ''} onChange={(e) => updatePet(index, { notes: e.target.value })} rows={3} className="w-full resize-none rounded-2xl border-2 border-slate-100 bg-white px-4 py-3 font-medium outline-none transition-all focus:border-cyan-400" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addPet}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#e4c66f] bg-[#fff9e8] px-5 py-3 text-sm font-bold text-[#9f6b00] transition hover:bg-[#fff3d8]"
+              >
+                <Plus className="h-4 w-4" />
+                添加另一只宠物
+              </button>
             </motion.div>
           )}
 

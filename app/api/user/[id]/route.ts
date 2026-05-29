@@ -8,7 +8,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const currentUser = await syncCurrentPlatformUser()
+    const currentUser = await syncCurrentPlatformUser().catch((error) => {
+      console.warn('Failed to resolve current user for profile view:', error)
+      return null
+    })
     const user = await getUserProfileSummary(id, currentUser?.id)
 
     if (!user) {
@@ -35,6 +38,7 @@ export async function GET(
         followingCount: user.followingCount,
         likesCount: user.likesCount,
         isFollowing: user.isFollowing,
+        pets: user.pets,
       },
     })
   } catch (error) {

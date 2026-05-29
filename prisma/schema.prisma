@@ -111,6 +111,30 @@ model User {
   following     Follow[]        @relation("UserFollowing")
   followers     Follow[]        @relation("UserFollowers")
   sessions      Session[]
+  pets          Pet[]
+}
+
+model Pet {
+  id            String   @id @default(cuid())
+  ownerId       String
+  name          String
+  type          String
+  breed         String?
+  sex           String
+  birthday      DateTime?
+  age           String?
+  neutered      Boolean  @default(false)
+  weightKg      Float?
+  photoUrl      String?
+  vaccineStatus String?
+  allergyHistory String? @db.Text
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
 }
 
 model Session {

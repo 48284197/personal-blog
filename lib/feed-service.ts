@@ -975,9 +975,14 @@ export async function searchCommunity(query: string, currentUserId?: string | nu
   }
 }
 
-export async function getUserProfileSummary(targetUserId: string, currentUserId?: string | null) {
-  const user = await prisma.user.findUnique({
-    where: { id: targetUserId },
+export async function getUserProfileSummary(targetUserIdentifier: string, currentUserId?: string | null) {
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { id: targetUserIdentifier },
+        { authUserId: targetUserIdentifier },
+      ],
+    },
     include: {
       _count: {
         select: {
@@ -998,10 +1003,21 @@ export async function getUserProfileSummary(targetUserId: string, currentUserId?
   if (!user) return null
   const userWithKnowledgeFlag = user as typeof user & { isKnowledgeCreator?: boolean }
 
-  const likesAggregate = await prisma.publication.aggregate({
-    where: { authorId: targetUserId },
-    _sum: { likes: true },
-  })
+  const [likesAggregate, pets] = await Promise.all([
+    prisma.publication.aggregate({
+      where: { authorId: user.id },
+      _sum: { likes: true },
+    }),
+    prisma.pet
+      .findMany({
+        where: { ownerId: user.id },
+        orderBy: { createdAt: 'asc' },
+      })
+      .catch((error: { code?: string }) => {
+        if (error.code === 'P2021') return []
+        throw error
+      }),
+  ])
 
   return {
     id: user.id,
@@ -1020,5 +1036,20 @@ export async function getUserProfileSummary(targetUserId: string, currentUserId?
     followingCount: user._count.following,
     likesCount: likesAggregate._sum.likes ?? 0,
     isFollowing: Array.isArray(user.followers) ? user.followers.length > 0 : false,
+    pets: pets.map((pet) => ({
+      id: pet.id,
+      name: pet.name,
+      type: pet.type,
+      breed: pet.breed,
+      sex: pet.sex,
+      birthday: pet.birthday?.toISOString() ?? null,
+      age: pet.age,
+      neutered: pet.neutered,
+      weightKg: pet.weightKg,
+      photoUrl: pet.photoUrl,
+      vaccineStatus: pet.vaccineStatus,
+      allergyHistory: pet.allergyHistory,
+      notes: pet.notes,
+    })),
   }
 }
