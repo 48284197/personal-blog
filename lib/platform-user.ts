@@ -13,6 +13,7 @@ function getRandomDefaultAvatar(): string {
 }
 
 import { IdentityKind, UserRole } from '@prisma/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
@@ -50,15 +51,27 @@ export async function getSupabaseSessionUser() {
   return user ?? null
 }
 
-export async function syncCurrentPlatformUser(displayName?: string | null) {
-  const sessionUser = await getSupabaseSessionUser()
+export async function syncCurrentPlatformUser(
+  displayName?: string | null,
+  providedSessionUser?: SupabaseUser | null
+) {
+  const sessionUser = providedSessionUser ?? await getSupabaseSessionUser()
   if (!sessionUser) return null
 
   const derivedName = displayName?.trim() || getPlatformName(sessionUser)
 
   const existingUser = await prisma.user.findUnique({
     where: { authUserId: sessionUser.id },
-    select: { avatarUrl: true, name: true },
+    select: {
+      id: true,
+      authUserId: true,
+      email: true,
+      name: true,
+      avatarUrl: true,
+      isKnowledgeCreator: true,
+      role: true,
+      identityKind: true,
+    },
   })
 
   const resolvedName = existingUser?.name?.trim() || derivedName
@@ -69,16 +82,26 @@ export async function syncCurrentPlatformUser(displayName?: string | null) {
     existingUser?.avatarUrl
   )
 
+  const email = sessionUser.email ?? null
+  if (
+    existingUser &&
+    existingUser.email === email &&
+    existingUser.name === resolvedName &&
+    existingUser.avatarUrl === avatarUrl
+  ) {
+    return existingUser
+  }
+
   return prisma.user.upsert({
     where: { authUserId: sessionUser.id },
     update: {
-      email: sessionUser.email ?? null,
+      email,
       name: resolvedName,
       avatarUrl,
     },
     create: {
       authUserId: sessionUser.id,
-      email: sessionUser.email ?? null,
+      email,
       name: derivedName,
       avatarUrl,
       role: UserRole.USER,

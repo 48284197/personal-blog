@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ user: null }, { status: 401 })
   }
 
-  const user = await syncCurrentPlatformUser()
+  const user = await syncCurrentPlatformUser(null, sessionUser)
   if (!user) {
     return NextResponse.json({ user: null }, { status: 401 })
   }
