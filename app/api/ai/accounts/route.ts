@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getCurrentUser } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    if (!authUser) {
+    const currentUser = await getCurrentUser(request)
+    if (!currentUser) {
       return NextResponse.json({ message: '未登录' }, { status: 401 })
     }
 
@@ -41,10 +39,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    if (!authUser) {
+    const currentUser = await getCurrentUser(request)
+    if (!currentUser) {
       return NextResponse.json({ message: '未登录' }, { status: 401 })
     }
 
@@ -93,10 +89,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    if (!authUser) {
+    const currentUser = await getCurrentUser(request)
+    if (!currentUser) {
       return NextResponse.json({ message: '未登录' }, { status: 401 })
     }
 
@@ -160,10 +154,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    if (!authUser) {
+    const currentUser = await getCurrentUser(request)
+    if (!currentUser) {
       return NextResponse.json({ message: '未登录' }, { status: 401 })
     }
 

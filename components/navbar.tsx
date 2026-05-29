@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell, ChevronDown, Plus, Search } from 'lucide-react'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 const navItems = [
   { label: '首页', href: '/' },
@@ -63,22 +62,7 @@ export function Navbar({
 
     const loadAuthUser = async () => {
       try {
-        const supabase = createSupabaseBrowserClient()
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        if (!session) {
-          if (!cancelled) setAuthUser(null)
-          return
-        }
-
-        const response = await fetch('/api/auth/me', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          cache: 'no-store',
-        })
+        const response = await fetch('/api/auth/me', { cache: 'no-store' })
 
         if (!response.ok) {
           if (!cancelled) setAuthUser(null)
@@ -141,14 +125,7 @@ export function Navbar({
 
     const loadNotifications = async () => {
       try {
-        const supabase = createSupabaseBrowserClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.access_token) return
-        const response = await fetch('/api/notifications', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        })
+        const response = await fetch('/api/notifications')
         if (!response.ok) return
         const data = (await response.json()) as {
           items?: NotificationItem[]
@@ -180,15 +157,9 @@ export function Navbar({
     if (!next || unreadCount === 0) return
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
       await fetch('/api/notifications', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
       setNotifications((current) => current.map((item) => ({ ...item, read: true })))

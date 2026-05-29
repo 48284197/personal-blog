@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { syncCurrentPlatformUser } from '@/lib/platform-user'
+import { getCurrentUser } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => ({}))) as { name?: string }
-  const user = await syncCurrentPlatformUser(body.name)
-
-  if (!user) {
+  const currentUser = await getCurrentUser(request)
+  if (!currentUser) {
     return NextResponse.json({ user: null }, { status: 401 })
   }
-  const userWithKnowledgeFlag = user as typeof user & { isKnowledgeCreator?: boolean }
+
+  const body = (await request.json().catch(() => ({}))) as { name?: string }
+  const name = body.name?.trim()
+  const user = name
+    ? await prisma.user.update({
+        where: { id: currentUser.id },
+        data: { name },
+      })
+    : currentUser
 
   return NextResponse.json({
     user: {
@@ -17,7 +24,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,
-      isKnowledgeCreator: userWithKnowledgeFlag.isKnowledgeCreator ?? false,
+      isKnowledgeCreator: user.isKnowledgeCreator,
       role: user.role,
       identityKind: user.identityKind,
     },

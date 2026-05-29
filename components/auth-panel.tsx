@@ -2,7 +2,6 @@
 
 import { useMemo, useState, type FormEvent } from 'react'
 import { BookOpen, Heart, Loader2, LockKeyhole, Mail, PenLine, UserRound } from 'lucide-react'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Badge, Surface } from '@/components/landing'
 import { cn } from '@/lib/utils'
 
@@ -64,24 +63,6 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     window.location.assign(redirectTo)
   }
 
-  const syncPlatformAccount = async (name?: string | null) => {
-    const response = await fetch('/api/auth/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    })
-
-    if (!response.ok) {
-      throw new Error('账号同步失败，请稍后重试。')
-    }
-
-    const data = (await response.json()) as {
-      user?: { id: string; email: string | null; name: string; avatarUrl?: string | null }
-    }
-
-    return data.user ?? null
-  }
-
   const resetCodeState = () => {
     setStep('form')
     setCode('')
@@ -120,33 +101,30 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     setSuccess('')
 
     try {
-      const client = createSupabaseBrowserClient()
       const normalizedEmail = email.trim()
       const normalizedPassword = password.trim()
-      const { data, error: authError } = mode === 'login'
-        ? await client.auth.signInWithPassword({
-            email: normalizedEmail,
-            password: normalizedPassword,
-          })
-        : await client.auth.signUp({
-            email: normalizedEmail,
-            password: normalizedPassword,
-            options: {
-              data: { full_name: displayName.trim(), name: displayName.trim() },
-            },
-          })
 
-      if (authError) {
-        setError(authError.message || (mode === 'login' ? '登录失败，请检查邮箱和密码。' : '注册失败，请稍后重试。'))
+      const response = await fetch(mode === 'login' ? '/api/auth/login' : '/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: normalizedPassword,
+          name: displayName.trim(),
+        }),
+      })
+
+      const data = (await response.json().catch(() => ({}))) as {
+        message?: string
+        user?: { id: string; email: string | null; name: string; avatarUrl?: string | null }
+      }
+
+      if (!response.ok || !data.user) {
+        setError(data.message || (mode === 'login' ? '登录失败，请检查邮箱和密码。' : '注册失败，请稍后重试。'))
         return
       }
 
-      const user = data.user ?? (await client.auth.getUser()).data.user
-      const synced = await syncPlatformAccount(mode === 'register' ? displayName.trim() : null)
-      const profileName =
-        synced?.name ??
-        getDisplayName(normalizedEmail, mode === 'register' ? displayName : user?.user_metadata?.full_name || user?.user_metadata?.name)
-      finishLogin(profileName, synced?.id ?? user?.id, synced?.email ?? user?.email)
+      finishLogin(data.user.name ?? getDisplayName(normalizedEmail, displayName), data.user.id, data.user.email)
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : mode === 'login' ? '登录失败，请稍后重试。' : '注册失败，请稍后重试。')
     } finally {

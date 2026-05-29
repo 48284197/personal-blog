@@ -1,28 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getRequestUser } from '@/lib/auth'
 import { getFeedCommentLikeState, toggleFeedCommentLike } from '@/lib/feed-service'
 
 async function ensureDbUser(request: NextRequest) {
-  const user = await getRequestUser(request)
-  if (!user) return null
-
-  let dbUser = await prisma.user.findUnique({
-    where: { authUserId: user.id },
-  })
-
-  if (!dbUser) {
-    dbUser = await prisma.user.create({
-      data: {
-        authUserId: user.id,
-        email: user.email,
-        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-        avatarUrl: user.user_metadata?.avatar_url,
-      },
-    })
-  }
-
-  return dbUser
+  return getRequestUser(request)
 }
 
 export async function POST(

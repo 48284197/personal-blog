@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Loader2, Plus, Check } from 'lucide-react'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type FollowButtonProps = {
   userId: string
@@ -30,22 +29,15 @@ export function FollowButton({
     setLoading(true)
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session?.access_token) {
-        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`
-        return
-      }
-
       const response = await fetch(`/api/user/${userId}/follow`, {
         method: following ? 'DELETE' : 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`
+          return
+        }
         const body = (await response.json().catch(() => null)) as { message?: string } | null
         throw new Error(body?.message ?? '操作失败')
       }

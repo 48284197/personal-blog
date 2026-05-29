@@ -14,7 +14,6 @@ import Image from 'next/image'
 import type { Dispatch, SetStateAction } from 'react'
 import { Heart, Send, X } from 'lucide-react'
 import type { CommentItem, ContentItem } from '@/lib/site-data'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type CommentTarget = Pick<
   ContentItem,
@@ -291,23 +290,10 @@ function CommentSheet({
     setIsSending(true)
 
     try {
-      // 获取当前 session token
-      const supabase = createSupabaseBrowserClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        alert('请先登录')
-        return
-      }
-
       const response = await fetch(`/api/feed/${target.id}/comments`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           content,
@@ -344,16 +330,8 @@ function CommentSheet({
     setLikePendingMap((current) => ({ ...current, [commentId]: true }))
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
       const response = await fetch(`/api/feed/comments/${commentId}/like`, {
         method: 'POST',
-        headers: session?.access_token
-          ? { Authorization: `Bearer ${session.access_token}` }
-          : undefined,
       })
 
       if (!response.ok) {

@@ -15,7 +15,6 @@ import { Surface, Badge } from '@/components/landing'
 import { FollowButton } from '@/components/follow-button'
 import { LogoutButton } from '@/components/logout-button'
 import { cn } from '@/lib/utils'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem } from '@/lib/site-data'
 
 // --- 预设常量 ---
@@ -74,17 +73,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     const loadData = async () => {
       try {
-        const supabase = createSupabaseBrowserClient()
-        const { data: { session } } = await supabase.auth.getSession()
-
         const [meRes, uRes, pRes] = await Promise.all([
-          session?.access_token
-            ? fetch('/api/auth/me', {
-                headers: {
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-              })
-            : Promise.resolve(null),
+          fetch('/api/auth/me'),
           fetch(`/api/user/${id}`),
           fetch(`/api/user/${id}/publications`),
         ])

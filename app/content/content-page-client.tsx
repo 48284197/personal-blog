@@ -20,7 +20,6 @@ import { Navbar } from '@/components/navbar'
 import { Surface } from '@/components/landing'
 import { useCommentSheet } from '@/components/comment-sheet'
 import { FollowButton } from '@/components/follow-button'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem, ContentChannelKey } from '@/lib/site-data'
 
 type ContentPageClientProps = {
@@ -436,16 +435,7 @@ function ComposerModal({ channel, followingOnly, topicSuggestions, onClose, onPu
 
     const loadAuth = async () => {
       try {
-        const supabase = createSupabaseBrowserClient()
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        const res = await fetch('/api/auth/me', {
-          headers: session?.access_token
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : undefined,
-        })
+        const res = await fetch('/api/auth/me')
         if (res.ok) {
           const data = await res.json()
           setAuthProfile(data.user ?? null)
@@ -529,11 +519,6 @@ function ComposerModal({ channel, followingOnly, topicSuggestions, onClose, onPu
     setError('')
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
       const mediaType = videoUrl ? 'video' : images.length > 0 ? 'image' : 'text'
       const publishChannel = channel || (followingOnly ? 'daily' : 'daily')
       const publishTab = CHANNEL_TABS.find((tab) => tab.key === publishChannel && !tab.followingOnly)
@@ -553,7 +538,6 @@ function ComposerModal({ channel, followingOnly, topicSuggestions, onClose, onPu
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify(payload),
       })

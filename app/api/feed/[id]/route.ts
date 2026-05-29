@@ -28,21 +28,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     let liked = false
 
     if (user) {
-      const dbUser = await prisma.user.findUnique({
-        where: { authUserId: user.id },
-      })
-
-      if (dbUser) {
-        const existingLike = await prisma.like.findUnique({
-          where: {
-            publicationId_userId: {
-              publicationId: id,
-              userId: dbUser.id,
-            },
+      const existingLike = await prisma.like.findUnique({
+        where: {
+          publicationId_userId: {
+            publicationId: id,
+            userId: user.id,
           },
-        })
-        liked = !!existingLike
-      }
+        },
+      })
+      liked = !!existingLike
     }
 
     return NextResponse.json({

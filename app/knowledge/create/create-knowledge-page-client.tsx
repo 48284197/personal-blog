@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, FileText, Link2, Loader2, Sparkles } from 'lucide-react'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 const KNOWLEDGE_PATH = '/knowledge'
 
@@ -139,25 +138,7 @@ export function CreateKnowledgePageClient() {
 
     const loadAuth = async () => {
       try {
-        const supabase = createSupabaseBrowserClient()
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        if (!session?.access_token) {
-          if (!cancelled) {
-            setAuthProfile(null)
-            setAuthLoaded(true)
-          }
-          return
-        }
-
-        const response = await fetch('/api/auth/me', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          cache: 'no-store',
-        })
+        const response = await fetch('/api/auth/me', { cache: 'no-store' })
 
         if (!response.ok) {
           if (!cancelled) {
@@ -274,16 +255,10 @@ export function CreateKnowledgePageClient() {
         throw new Error('请先解析当前小红书链接，再创建知识。')
       }
 
-      const supabase = createSupabaseBrowserClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
       const response = await fetch('/api/knowledge', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
           title: form.title.trim() || undefined,

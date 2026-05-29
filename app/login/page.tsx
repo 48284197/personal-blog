@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 type LoginPageProps = {
-  searchParams?: Promise<{ mode?: string }>
+  searchParams?: Promise<{ mode?: string; redirect?: string }>
 }
 
 const stats = [
@@ -21,6 +21,7 @@ const stats = [
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
   const initialMode = params?.mode === 'register' ? 'register' : 'login'
+  const redirectTo = params?.redirect?.startsWith('/') ? params.redirect : '/content'
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#fffaf1] text-[#2e1a14]">
@@ -120,7 +121,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <section className="flex justify-center xl:justify-end">
             <div className="w-full max-w-[620px] xl:max-w-[540px]">
-              <AuthPanel redirectTo="/content" initialMode={initialMode} />
+              <AuthPanel redirectTo={redirectTo} initialMode={initialMode} />
             </div>
           </section>
         </div>

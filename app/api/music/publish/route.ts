@@ -40,23 +40,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 确保用户在数据库中存在
-    let dbUser = await prisma.user.findUnique({
-      where: { authUserId: user.id },
-    })
-
-    if (!dbUser) {
-      // 如果用户不存在，创建一个新用户
-      dbUser = await prisma.user.create({
-        data: {
-          authUserId: user.id,
-          email: user.email,
-          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-          avatarUrl: user.user_metadata?.avatar_url,
-        },
-      })
-    }
-
     // 创建 Publication 记录
     const publication = await prisma.publication.create({
       data: {
@@ -69,9 +52,9 @@ export async function POST(request: NextRequest) {
         coverUrl,
         mediaDuration,
         tags: tags || [],
-        authorId: dbUser.id,
-        authorName: dbUser.name,
-        authorAvatar: dbUser.avatarUrl,
+        authorId: user.id,
+        authorName: user.name,
+        authorAvatar: user.avatarUrl,
         publishedAt: new Date(),
       },
     })

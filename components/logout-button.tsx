@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type LogoutButtonProps = {
   className?: string
@@ -12,8 +11,7 @@ export function LogoutButton({ className }: LogoutButtonProps) {
   const router = useRouter()
 
   const handleLogout = async () => {
-    const client = createSupabaseBrowserClient()
-    await client.auth.signOut()
+    await fetch('/api/auth/logout', { method: 'POST' })
     window.localStorage.removeItem('carbon-user-name')
     window.localStorage.removeItem('carbon-user-id')
     window.localStorage.removeItem('carbon-user-email')

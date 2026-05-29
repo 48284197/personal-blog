@@ -16,7 +16,6 @@ import { useCommentSheet } from '@/components/comment-sheet'
 import { MediaGallery } from '@/components/media-gallery'
 import { useExclusiveMediaPlayback, useMediaController } from '@/components/media-controller'
 import { UserAvatar } from '@/components/user-card'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { type ContentChannelKey, type ContentItem } from '@/lib/site-data'
 import { cn } from '@/lib/utils'
 
@@ -215,16 +214,8 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
 
     const loadLikeState = async () => {
       try {
-        const supabase = createSupabaseBrowserClient()
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
         const response = await fetch(`/api/feed/${item.id}/like`, {
           cache: 'no-store',
-          headers: session?.access_token
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : undefined,
         })
         if (!response.ok) return
 
@@ -252,16 +243,8 @@ const FeedItem = React.memo<{ item: ContentItem; onOpenComments: (item: ContentI
     setIsAnimating(true)
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
       const response = await fetch(`/api/feed/${item.id}/like`, {
         method: 'POST',
-        headers: session?.access_token
-          ? { Authorization: `Bearer ${session.access_token}` }
-          : undefined,
       })
 
       if (!response.ok) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getCurrentUser } from '@/lib/auth'
 import { getUserProfileSummary } from '@/lib/feed-service'
 
 function deriveTitleFromContent(content?: string | null) {
@@ -9,46 +9,11 @@ function deriveTitleFromContent(content?: string | null) {
   return normalized.slice(0, 40)
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    if (!authUser) {
-      return NextResponse.json({ message: '未登录' }, { status: 401 })
-    }
-
-    // 使用 Prisma 查询用户信息
-    let user = await prisma.user.findUnique({
-      where: { authUserId: authUser.id },
-    })
-
-    // 如果用户不存在，创建新用户
+    const user = await getCurrentUser(request)
     if (!user) {
-      const defaultAvatars = [
-        'https://xuxiweii.s3.bitiful.net/uploads/1776699433969-generated-1776699433574-0.jpeg',
-        'https://xuxiweii.s3.bitiful.net/uploads/1776699480272-generated-1776699479874-0.jpeg',
-        'https://xuxiweii.s3.bitiful.net/uploads/1776699493854-generated-1776699493508-0.jpeg',
-        'https://xuxiweii.s3.bitiful.net/uploads/1776699511642-generated-1776699510449-0.jpeg',
-        'https://xuxiweii.s3.bitiful.net/uploads/1776699526593-generated-1776699526218-0.jpeg',
-        'https://xuxiweii.s3.bitiful.net/uploads/1776699542554-generated-1776699542189-0.jpeg',
-      ]
-      
-      const name = authUser.user_metadata?.full_name || 
-                   authUser.user_metadata?.name || 
-                   authUser.email?.split('@')[0] || 
-                   '用户'
-      
-      user = await prisma.user.create({
-        data: {
-          authUserId: authUser.id,
-          email: authUser.email,
-          name,
-          avatarUrl: defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)],
-          role: 'USER',
-          identityKind: 'CARBON',
-        },
-      })
+      return NextResponse.json({ message: '未登录' }, { status: 401 })
     }
 
     // 获取用户发布的内容
@@ -110,10 +75,8 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    if (!authUser) {
+    const currentUser = await getCurrentUser(request)
+    if (!currentUser) {
       return NextResponse.json({ message: '未登录' }, { status: 401 })
     }
 
@@ -121,7 +84,7 @@ export async function PUT(request: NextRequest) {
     const { name, bio, location, website, avatarUrl, headerColor, headerImage } = body
 
     const user = await prisma.user.update({
-      where: { authUserId: authUser.id },
+      where: { id: currentUser.id },
       data: {
         name,
         bio,

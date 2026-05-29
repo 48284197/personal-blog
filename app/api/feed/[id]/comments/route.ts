@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { addFeedComment, listFeedCommentsWithLikeState } from '@/lib/feed-service'
 import { getRequestUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 
 const createCommentSchema = z.object({
   content: z.string().min(1),
@@ -23,11 +22,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   let dbUserId: string | null = null
 
   if (requestUser) {
-    const dbUser = await prisma.user.findUnique({
-      where: { authUserId: requestUser.id },
-      select: { id: true },
-    })
-    dbUserId = dbUser?.id ?? null
+    dbUserId = requestUser.id
   }
 
   const comments = await listFeedCommentsWithLikeState(id, dbUserId)
@@ -46,22 +41,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     )
   }
   
-  // 确保用户在数据库中存在
-  let dbUser = await prisma.user.findUnique({
-    where: { authUserId: user.id },
-  })
-  
-  if (!dbUser) {
-    dbUser = await prisma.user.create({
-      data: {
-        authUserId: user.id,
-        email: user.email,
-        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-        avatarUrl: user.user_metadata?.avatar_url,
-      },
-    })
-  }
-  
   const body = await request.json()
   const parsed = createCommentSchema.safeParse(body)
 
@@ -73,8 +52,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const result = await addFeedComment(id, {
-    authorName: dbUser.name,
-    avatar: dbUser.avatarUrl || dbUser.name.slice(0, 1),
+    authorName: user.name,
+    avatar: user.avatarUrl || user.name.slice(0, 1),
     content: parsed.data.content,
     replyToName: parsed.data.replyToName ?? null,
     mentions: parsed.data.mentions ?? [],

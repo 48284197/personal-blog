@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { CalendarDays, Heart, MessageSquare, UsersRound } from 'lucide-react'
 import type { ContentItem } from '@/lib/site-data'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type DiscoverCard = {
   id: string
@@ -112,13 +111,10 @@ export function HomeDiscoverList() {
 
     const loadAuthState = async () => {
       try {
-        const supabase = createSupabaseBrowserClient()
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
+        const response = await fetch('/api/auth/me', { cache: 'no-store' })
 
         if (!cancelled) {
-          setIsAuthenticated(Boolean(session))
+          setIsAuthenticated(response.ok)
           setAuthLoaded(true)
         }
       } catch {

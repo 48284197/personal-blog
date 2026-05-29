@@ -19,7 +19,6 @@ import {
 } from 'lucide-react'
 import { Surface } from '@/components/landing'
 import { Navbar } from '@/components/navbar'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 /* ====== 类型保持不变 ====== */
 type GenerateMusicResult = {
@@ -382,12 +381,6 @@ export default function MusicPage() {
     setError(null)
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const token = session?.access_token
-
       const musicResult = musicStep.data.musicResult
       const audioUrl = musicResult.audioUrl || musicStep.data.audioUrl
 
@@ -399,7 +392,6 @@ export default function MusicPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
           title: lyricsStep?.data?.title || musicResult.title,

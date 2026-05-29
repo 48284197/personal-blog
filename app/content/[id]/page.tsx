@@ -10,7 +10,6 @@ import { Navbar } from '@/components/navbar'
 import { Surface, Badge } from '@/components/landing'
 import { UserAvatar } from '@/components/user-card'
 import { cn } from '@/lib/utils'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { ContentItem, CommentItem } from '@/lib/site-data'
 
 export default function ContentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -72,15 +71,8 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
   // 处理点赞
   const handleLike = async () => {
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
       const response = await fetch(`/api/feed/${id}/like`, {
         method: 'POST',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
       })
 
       if (!response.ok) {
@@ -108,20 +100,10 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
     setIsSending(true)
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        alert('请先登录')
-        return
-      }
-
       const response = await fetch(`/api/feed/${id}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           content,

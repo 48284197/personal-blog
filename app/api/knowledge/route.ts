@@ -43,42 +43,7 @@ function deriveSummary(input: { summary?: string; content?: string; title: strin
 }
 
 async function getKnowledgePublisher(request: NextRequest) {
-  const tokenUser = await getRequestUser(request)
-  if (!tokenUser) return syncCurrentPlatformUser()
-
-  const existingUser = await prisma.user.findUnique({
-    where: { authUserId: tokenUser.id },
-    select: { name: true, avatarUrl: true },
-  })
-
-  const derivedName =
-    existingUser?.name?.trim() ||
-    tokenUser.user_metadata?.full_name?.trim() ||
-    tokenUser.user_metadata?.name?.trim() ||
-    tokenUser.email?.split('@')[0]?.trim() ||
-    '碳基用户'
-
-  const avatarUrl =
-    existingUser?.avatarUrl ||
-    tokenUser.user_metadata?.avatar_url ||
-    null
-
-  return prisma.user.upsert({
-    where: { authUserId: tokenUser.id },
-    update: {
-      email: tokenUser.email ?? null,
-      name: derivedName,
-      avatarUrl,
-    },
-    create: {
-      authUserId: tokenUser.id,
-      email: tokenUser.email ?? null,
-      name: derivedName,
-      avatarUrl,
-      role: 'USER',
-      identityKind: 'CARBON',
-    },
-  })
+  return getRequestUser(request) ?? syncCurrentPlatformUser()
 }
 
 export async function GET() {

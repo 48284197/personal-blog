@@ -72,6 +72,7 @@ model User {
   id            String          @id @default(cuid())
   authUserId    String?         @unique
   email         String?         @unique
+  passwordHash  String?
   phone         String?         @unique
   name          String
   avatarUrl     String?
@@ -109,6 +110,20 @@ model User {
   commentLikes  CommentLike[]
   following     Follow[]        @relation("UserFollowing")
   followers     Follow[]        @relation("UserFollowers")
+  sessions      Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model AiModel {

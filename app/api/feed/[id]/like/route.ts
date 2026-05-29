@@ -19,28 +19,12 @@ export async function POST(
       )
     }
 
-    // 确保用户在数据库中存在
-    let dbUser = await prisma.user.findUnique({
-      where: { authUserId: user.id },
-    })
-
-    if (!dbUser) {
-      dbUser = await prisma.user.create({
-        data: {
-          authUserId: user.id,
-          email: user.email,
-          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-          avatarUrl: user.user_metadata?.avatar_url,
-        },
-      })
-    }
-
     // 检查是否已经点赞
     const existingLike = await prisma.like.findUnique({
       where: {
         publicationId_userId: {
           publicationId,
-          userId: dbUser.id,
+          userId: user.id,
         },
       },
     })
@@ -70,7 +54,7 @@ export async function POST(
       await prisma.like.create({
         data: {
           publicationId,
-          userId: dbUser.id,
+          userId: user.id,
         },
       })
 
@@ -126,21 +110,15 @@ export async function GET(
 
     // 如果用户已登录，检查是否点赞
     if (user) {
-      const dbUser = await prisma.user.findUnique({
-        where: { authUserId: user.id },
-      })
-
-      if (dbUser) {
-        const existingLike = await prisma.like.findUnique({
-          where: {
-            publicationId_userId: {
-              publicationId,
-              userId: dbUser.id,
-            },
+      const existingLike = await prisma.like.findUnique({
+        where: {
+          publicationId_userId: {
+            publicationId,
+            userId: user.id,
           },
-        })
-        liked = !!existingLike
-      }
+        },
+      })
+      liked = !!existingLike
     }
 
     return NextResponse.json({
