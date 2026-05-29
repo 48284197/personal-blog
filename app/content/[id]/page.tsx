@@ -179,7 +179,7 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <main className="relative min-h-screen bg-[#f7fbff] px-4 py-6 sm:px-6 lg:px-8">
+    <main className="relative min-h-screen bg-[#f7fbff] px-4 pb-28 pt-6 sm:px-6 lg:px-8 xl:pb-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.24),transparent_32%),radial-gradient(circle_at_top_right,rgba(167,243,208,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(253,224,71,0.08),transparent_24%)]" />
 
       <Navbar />

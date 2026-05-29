@@ -55,14 +55,9 @@ export default async function KnowledgePage() {
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-[#2e1a14]">
-      <Navbar
-        activeLabel="知识"
-        showPublish
-        publishHref="/knowledge/create"
-        requireKnowledgeCreatorForPublish
-      />
+      <Navbar activeLabel="知识" />
 
-      <section className="relative overflow-hidden border-b border-black/5 bg-[linear-gradient(110deg,#fffdfa_0%,#fff7e9_48%,#fffdf8_100%)] pt-[122px] sm:pt-[126px] xl:pt-[74px]">
+      <section className="relative overflow-hidden border-b border-black/5 bg-[linear-gradient(110deg,#fffdfa_0%,#fff7e9_48%,#fffdf8_100%)] pb-24 pt-[72px] sm:pt-[96px] xl:pb-0 xl:pt-[74px]">
         <div className="pointer-events-none absolute left-[42%] top-24 hidden text-[#ffbe46]/30 xl:block">
           <Sparkles className="h-12 w-12" />
         </div>

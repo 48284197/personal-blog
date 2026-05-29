@@ -7,6 +7,9 @@ type LogoutButtonProps = {
   className?: string
 }
 
+const NAVBAR_AUTH_CACHE_KEY = 'maoqiu-navbar-auth-user'
+const NAVBAR_AUTH_CACHE_EVENT = 'maoqiu-auth-cache-change'
+
 export function LogoutButton({ className }: LogoutButtonProps) {
   const router = useRouter()
 
@@ -15,6 +18,8 @@ export function LogoutButton({ className }: LogoutButtonProps) {
     window.localStorage.removeItem('carbon-user-name')
     window.localStorage.removeItem('carbon-user-id')
     window.localStorage.removeItem('carbon-user-email')
+    window.localStorage.removeItem(NAVBAR_AUTH_CACHE_KEY)
+    window.dispatchEvent(new CustomEvent(NAVBAR_AUTH_CACHE_EVENT, { detail: null }))
     router.replace('/login')
     router.refresh()
   }

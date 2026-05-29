@@ -15,12 +15,7 @@ export default async function KnowledgeCreatePage() {
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-[#2e1a14]">
-      <Navbar
-        activeLabel="知识"
-        showPublish
-        publishHref="/knowledge/create"
-        requireKnowledgeCreatorForPublish
-      />
+      <Navbar activeLabel="知识" />
       <CreateKnowledgePageClient />
     </main>
   )

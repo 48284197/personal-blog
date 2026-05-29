@@ -18,6 +18,8 @@ type AuthPanelProps = {
 }
 
 const OTP_UNAVAILABLE_MESSAGE = '邮箱验证码方式暂未开放，请使用邮箱密码登录或注册。'
+const NAVBAR_AUTH_CACHE_KEY = 'maoqiu-navbar-auth-user'
+const NAVBAR_AUTH_CACHE_EVENT = 'maoqiu-auth-cache-change'
 
 const registerBenefits = [
   { label: '发布宠物日常', icon: PenLine },
@@ -53,14 +55,31 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
     return '发送验证码'
   }, [loading, method, mode, step])
 
-  const persistSession = (name: string, userId?: string, userEmail?: string | null) => {
+  const persistSession = (
+    name: string,
+    userId?: string,
+    userEmail?: string | null,
+    avatarUrl?: string | null,
+    isKnowledgeCreator?: boolean
+  ) => {
     window.localStorage.setItem('carbon-user-name', name)
     if (userId) window.localStorage.setItem('carbon-user-id', userId)
     if (userEmail) window.localStorage.setItem('carbon-user-email', userEmail)
+    if (userId) {
+      const navbarUser = { id: userId, name, avatarUrl, isKnowledgeCreator }
+      window.localStorage.setItem(NAVBAR_AUTH_CACHE_KEY, JSON.stringify(navbarUser))
+      window.dispatchEvent(new CustomEvent(NAVBAR_AUTH_CACHE_EVENT, { detail: navbarUser }))
+    }
   }
 
-  const finishLogin = (name: string, userId?: string, userEmail?: string | null) => {
-    persistSession(name, userId, userEmail)
+  const finishLogin = (
+    name: string,
+    userId?: string,
+    userEmail?: string | null,
+    avatarUrl?: string | null,
+    isKnowledgeCreator?: boolean
+  ) => {
+    persistSession(name, userId, userEmail, avatarUrl, isKnowledgeCreator)
     window.location.assign(redirectTo)
   }
 
@@ -121,7 +140,7 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
       }
 
       const data = (await response.json()) as {
-        user?: { id: string; email: string | null; name: string; avatarUrl?: string | null }
+        user?: { id: string; email: string | null; name: string; avatarUrl?: string | null; isKnowledgeCreator?: boolean }
       }
 
       if (!data.user) {
@@ -129,7 +148,13 @@ export function AuthPanel({ redirectTo = '/content', initialMode = 'login' }: Au
         return
       }
 
-      finishLogin(data.user.name ?? getDisplayName(normalizedEmail, displayName), data.user.id, data.user.email)
+      finishLogin(
+        data.user.name ?? getDisplayName(normalizedEmail, displayName),
+        data.user.id,
+        data.user.email,
+        data.user.avatarUrl,
+        data.user.isKnowledgeCreator
+      )
     } catch (authError) {
       setError(getErrorMessage(authError, mode === 'login' ? '登录失败，请稍后重试。' : '注册失败，请稍后重试。'))
     } finally {

@@ -65,9 +65,9 @@ const boundaries = [
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-[#fbf4e8] text-[#2e1a14]">
-      <Navbar activeLabel="关于我们" showPublish />
+      <Navbar activeLabel="关于我们" />
 
-      <div className="mx-auto max-w-[1520px] px-4 pb-10 pt-[122px] sm:px-6 xl:px-10">
+      <div className="mx-auto max-w-[1520px] px-4 pb-28 pt-[72px] sm:px-6 sm:pt-[96px] xl:px-10 xl:pb-10">
         <section className="relative overflow-hidden rounded-[48px] bg-[linear-gradient(180deg,#fff9ef_0%,#fffdf9_100%)] px-5 pb-8 pt-14 shadow-[0_18px_45px_rgba(15,23,42,0.04)] sm:px-8 xl:px-12 xl:pb-10 xl:pt-16">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute left-[-6%] top-[22%] h-40 w-40 rounded-full bg-[#fff1ce]/70 blur-3xl" />

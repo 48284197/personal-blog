@@ -5,6 +5,20 @@ export const runtime = 'nodejs'
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 const MAX_FILES = 50 // 单次最多上传50个文件
+const TINIFY_API_KEY = process.env.TINIFY_API_KEY || '6CLdBrbCX0TSRDHbGJ2dHqcKGGmcthck'
+const TINIFY_SUPPORTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const EXTENSION_BY_TYPE: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/wav': 'wav',
+  'application/pdf': 'pdf',
+}
 
 const s3 = new S3Client({
   region: 'auto',
@@ -14,6 +28,61 @@ const s3 = new S3Client({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
   },
 })
+
+async function compressImageWithTinify(buffer: Buffer, contentType: string) {
+  if (!TINIFY_SUPPORTED_TYPES.has(contentType)) return buffer
+
+  try {
+    const auth = Buffer.from(`api:${TINIFY_API_KEY}`).toString('base64')
+    const shrinkResponse = await fetch('https://api.tinify.com/shrink', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': contentType,
+      },
+      body: new Uint8Array(buffer),
+    })
+
+    if (!shrinkResponse.ok) {
+      const detail = await shrinkResponse.text().catch(() => '')
+      console.warn('Tinify compression skipped:', shrinkResponse.status, detail)
+      return buffer
+    }
+
+    const compressedUrl = shrinkResponse.headers.get('location')
+    if (!compressedUrl) return buffer
+
+    const compressedResponse = await fetch(compressedUrl, {
+      headers: { Authorization: `Basic ${auth}` },
+    })
+
+    if (!compressedResponse.ok) {
+      const detail = await compressedResponse.text().catch(() => '')
+      console.warn('Tinify download skipped:', compressedResponse.status, detail)
+      return buffer
+    }
+
+    const compressed = Buffer.from(await compressedResponse.arrayBuffer())
+    return compressed.length > 0 && compressed.length < buffer.length ? compressed : buffer
+  } catch (error) {
+    console.warn('Tinify compression skipped:', error)
+    return buffer
+  }
+}
+
+function getSafeExtension(file: File) {
+  const typedExtension = EXTENSION_BY_TYPE[file.type]
+  if (typedExtension) return typedExtension
+
+  const extension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return extension?.slice(0, 12) || 'bin'
+}
+
+function createSafeObjectKey(file: File) {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 15)
+  return `uploads/${timestamp}-${random}.${getSafeExtension(file)}`
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,10 +114,9 @@ export async function POST(req: NextRequest) {
 
     for (const file of files) {
       const bytes = await file.arrayBuffer()
-      const buffer = Buffer.from(bytes)
-      const timestamp = Date.now()
-      const random = Math.random().toString(36).substring(2, 15)
-      const key = `uploads/${timestamp}-${random}-${file.name}`
+      const originalBuffer = Buffer.from(bytes)
+      const buffer = await compressImageWithTinify(originalBuffer, file.type)
+      const key = createSafeObjectKey(file)
 
       await s3.send(
         new PutObjectCommand({
@@ -60,10 +128,10 @@ export async function POST(req: NextRequest) {
       )
 
       uploadedFiles.push({
-        url: `${domain}/${key}`,
+        url: `${domain}/${key.split('/').map(encodeURIComponent).join('/')}`,
         name: file.name,
         type: file.type,
-        size: file.size,
+        size: buffer.length,
       })
     }
 

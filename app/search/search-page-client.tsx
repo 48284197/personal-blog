@@ -77,7 +77,7 @@ export default function SearchPageClient() {
   return (
     <main className="min-h-screen bg-[#f8f4ee]">
       <Navbar activeLabel="社区" />
-      <div className="relative overflow-hidden pt-[138px] sm:pt-[142px] xl:pt-[96px]">
+      <div className="relative overflow-hidden pb-24 pt-[72px] sm:pt-[96px] xl:pb-0 xl:pt-[96px]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,216,150,0.26),transparent_38%),radial-gradient(circle_at_bottom,rgba(253,240,214,0.72),transparent_44%)]" />
         <PawPrint className="pointer-events-none absolute right-[10%] top-28 h-20 w-20 text-[#f5c233]/15" />
         <PawPrint className="pointer-events-none absolute left-[12%] top-[28rem] h-14 w-14 text-[#f3bf4c]/10" />

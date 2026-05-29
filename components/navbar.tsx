@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Bell, ChevronDown, Plus, Search } from 'lucide-react'
+import { Bell, BookOpen, Home, Info, MessageCircle, Plus, Search } from 'lucide-react'
 
 const navItems = [
-  { label: '首页', href: '/' },
-  { label: '社区', href: '/content' },
-  { label: '知识', href: '/knowledge' },
-  { label: '关于我们', href: '/about' },
+  { label: '首页', href: '/', icon: Home },
+  { label: '社区', href: '/content', icon: MessageCircle },
+  { label: '知识', href: '/knowledge', icon: BookOpen },
+  { label: '关于', href: '/about', icon: Info, activeLabel: '关于我们' },
 ]
 
 type NavbarProps = {
@@ -28,6 +28,40 @@ type NavbarAuthUser = {
   name: string
   avatarUrl?: string | null
   isKnowledgeCreator?: boolean
+}
+
+const AUTH_CACHE_KEY = 'maoqiu-navbar-auth-user'
+const AUTH_CACHE_EVENT = 'maoqiu-auth-cache-change'
+let cachedAuthUser: NavbarAuthUser | null | undefined
+
+function readCachedAuthUser() {
+  if (cachedAuthUser !== undefined) return cachedAuthUser
+  if (typeof window === 'undefined') return null
+
+  try {
+    const raw = window.localStorage.getItem(AUTH_CACHE_KEY)
+    cachedAuthUser = raw ? (JSON.parse(raw) as NavbarAuthUser) : null
+  } catch {
+    cachedAuthUser = null
+  }
+
+  return cachedAuthUser
+}
+
+function writeCachedAuthUser(user: NavbarAuthUser | null) {
+  cachedAuthUser = user
+  if (typeof window === 'undefined') return
+
+  try {
+    if (user) {
+      window.localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(user))
+    } else {
+      window.localStorage.removeItem(AUTH_CACHE_KEY)
+    }
+    window.dispatchEvent(new CustomEvent(AUTH_CACHE_EVENT, { detail: user }))
+  } catch {
+    // noop
+  }
 }
 
 type NotificationItem = {
@@ -59,12 +93,19 @@ export function Navbar({
 
   useEffect(() => {
     let cancelled = false
+    const cached = readCachedAuthUser()
+
+    if (cached) {
+      setAuthUser(cached)
+      setAuthLoaded(true)
+    }
 
     const loadAuthUser = async () => {
       try {
         const response = await fetch('/api/auth/me', { cache: 'no-store' })
 
         if (!response.ok) {
+          writeCachedAuthUser(null)
           if (!cancelled) setAuthUser(null)
           return
         }
@@ -79,15 +120,17 @@ export function Navbar({
         }
 
         if (!cancelled && data.user?.name) {
-          setAuthUser({
+          const nextUser = {
             id: data.user.id,
             name: data.user.name,
             avatarUrl: data.user.avatarUrl,
             isKnowledgeCreator: data.user.isKnowledgeCreator,
-          })
+          }
+          writeCachedAuthUser(nextUser)
+          setAuthUser(nextUser)
         }
       } catch {
-        if (!cancelled) setAuthUser(null)
+        if (!cancelled && !cached) setAuthUser(null)
       } finally {
         if (!cancelled) setAuthLoaded(true)
       }
@@ -97,6 +140,20 @@ export function Navbar({
 
     return () => {
       cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const syncCachedAuth = (event: Event) => {
+      setAuthUser((event as CustomEvent<NavbarAuthUser | null>).detail ?? readCachedAuthUser())
+      setAuthLoaded(true)
+    }
+
+    window.addEventListener(AUTH_CACHE_EVENT, syncCachedAuth)
+    window.addEventListener('storage', syncCachedAuth)
+    return () => {
+      window.removeEventListener(AUTH_CACHE_EVENT, syncCachedAuth)
+      window.removeEventListener('storage', syncCachedAuth)
     }
   }, [])
 
@@ -170,18 +227,19 @@ export function Navbar({
   }
 
   return (
+    <>
     <header className="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-[74px] w-full max-w-[1520px] items-center gap-3 px-4 sm:gap-4 sm:px-6 xl:gap-6 xl:px-10">
-        <Link href="/" className="flex shrink-0 items-center gap-3 whitespace-nowrap">
+      <div className="mx-auto flex h-14 w-full max-w-[1520px] items-center gap-2 px-3 sm:h-[74px] sm:gap-4 sm:px-6 xl:gap-6 xl:px-10">
+        <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap sm:gap-3">
        
-            <Image src="/logo.png" alt="毛球" width={50} height={50} className=" object-contain flex items-center justify-center rounded-full scale-90" />
+            <Image src="/logo.png" alt="毛球" width={40} height={40} className="flex scale-90 items-center justify-center rounded-full object-contain sm:h-[50px] sm:w-[50px]" />
         
-          <span className="whitespace-nowrap text-[24px] font-black tracking-[-0.03em] text-[#2e1a14] sm:text-[28px]">毛球</span>
+          <span className="whitespace-nowrap text-[21px] font-black tracking-[-0.03em] text-[#2e1a14] sm:text-[28px]">毛球</span>
         </Link>
 
         <nav className="hidden items-center gap-8 xl:flex">
           {navItems.map((item) => {
-            const active = item.label === activeLabel
+            const active = (item.activeLabel ?? item.label) === activeLabel
 
             return (
               <Link
@@ -198,7 +256,7 @@ export function Navbar({
           })}
         </nav>
 
-        <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3 xl:gap-4">
+        <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-3 xl:gap-4">
           <label className="hidden h-12 min-w-[220px] max-w-[268px] flex-1 items-center gap-3 rounded-full bg-[#f6f4f1] px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] xl:flex">
             <Search className="h-5 w-5 text-black/35" />
             <input
@@ -217,12 +275,12 @@ export function Navbar({
                 <button
                   type="button"
                   onClick={handleNotificationToggle}
-                  className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-[#2e1a14] shadow-[0_1px_0_rgba(255,255,255,0.8)] transition hover:bg-[#faf8f4]"
+                  className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-[#2e1a14] shadow-[0_1px_0_rgba(255,255,255,0.8)] transition hover:bg-[#faf8f4] sm:h-11 sm:w-11"
                   aria-label="通知"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                   {unreadCount > 0 ? (
-                    <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#ff5d4e]" />
+                    <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#ff5d4e] sm:right-2 sm:top-2" />
                   ) : null}
                 </button>
 
@@ -272,7 +330,7 @@ export function Navbar({
               </div>
               <button
                 type="button"
-                className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-white px-3 pr-3 shadow-[0_1px_0_rgba(255,255,255,0.8)] sm:gap-3 sm:pr-4"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_1px_0_rgba(255,255,255,0.8)] sm:h-11 sm:w-auto sm:gap-3 sm:px-3 sm:pr-4"
               >
                 {isAuthenticated ? (
                   <Link
@@ -286,87 +344,89 @@ export function Navbar({
                         alt={resolvedUserName}
                         width={32}
                         height={32}
-                        className="h-8 w-8 rounded-full object-cover"
+                        className="h-7 w-7 rounded-full object-cover sm:h-8 sm:w-8"
                         unoptimized={resolvedUserAvatar.startsWith('http')}
                       />
                     ) : (
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f5c233] text-[13px] font-black text-[#2e1a14]">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f5c233] text-[12px] font-black text-[#2e1a14] sm:h-8 sm:w-8 sm:text-[13px]">
                         {resolvedUserName.slice(0, 1)}
                       </span>
                     )}
                   </Link>
                 ) : (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f5c233] text-[13px] font-black text-[#2e1a14]">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f5c233] text-[12px] font-black text-[#2e1a14] sm:h-8 sm:w-8 sm:text-[13px]">
                     {resolvedUserName.slice(0, 1)}
                   </span>
                 )}
                 <span className="hidden max-w-[88px] truncate whitespace-nowrap text-[14px] font-medium text-[#2e1a14] md:inline xl:hidden">
                   {resolvedUserName}
                 </span>
-                <ChevronDown className="h-4 w-4 text-black/40" />
               </button>
               {canShowPublish ? (
                 onPublishClick ? (
                   <button
                     type="button"
                     onClick={onPublishClick}
-                    className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#f5c233] px-4 text-[14px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:px-5 sm:text-[15px] xl:px-7"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-[#f5c233] text-[14px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:h-11 sm:w-auto sm:px-5 sm:text-[15px] xl:px-7"
                   >
                     <Plus className="h-4 w-4" />
-                    <span className="whitespace-nowrap">发布</span>
+                    <span className="hidden whitespace-nowrap sm:inline">发布</span>
                   </button>
                 ) : (
                   <Link
                     href={publishHref}
-                    className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#f5c233] px-4 text-[14px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:px-5 sm:text-[15px] xl:px-7"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-[#f5c233] text-[14px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:h-11 sm:w-auto sm:px-5 sm:text-[15px] xl:px-7"
                   >
                     <Plus className="h-4 w-4" />
-                    <span className="whitespace-nowrap">发布</span>
+                    <span className="hidden whitespace-nowrap sm:inline">发布</span>
                   </Link>
                 )
               ) : null}
             </>
-          ) : (
+          ) : authLoaded ? (
             <>
               <Link
                 href="/login"
-                className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-black/10 bg-white px-4 text-[14px] font-semibold text-[#2e1a14] shadow-[0_1px_0_rgba(255,255,255,0.8)] transition hover:bg-[#faf8f4] sm:px-5 sm:text-[15px] xl:px-7"
+                className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-black/10 bg-white px-3 text-[13px] font-semibold text-[#2e1a14] shadow-[0_1px_0_rgba(255,255,255,0.8)] transition hover:bg-[#faf8f4] sm:h-11 sm:px-5 sm:text-[15px] xl:px-7"
               >
                 登录
               </Link>
               <Link
                 href="/login?mode=register"
-                className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#f5c233] px-4 text-[14px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:px-5 sm:text-[15px] xl:px-7"
+                className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#f5c233] px-3 text-[13px] font-semibold text-[#2e1a14] shadow-[0_10px_24px_rgba(245,194,51,0.28)] transition hover:bg-[#f1b91f] sm:h-11 sm:px-5 sm:text-[15px] xl:px-7"
               >
                 注册
               </Link>
             </>
-          )}
+          ) : null}
         </div>
       </div>
 
-      <div className="border-t border-black/5 bg-white/80 xl:hidden">
-        <div className="mx-auto flex h-12 w-full max-w-[1520px] items-center gap-2 overflow-x-auto px-4 sm:px-6">
-          {navItems.map((item) => {
-            const active = item.label === activeLabel
-
-            return (
-              <Link
-                key={`tablet-${item.label}`}
-                href={item.href}
-                className={[
-                  'shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-[14px] font-medium transition',
-                  active
-                    ? 'bg-[#f5c233] text-[#2e1a14]'
-                    : 'bg-[#f6f4f1] text-[#65584f] hover:bg-[#ece7df]',
-                ].join(' ')}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
-        </div>
-      </div>
     </header>
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-black/5 bg-white/94 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 shadow-[0_-18px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl xl:hidden">
+      <div className="mx-auto grid h-14 max-w-[520px] grid-cols-4 gap-1">
+        {navItems.map((item) => {
+          const active = (item.activeLabel ?? item.label) === activeLabel
+          const Icon = item.icon
+
+          return (
+            <Link
+              key={`mobile-${item.label}`}
+              href={item.href}
+              className={[
+                'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-semibold transition',
+                active
+                  ? 'bg-[#fff2c9] text-[#2e1a14]'
+                  : 'text-[#7b6f66] active:bg-[#f6f4f1]',
+              ].join(' ')}
+            >
+              <Icon className={active ? 'h-5 w-5 text-[#d69200]' : 'h-5 w-5'} />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
+    </>
   )
 }

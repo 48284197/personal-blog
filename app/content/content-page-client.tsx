@@ -166,7 +166,7 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
       />
 
       {/* 提示：当详情页评论区打开时导航栏样式需保持 */}
-      <div className="relative mx-auto max-w-[1520px] px-4 pt-[138px] sm:px-6 sm:pt-[142px] xl:px-10 xl:pt-[96px]">
+      <div className="relative mx-auto max-w-[1520px] px-4 pb-24 pt-[72px] sm:px-6 sm:pt-[96px] xl:px-10 xl:pb-0 xl:pt-[96px]">
         <div className="flex items-start gap-8">
           {/* 左侧导航 */}
           <aside className="sticky top-[96px] hidden w-[200px] shrink-0 xl:block">
@@ -176,7 +176,7 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                 const isActive = activeChannel === tab.key && followingOnly === Boolean(tab.followingOnly)
                 return (
                   <button
-                    key={tab.key || 'all'}
+                    key={`${tab.label}-${tab.followingOnly ? 'following' : tab.key || 'all'}`}
                     type="button"
                     onClick={() => handleChannelChange(tab)}
                     className={[
@@ -207,11 +207,11 @@ export function ContentPageClient({ initialItems, initialHasMore }: ContentPageC
                       && followingOnly === Boolean(tab.followingOnly)
                     return (
                       <button
-                        key={tab.key || 'all'}
+                        key={`${tab.label}-${tab.followingOnly ? 'following' : tab.key || 'all'}`}
                         type="button"
                         onClick={() => handleChannelChange(tab)}
                         className={[
-                          'shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition whitespace-nowrap',
+                          'shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition whitespace-nowrap sm:px-4 sm:py-2 sm:text-[14px]',
                           isActive
                             ? 'bg-[#f5c233] text-[#2e1a14] font-bold'
                             : 'border border-black/5 bg-white/80 text-[#65584f]',

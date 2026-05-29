@@ -36,7 +36,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#f9f3e7] text-[#2e1a14]">
       <Navbar />
 
-      <main className="pt-[74px]">
+      <main className="pt-14 sm:pt-[74px]">
         <section className="relative overflow-hidden border-b border-black/5 bg-[linear-gradient(180deg,#fbf6eb_0%,#fbf7ef_52%,#fffdf9_100%)]">
           <div className="mx-auto grid w-full max-w-[1520px] gap-8 px-4 pb-20 pt-16 sm:px-6 xl:grid-cols-[0.92fr_1.08fr] xl:px-10 xl:pb-24 xl:pt-20">
             <div className="flex flex-col justify-center pb-10 xl:pb-20">
@@ -145,7 +145,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="discover" className="-mt-6 bg-white rounded-[44px] overflow-hidden z-[1000] relative">
+        <section id="discover" className="relative -mt-6 overflow-hidden rounded-[44px] bg-white">
           <div className="mx-auto w-full max-w-[1520px] px-4 pb-16 sm:px-6 xl:px-10">
             <div className="rounded-[44px]  px-4 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:px-6 xl:px-8 xl:py-10">
               <div>

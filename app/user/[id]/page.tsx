@@ -119,7 +119,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   const joinedDate = new Date(user.joinedAt)
 
   return (
-    <main className="relative min-h-screen bg-[#f7fbff] pb-20">
+    <main className="relative min-h-screen bg-[#f7fbff] pb-28 xl:pb-20">
       {/* 动态背景 */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(255,213,128,0.24),transparent_34%),radial-gradient(circle_at_top_right,rgba(254,240,198,0.3),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(253,224,71,0.08),transparent_34%),linear-gradient(180deg,#fffdf8_0%,#fbf6ed_44%,#f8f2e6_100%)]" />
       <div className="pointer-events-none fixed right-[8%] top-32 z-0 text-[#f5c233]/10">
