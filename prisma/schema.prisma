@@ -68,6 +68,11 @@ enum NotificationType {
   SYSTEM
 }
 
+enum AiGatewayRouteStrategy {
+  DEFAULT
+  MODEL_PREFIX
+}
+
 model User {
   id            String          @id @default(cuid())
   authUserId    String?         @unique
@@ -481,4 +486,51 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+}
+
+model AiGatewayProvider {
+  id            String                 @id @default(cuid())
+  name          String
+  baseUrl       String
+  apiKey        String                 @db.Text
+  routeStrategy AiGatewayRouteStrategy @default(DEFAULT)
+  modelPrefix   String?
+  priority      Int                    @default(100)
+  isActive      Boolean                @default(true)
+  notes         String?                @db.Text
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  models        AiGatewayModel[]
+
+  @@index([isActive, priority])
+}
+
+model AiGatewayModel {
+  id             String            @id @default(cuid())
+  providerId     String
+  publicModel    String
+  upstreamModel  String
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  provider       AiGatewayProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, publicModel])
+  @@index([publicModel, isActive])
+}
+
+model AiGatewayKey {
+  id          String   @id @default(cuid())
+  name        String
+  keyHash     String   @unique
+  keyPrefix   String
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
 }

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>熊猫旅游 APP - AI旅行规划助手</title>
+
+<style>
+/* =====================
+   DESIGN SYSTEM
+===================== */
+:root{
+  --bg:#0b1220;
+  --card:rgba(255,255,255,0.06);
+  --card2:rgba(255,255,255,0.09);
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+
+  --primary:#22c55e;
+  --secondary:#38bdf8;
+  --accent:#a78bfa;
+
+  --radius:18px;
+  --shadow:0 20px 60px rgba(0,0,0,0.35);
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family: ui-sans-serif, system-ui, -apple-system;
+}
+
+body{
+  background: radial-gradient(circle at top, #111827, var(--bg));
+  color:var(--text);
+  overflow-x:hidden;
+}
+
+/* =====================
+   LAYOUT
+===================== */
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:0 20px;
+}
+
+/* =====================
+   HERO (GLASS + GRADIENT)
+===================== */
+.hero{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:60px 20px;
+  position:relative;
+}
+
+.hero::before{
+  content:"";
+  position:absolute;
+  width:600px;
+  height:600px;
+  background: radial-gradient(circle, var(--secondary), transparent 60%);
+  filter: blur(80px);
+  top:-100px;
+}
+
+.hero h1{
+  font-size:64px;
+  letter-spacing:-1px;
+}
+
+.hero p{
+  margin-top:16px;
+  color:var(--muted);
+  font-size:18px;
+}
+
+.btns{
+  margin-top:28px;
+}
+
+.btn{
+  display:inline-block;
+  padding:12px 22px;
+  border-radius:999px;
+  text-decoration:none;
+  margin:0 8px;
+  font-weight:600;
+  transition:.3s;
+}
+
+.btn.primary{
+  background:linear-gradient(135deg,var(--primary),var(--secondary));
+  color:#000;
+}
+
+.btn.ghost{
+  border:1px solid rgba(255,255,255,0.2);
+  color:var(--text);
+}
+
+/* =====================
+   SECTION
+===================== */
+section{
+  padding:80px 0;
+}
+
+h2{
+  text-align:center;
+  font-size:34px;
+  margin-bottom:40px;
+}
+
+/* =====================
+   BENTO GRID
+===================== */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  gap:16px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:var(--radius);
+  padding:22px;
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(14px);
+  transition:.3s;
+}
+
+.card:hover{
+  transform:translateY(-4px);
+  background:var(--card2);
+}
+
+.span-6{grid-column:span 6;}
+.span-4{grid-column:span 4;}
+.span-8{grid-column:span 8;}
+.span-12{grid-column:span 12;}
+
+/* =====================
+   STAT
+===================== */
+.stat{
+  text-align:center;
+}
+.stat h3{
+  font-size:28px;
+  color:var(--secondary);
+}
+
+/* =====================
+   AI PANEL
+===================== */
+.ai{
+  background:linear-gradient(135deg, rgba(34,197,94,0.15), rgba(56,189,248,0.15));
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:24px;
+  padding:40px;
+}
+
+/* =====================
+   CTA
+===================== */
+.cta{
+  text-align:center;
+  padding:80px 20px;
+  border-radius:24px;
+  background:linear-gradient(135deg,#111827,#0f172a);
+}
+
+footer{
+  text-align:center;
+  padding:40px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* =====================
+   RESPONSIVE
+===================== */
+@media(max-width:768px){
+  .hero h1{font-size:40px;}
+  .span-6,.span-4,.span-8{grid-column:span 12;}
+}
+</style>
+</head>
+
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <h1>熊猫旅游 APP</h1>
+    <p>AI 驱动旅行规划 · 记录 · 社区一体化平台</p>
+
+    <div class="btns">
+      <a class="btn primary" href="#">立即体验</a>
+      <a class="btn ghost" href="#">查看演示</a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- STATS BENTO -->
+<section>
+<h2>数据增长</h2>
+
+<div class="grid">
+
+  <div class="card span-3 stat">
+    <h3>100W+</h3>
+    <p>用户</p>
+  </div>
+
+  <div class="card span-3 stat">
+    <h3>500W+</h3>
+    <p>笔记</p>
+  </div>
+
+  <div class="card span-3 stat">
+    <h3>300+</h3>
+    <p>城市</p>
+  </div>
+
+  <div class="card span-3 stat">
+    <h3>50W+</h3>
+    <p>AI行程</p>
+  </div>
+
+</div>
+</section>
+
+<!-- CORE -->
+<section>
+<h2>核心能力</h2>
+
+<div class="grid">
+
+  <div class="card span-6">
+    <h3>✍️ 智能旅行笔记</h3>
+    <p style="color:var(--muted);margin-top:10px;">
+      自动记录旅行轨迹，生成结构化游记内容。
+    </p>
+  </div>
+
+  <div class="card span-6">
+    <h3>🗺️ AI 行程规划</h3>
+    <p style="color:var(--muted);margin-top:10px;">
+      输入目的地即可生成完整旅行路线方案。
+    </p>
+  </div>
+
+</div>
+</section>
+
+<!-- FEATURES BENTO -->
+<section>
+<h2>全场景体验</h2>
+
+<div class="grid">
+
+  <div class="card span-4">出发前：AI规划 / 酒店 / 预算</div>
+  <div class="card span-4">旅行中：导航 / 天气 / 行程</div>
+  <div class="card span-4">旅行后：笔记 / 回忆 / 分享</div>
+
+  <div class="card span-8">📍 地图化行程系统（路线 + 打卡 + 收藏）</div>
+  <div class="card span-4">📦 多端同步</div>
+
+</div>
+</section>
+
+<!-- AI -->
+<section>
+<h2>AI 旅行大脑</h2>
+
+<div class="ai">
+<h3>理解你的旅行方式</h3>
+<p style="color:var(--muted);margin-top:10px;">
+支持自由行 / 亲子游 / 情侣游 / 自驾游 / 蜜月 / 特种兵旅行
+</p>
+</div>
+</section>
+
+<!-- CTA -->
+<section>
+<div class="cta">
+<h2>开启你的下一段旅行</h2>
+<p style="color:var(--muted);margin-top:10px;">
+熊猫旅游 APP · AI规划 × 记录 × 社区
+</p>
+
+<div class="btns">
+<a class="btn primary" href="#">App Store</a>
+<a class="btn ghost" href="#">Android</a>
+</div>
+</div>
+</section>
+
+</div>
+
+<footer>
+Copyright©2019-2022 成都景合亿家科技有限公司 蜀ICP备19012612号
+</footer>
+
+</body>
+</html>
