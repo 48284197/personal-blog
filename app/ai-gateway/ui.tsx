@@ -14,24 +14,16 @@ import {
   Trash2,
 } from 'lucide-react'
 
-type GatewayModel = {
-  id?: string
-  publicModel: string
-  upstreamModel: string
-  isActive: boolean
-}
-
 type Provider = {
   id: string
   name: string
   baseUrl: string
   apiKey: string
-  routeStrategy: 'DEFAULT' | 'MODEL_PREFIX'
-  modelPrefix: string | null
   priority: number
   isActive: boolean
+  balanceInsufficient: boolean
+  balanceInsufficientAt: string | null
   notes: string | null
-  models: GatewayModel[]
 }
 
 type GatewayKey = {
@@ -50,24 +42,18 @@ type ProviderForm = {
   name: string
   baseUrl: string
   apiKey: string
-  routeStrategy: 'DEFAULT' | 'MODEL_PREFIX'
-  modelPrefix: string
   priority: number
   isActive: boolean
   notes: string
-  models: GatewayModel[]
 }
 
 const emptyProvider: ProviderForm = {
   name: '',
   baseUrl: 'https://api.openai.com/v1',
   apiKey: '',
-  routeStrategy: 'DEFAULT',
-  modelPrefix: '',
   priority: 100,
   isActive: true,
   notes: '',
-  models: [{ publicModel: 'gpt-4o-mini', upstreamModel: 'gpt-4o-mini', isActive: true }],
 }
 
 function formatTime(value?: string | null) {
@@ -86,14 +72,9 @@ function providerToForm(provider: Provider): ProviderForm {
     name: provider.name,
     baseUrl: provider.baseUrl,
     apiKey: '',
-    routeStrategy: provider.routeStrategy,
-    modelPrefix: provider.modelPrefix ?? '',
     priority: provider.priority,
     isActive: provider.isActive,
     notes: provider.notes ?? '',
-    models: provider.models.length
-      ? provider.models.map((model) => ({ ...model }))
-      : [{ publicModel: '', upstreamModel: '', isActive: true }],
   }
 }
 
@@ -224,15 +205,6 @@ export function AiGatewayConsole() {
     setMessage('已复制')
   }
 
-  function updateModel(index: number, patch: Partial<GatewayModel>) {
-    setProviderForm((current) => ({
-      ...current,
-      models: current.models.map((model, itemIndex) =>
-        itemIndex === index ? { ...model, ...patch } : model
-      ),
-    }))
-  }
-
   return (
     <main className="min-h-screen bg-[#f7f8fb] text-slate-950">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
@@ -334,89 +306,6 @@ export function AiGatewayConsole() {
                 />
               </label>
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  路由策略
-                  <select
-                    value={providerForm.routeStrategy}
-                    onChange={(event) =>
-                      setProviderForm({
-                        ...providerForm,
-                        routeStrategy: event.target.value as ProviderForm['routeStrategy'],
-                      })
-                    }
-                    className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-base font-medium outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                  >
-                    <option value="DEFAULT">默认兜底</option>
-                    <option value="MODEL_PREFIX">按模型前缀</option>
-                  </select>
-                </label>
-
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  模型前缀
-                  <input
-                    value={providerForm.modelPrefix}
-                    onChange={(event) =>
-                      setProviderForm({ ...providerForm, modelPrefix: event.target.value })
-                    }
-                    className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-base font-medium outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                    placeholder="claude-"
-                  />
-                </label>
-              </div>
-
-              <div className="grid gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-black text-slate-800">模型映射</span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setProviderForm({
-                        ...providerForm,
-                        models: [
-                          ...providerForm.models,
-                          { publicModel: '', upstreamModel: '', isActive: true },
-                        ],
-                      })
-                    }
-                    className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    <Plus className="h-4 w-4" />
-                    添加模型
-                  </button>
-                </div>
-
-                {providerForm.models.map((model, index) => (
-                  <div key={index} className="grid gap-2 rounded-lg border border-slate-200 p-3 md:grid-cols-[1fr_1fr_auto]">
-                    <input
-                      value={model.publicModel}
-                      onChange={(event) => updateModel(index, { publicModel: event.target.value })}
-                      className="h-10 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                      placeholder="对外模型名"
-                    />
-                    <input
-                      value={model.upstreamModel}
-                      onChange={(event) => updateModel(index, { upstreamModel: event.target.value })}
-                      className="h-10 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                      placeholder="上游模型名"
-                    />
-                    <button
-                      type="button"
-                      aria-label="删除模型映射"
-                      onClick={() =>
-                        setProviderForm({
-                          ...providerForm,
-                          models: providerForm.models.filter((_, itemIndex) => itemIndex !== index),
-                        })
-                      }
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
               <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-700">
                 <input
                   type="checkbox"
@@ -450,11 +339,21 @@ export function AiGatewayConsole() {
                         <span className={`rounded-full px-2 py-1 text-xs font-bold ${provider.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
                           {provider.isActive ? '启用' : '停用'}
                         </span>
+                        {provider.balanceInsufficient ? (
+                          <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-700">
+                            余额不足
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-1 break-all text-sm text-slate-600">{provider.baseUrl}</p>
                       <p className="mt-1 text-xs font-semibold text-slate-500">
                         Key: {provider.apiKey} · 优先级 {provider.priority}
                       </p>
+                      {provider.balanceInsufficientAt ? (
+                        <p className="mt-1 text-xs font-semibold text-amber-700">
+                          标记时间: {formatTime(provider.balanceInsufficientAt)}，下周一自动重置
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -474,15 +373,6 @@ export function AiGatewayConsole() {
                       </button>
                     </div>
                   </div>
-                  {provider.models.length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {provider.models.map((model) => (
-                        <span key={`${provider.id}-${model.publicModel}`} className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
-                          {model.publicModel} → {model.upstreamModel}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
               ))}
             </div>

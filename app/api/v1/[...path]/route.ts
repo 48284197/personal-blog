@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   authenticateGatewayRequest,
   buildUpstreamUrl,
-  listGatewayModels,
-  selectGatewayProvider,
+  getAvailableGatewayProviders,
+  isBalanceInsufficientError,
+  markGatewayProviderBalanceInsufficient,
 } from '@/lib/ai-gateway'
 
 export const runtime = 'nodejs'
@@ -61,52 +62,86 @@ async function forwardToUpstream(request: NextRequest, context: RouteContext) {
   const { path } = await context.params
   const pathname = path.join('/')
 
-  if (request.method === 'GET' && pathname === 'models') {
-    const data = await listGatewayModels()
-    return NextResponse.json({ object: 'list', data })
-  }
-
   const bodyJson = await readJsonBody(request)
   const requestedModel = typeof bodyJson?.model === 'string' ? bodyJson.model : null
-  const selected = await selectGatewayProvider(requestedModel)
+  const providers = await getAvailableGatewayProviders()
 
-  if (!selected) {
+  if (providers.length === 0) {
     return jsonError('尚未配置可用的上游服务', 503)
   }
 
-  let body: BodyInit | undefined
-  if (bodyJson) {
-    body = JSON.stringify({
-      ...bodyJson,
-      model: selected.upstreamModel ?? bodyJson.model,
+  let rawBody: ArrayBuffer | undefined
+  if (!bodyJson && request.method !== 'GET' && request.method !== 'HEAD') {
+    rawBody = await request.arrayBuffer()
+  }
+
+  let lastBalanceError: { body: string; status: number; statusText: string; headers: Headers } | null = null
+
+  for (const provider of providers) {
+    let body: BodyInit | undefined
+    if (bodyJson) {
+      body = JSON.stringify({
+        ...bodyJson,
+        model: requestedModel ?? bodyJson.model,
+      })
+    } else if (rawBody) {
+      body = rawBody.slice(0)
+    }
+
+    const upstreamUrl = buildUpstreamUrl(
+      provider.baseUrl,
+      pathname,
+      new URL(request.url).search
+    )
+
+    const upstreamResponse = await fetch(upstreamUrl, {
+      method: request.method,
+      headers: createForwardHeaders(request, provider.apiKey),
+      body,
+      cache: 'no-store',
     })
-  } else if (request.method !== 'GET' && request.method !== 'HEAD') {
-    body = await request.arrayBuffer()
+
+    const responseHeaders = new Headers(upstreamResponse.headers)
+    for (const header of HOP_BY_HOP_HEADERS) {
+      responseHeaders.delete(header)
+    }
+
+    if (!upstreamResponse.ok) {
+      const responseBody = await upstreamResponse.text()
+      if (isBalanceInsufficientError(upstreamResponse.status, responseBody)) {
+        await markGatewayProviderBalanceInsufficient(provider.id)
+        lastBalanceError = {
+          body: responseBody,
+          status: upstreamResponse.status,
+          statusText: upstreamResponse.statusText,
+          headers: responseHeaders,
+        }
+        continue
+      }
+
+      return new Response(responseBody, {
+        status: upstreamResponse.status,
+        statusText: upstreamResponse.statusText,
+        headers: responseHeaders,
+      })
+    }
+
+    return new Response(upstreamResponse.body, {
+      status: upstreamResponse.status,
+      statusText: upstreamResponse.statusText,
+      headers: responseHeaders,
+    })
   }
 
-  const upstreamUrl = buildUpstreamUrl(
-    selected.provider.baseUrl,
-    pathname,
-    new URL(request.url).search
-  )
-
-  const upstreamResponse = await fetch(upstreamUrl, {
-    method: request.method,
-    headers: createForwardHeaders(request, selected.provider.apiKey),
-    body,
-    cache: 'no-store',
-  })
-
-  const responseHeaders = new Headers(upstreamResponse.headers)
-  for (const header of HOP_BY_HOP_HEADERS) {
-    responseHeaders.delete(header)
+  if (lastBalanceError) {
+    return new Response(lastBalanceError.body, {
+      status: lastBalanceError.status,
+      statusText: lastBalanceError.statusText,
+      headers: lastBalanceError.headers,
+    })
   }
 
-  return new Response(upstreamResponse.body, {
-    status: upstreamResponse.status,
-    statusText: upstreamResponse.statusText,
-    headers: responseHeaders,
-  })
+  return jsonError('没有可用的上游服务', 503)
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {

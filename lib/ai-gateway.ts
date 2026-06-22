@@ -61,45 +61,48 @@ export function buildUpstreamUrl(baseUrl: string, pathname: string, search: stri
   return `${cleanBaseUrl}/${path}${search}`
 }
 
-export async function selectGatewayProvider(model?: string | null) {
-  const providers = await prisma.aiGatewayProvider.findMany({
-    where: { isActive: true },
-    include: {
-      models: {
-        where: { isActive: true },
+function getMondayStart(date = new Date()) {
+  const day = date.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  const monday = new Date(date)
+  monday.setHours(0, 0, 0, 0)
+  monday.setDate(monday.getDate() + diff)
+  return monday
+}
+
+export async function resetGatewayBalanceFlagsIfNeeded() {
+  const mondayStart = getMondayStart()
+
+  await prisma.aiGatewayProvider.updateMany({
+    where: {
+      balanceInsufficient: true,
+      balanceInsufficientAt: {
+        lt: mondayStart,
       },
+    },
+    data: {
+      balanceInsufficient: false,
+      balanceInsufficientAt: null,
+    },
+  })
+}
+
+export async function getAvailableGatewayProviders() {
+  await resetGatewayBalanceFlagsIfNeeded()
+
+  return prisma.aiGatewayProvider.findMany({
+    where: {
+      isActive: true,
+      balanceInsufficient: false,
     },
     orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
   })
+}
+
+export async function selectGatewayProvider(model?: string | null) {
+  const providers = await getAvailableGatewayProviders()
 
   if (providers.length === 0) return null
-
-  if (model) {
-    const exactModel = providers
-      .flatMap((provider) => provider.models.map((item) => ({ provider, model: item })))
-      .find((item) => item.model.publicModel === model)
-
-    if (exactModel) {
-      return {
-        provider: exactModel.provider,
-        upstreamModel: exactModel.model.upstreamModel,
-      }
-    }
-
-    const prefixedProvider = providers.find(
-      (provider) =>
-        provider.routeStrategy === 'MODEL_PREFIX' &&
-        provider.modelPrefix &&
-        model.startsWith(provider.modelPrefix)
-    )
-
-    if (prefixedProvider) {
-      return {
-        provider: prefixedProvider,
-        upstreamModel: model,
-      }
-    }
-  }
 
   return {
     provider: providers[0],
@@ -107,28 +110,36 @@ export async function selectGatewayProvider(model?: string | null) {
   }
 }
 
-export async function listGatewayModels() {
-  const configuredModels = await prisma.aiGatewayModel.findMany({
-    where: {
-      isActive: true,
-      provider: { isActive: true },
+export async function markGatewayProviderBalanceInsufficient(providerId: string) {
+  await prisma.aiGatewayProvider.update({
+    where: { id: providerId },
+    data: {
+      balanceInsufficient: true,
+      balanceInsufficientAt: new Date(),
     },
-    include: {
-      provider: {
-        select: {
-          id: true,
-          name: true,
-          priority: true,
-        },
-      },
-    },
-    orderBy: [{ publicModel: 'asc' }],
   })
+}
 
-  return configuredModels.map((model) => ({
-    id: model.publicModel,
-    object: 'model',
-    created: Math.floor(model.createdAt.getTime() / 1000),
-    owned_by: model.provider.name,
-  }))
+export function isBalanceInsufficientError(status: number, responseBody: string) {
+  const body = responseBody.toLowerCase()
+
+  if (![400, 401, 402, 403, 429].includes(status)) return false
+
+  return [
+    'insufficient_quota',
+    'insufficient quota',
+    'insufficient balance',
+    'not enough balance',
+    'no balance',
+    'balance not enough',
+    'quota_exceeded',
+    'billing',
+    'payment required',
+    '余额不足',
+    '余额不够',
+    '额度不足',
+    '额度已用尽',
+    '欠费',
+    '账户余额',
+  ].some((keyword) => body.includes(keyword))
 }
