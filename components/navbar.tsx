@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import Image from '@/components/app-image'
+import Link from '@/components/app-link'
+import { useRouter } from '@/lib/navigation'
 import { Bell, BookOpen, Home, Info, MessageCircle, Plus, Search } from 'lucide-react'
 
 const navItems = [

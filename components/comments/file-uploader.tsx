@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Image from 'next/image'
+import Image from '@/components/app-image'
 import { useDropzone } from 'react-dropzone'
 import { AlertCircle, FileUp, Image as ImageIcon, Loader2, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'

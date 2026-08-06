@@ -9,7 +9,7 @@ import {
   useMemo,
   useState,
 } from 'react'
-import Image from 'next/image'
+import Image from '@/components/app-image'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 type PreviewState = {

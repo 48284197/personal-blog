@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
+import Image from '@/components/app-image'
+import Link from '@/components/app-link'
 import { CalendarDays, Heart, MessageSquare, UsersRound } from 'lucide-react'
 import type { ContentItem } from '@/lib/site-data'
 

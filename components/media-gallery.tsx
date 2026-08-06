@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+import Image from '@/components/app-image'
 import { ImageIcon } from 'lucide-react'
 import { useImagePreview } from '@/components/image-preview'
 import { cn } from '@/lib/utils'

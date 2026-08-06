@@ -9,8 +9,8 @@ import {
   useRef,
   useState,
 } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
+import Link from '@/components/app-link'
+import Image from '@/components/app-image'
 import type { Dispatch, SetStateAction } from 'react'
 import { Heart, Send, X } from 'lucide-react'
 import { getResponseErrorMessage } from '@/lib/response-error'

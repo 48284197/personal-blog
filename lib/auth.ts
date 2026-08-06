@@ -1,6 +1,6 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
-import { cookies } from 'next/headers'
-import type { NextRequest } from 'next/server'
+import { deleteCookie, getCookie, setCookie } from '@tanstack/react-start/server'
+import type { AppRequest } from './http'
 import { prisma } from './prisma'
 
 const SESSION_COOKIE = 'maoqiu_session'
@@ -50,8 +50,7 @@ export async function createSession(userId: string) {
 }
 
 export async function setSessionCookie(token: string, expiresAt: Date) {
-  const cookieStore = await cookies()
-  cookieStore.set(SESSION_COOKIE, token, {
+  setCookie(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
@@ -61,26 +60,24 @@ export async function setSessionCookie(token: string, expiresAt: Date) {
 }
 
 export async function clearSessionCookie() {
-  const cookieStore = await cookies()
-  cookieStore.set(SESSION_COOKIE, '', {
+  deleteCookie(SESSION_COOKIE, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 0,
   })
 }
 
-export async function destroyCurrentSession(request?: NextRequest) {
-  const cookieToken = request?.cookies.get(SESSION_COOKIE)?.value ?? (await cookies()).get(SESSION_COOKIE)?.value
+export async function destroyCurrentSession(request?: AppRequest) {
+  const cookieToken = request?.cookies.get(SESSION_COOKIE)?.value ?? getCookie(SESSION_COOKIE)
   if (cookieToken) {
     await prisma.session.deleteMany({ where: { tokenHash: hashToken(cookieToken) } })
   }
   await clearSessionCookie()
 }
 
-export async function getCurrentUser(request?: NextRequest) {
-  const cookieToken = request?.cookies.get(SESSION_COOKIE)?.value ?? (await cookies()).get(SESSION_COOKIE)?.value
+export async function getCurrentUser(request?: AppRequest) {
+  const cookieToken = request?.cookies.get(SESSION_COOKIE)?.value ?? getCookie(SESSION_COOKIE)
   if (!cookieToken) return null
 
   const session = await prisma.session.findUnique({
@@ -98,12 +95,12 @@ export async function getCurrentUser(request?: NextRequest) {
   return session.user
 }
 
-export async function requireCurrentUser(request?: NextRequest) {
+export async function requireCurrentUser(request?: AppRequest) {
   const user = await getCurrentUser(request)
   if (!user) throw new Error('UNAUTHORIZED')
   return user
 }
 
-export async function getRequestUser(request: NextRequest) {
+export async function getRequestUser(request: AppRequest) {
   return getCurrentUser(request)
 }

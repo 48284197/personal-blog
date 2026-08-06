@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/components/app-link'
 import { ArrowRight, ImagePlus, PlaySquare, Video } from 'lucide-react'
 import { Badge, Surface } from '@/components/landing'
 import { FileUploader } from '@/components/comments/file-uploader'

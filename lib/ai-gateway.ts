@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto'
-import type { NextRequest } from 'next/server'
+import type { AppRequest } from './http'
 import { prisma } from './prisma'
 
 export const GATEWAY_KEY_PREFIX = 'sk-maoqiu'
@@ -22,13 +22,13 @@ function safeEqual(a: string, b: string) {
   return left.length === right.length && timingSafeEqual(left, right)
 }
 
-export function getBearerToken(request: NextRequest) {
+export function getBearerToken(request: AppRequest) {
   const authorization = request.headers.get('authorization') ?? ''
   const match = authorization.match(/^Bearer\s+(.+)$/i)
   return match?.[1]?.trim() ?? null
 }
 
-export async function authenticateGatewayRequest(request: NextRequest) {
+export async function authenticateGatewayRequest(request: AppRequest) {
   const token = getBearerToken(request)
   if (!token) return null
 

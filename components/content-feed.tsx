@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
+import Link from '@/components/app-link'
+import Image from '@/components/app-image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart,

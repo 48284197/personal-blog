@@ -1,7 +1,7 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
+import Image from '@/components/app-image'
+import Link from '@/components/app-link'
 import { Image as ImageIcon, User } from 'lucide-react'
 import { Surface } from '@/components/landing'
 import { cn } from '@/lib/utils'
